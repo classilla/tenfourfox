@@ -1,0 +1,50 @@
+diff a/js/src/irregexp/NativeRegExpMacroAssembler.cpp b/js/src/irregexp/NativeRegExpMacroAssembler.cpp	(rejected hunks)
+@@ -714,19 +714,20 @@ NativeRegExpMacroAssembler::CheckNotBack
+ 
+     // Restore backtrack stack pointer.
+     masm.pop(backtrack_stack_pointer);
+ 
+     masm.bind(&fallthrough);
+ }
+ 
+ void
+-NativeRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, Label* on_no_match)
++NativeRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, Label* on_no_match,
++                                                            bool unicode)
+ {
+-    JitSpew(SPEW_PREFIX "CheckNotBackReferenceIgnoreCase(%d)", start_reg);
++    JitSpew(SPEW_PREFIX "CheckNotBackReferenceIgnoreCase(%d, %d)", start_reg, unicode);
+ 
+     Label fallthrough;
+ 
+     masm.loadPtr(register_location(start_reg), current_character);  // Index of start of capture
+     masm.loadPtr(register_location(start_reg + 1), temp1);  // Index of end of capture
+     masm.subPtr(current_character, temp1);  // Length of capture.
+ 
+     // The length of a capture should not be negative. This can only happen
+@@ -828,18 +829,23 @@ NativeRegExpMacroAssembler::CheckNotBack
+         // Parameters are
+         //   Address byte_offset1 - Address captured substring's start.
+         //   Address byte_offset2 - Address of current character position.
+         //   size_t byte_length - length of capture in bytes(!)
+         masm.setupUnalignedABICall(temp0);
+         masm.passABIArg(current_character);
+         masm.passABIArg(current_position);
+         masm.passABIArg(temp1);
+-        int (*fun)(const char16_t*, const char16_t*, size_t) = CaseInsensitiveCompareStrings;
+-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, fun));
++        if (!unicode) {
++            int (*fun)(const char16_t*, const char16_t*, size_t) = CaseInsensitiveCompareStrings;
++            masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, fun));
++        } else {
++            int (*fun)(const char16_t*, const char16_t*, size_t) = CaseInsensitiveCompareUCStrings;
++            masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, fun));
++        }
+         masm.storeCallResult(temp0);
+ 
+         masm.PopRegsInMask(volatileRegs);
+ 
+         // Check if function returned non-zero for success or zero for failure.
+         masm.branchTest32(Assembler::Zero, temp0, temp0, BranchOrBacktrack(on_no_match));
+ 
+         // On success, increment position by length of capture.

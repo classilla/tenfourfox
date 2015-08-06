@@ -519,7 +519,7 @@ RegExpShared::compile(JSContext* cx, HandleAtom pattern, HandleLinearString inpu
     /* Parse the pattern. */
     irregexp::RegExpCompileData data;
     if (!irregexp::ParsePattern(dummyTokenStream, cx->tempLifoAlloc(), pattern,
-                                multiline(), mode == MatchOnly, unicode(), &data))
+                                multiline(), mode == MatchOnly, unicode(), ignoreCase(), &data))
     {
         return false;
     }
@@ -532,7 +532,7 @@ RegExpShared::compile(JSContext* cx, HandleAtom pattern, HandleLinearString inpu
                                                          input->hasLatin1Chars(),
                                                          mode == MatchOnly,
                                                          force == ForceByteCode,
-                                                         sticky());
+                                                         sticky(), unicode());
     if (code.empty())
         return false;
 

@@ -783,9 +783,10 @@ NativeRegExpMacroAssembler::CheckGreedyLoop(Label* on_tos_equals_current_positio
 }
 
 void
-NativeRegExpMacroAssembler::CheckNotBackReference(int start_reg, Label* on_no_match)
+NativeRegExpMacroAssembler::CheckNotBackReference(int start_reg, Label* on_no_match,
+                                                  bool unicode)
 {
-    JitSpew(SPEW_PREFIX "CheckNotBackReference(%d)", start_reg);
+    JitSpew(SPEW_PREFIX "CheckNotBackReferenceIgnoreCase(%d, %d)", start_reg, unicode);
 
     Label fallthrough;
     Label success;
@@ -1034,8 +1035,13 @@ NativeRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, Label
         masm.passABIArg(current_character);
         masm.passABIArg(current_position);
         masm.passABIArg(temp1);
-        int (*fun)(const char16_t*, const char16_t*, size_t) = CaseInsensitiveCompareStrings;
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, fun));
+        if (!unicode) {
+            int (*fun)(const char16_t*, const char16_t*, size_t) = CaseInsensitiveCompareStrings;
+            masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, fun));
+        } else {
+            int (*fun)(const char16_t*, const char16_t*, size_t) = CaseInsensitiveCompareUCStrings;
+            masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, fun));
+        }
         masm.storeCallResult(temp0);
 
         masm.PopRegsInMask(volatileRegs);
@@ -1047,7 +1053,9 @@ NativeRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, Label
         // PowerPC specific version, somewhat more efficient (fixes issue 308)
         Register ppc0 = (temp1 == r6) ? r7 : r6;
         Register ppc1 = (temp1 == r8) ? r9 : r8;
-        int (*fun)(const char16_t*, const char16_t*, size_t) = CaseInsensitiveCompareStrings;
+        int (*fun)(const char16_t*, const char16_t*, size_t) = (unicode)
+            ? CaseInsensitiveCompareUCStrings
+            : CaseInsensitiveCompareStrings   ;
 
         // This is lazy, but only incurs one extra x_subi.
         masm.x_mflr(r0);
