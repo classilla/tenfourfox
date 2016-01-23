@@ -395,6 +395,24 @@ ParseContext<ParseHandler>::updateDecl(TokenStream& ts, JSAtom* atom, Node pn)
     Definition* newDecl = &pn->template as<Definition>();
     decls_.updateFirst(atom, newDecl);
 
+    if (oldDecl->isOp(JSOP_INITLEXICAL)) {
+        // XXXshu Special case used only for phasing in block-scope function
+        // XXXshu early errors.
+        // XXXshu
+        // XXXshu Back out when major version >= 50. See [1].
+        // XXXshu
+        // XXXshu [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1235590#c10
+        MOZ_ASSERT(oldDecl->getKind() == PNK_FUNCTION);
+        MOZ_ASSERT(newDecl->getKind() == PNK_FUNCTION);
+        MOZ_ASSERT(!sc->strict());
+        MOZ_ASSERT(oldDecl->isBound());
+        MOZ_ASSERT(!oldDecl->pn_scopecoord.isFree());
+        newDecl->pn_scopecoord = oldDecl->pn_scopecoord;
+        newDecl->pn_dflags |= PND_BOUND;
+        newDecl->setOp(JSOP_INITLEXICAL);
+        return;
+    }
+
     if (sc->isGlobalContext() || oldDecl->isDeoptimized()) {
         MOZ_ASSERT(newDecl->isFreeVar());
         // Global 'var' bindings have no slots, but are still tracked for
@@ -2374,9 +2392,31 @@ Parser<FullParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
                     if (annexDef->kind() == Definition::CONSTANT ||
                         annexDef->kind() == Definition::LET)
                     {
-                        // Do not emit Annex B assignment if we would've
-                        // thrown a redeclaration error.
-                        annexDef = nullptr;
+                        if (annexDef->isKind(PNK_FUNCTION)) {
+                            // XXXshu Code used only for phasing in block-scope
+                            // XXXshu function early errors. Ignore redeclarations
+                            // XXXshu here and generate Annex B assignments for
+                            // XXXshu block-scoped functions that redeclare other
+                            // XXXshu block-scoped functions.
+                            // XXXshu
+                            // XXXshu Get the possibly-synthesized var that was
+                            // XXXshu already made for the first of the block-scoped
+                            // XXXshu functions.
+                            // XXXshu
+                            // XXXshu Back out when major version >= 50. See [1].
+                            // XXXshu
+                            // XXXshu [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1235590#c10
+                            annexDef = pc->decls().lookupLast(funName);
+                            if (annexDef->kind() == Definition::CONSTANT ||
+                                annexDef->kind() == Definition::LET)
+                            {
+                                annexDef = nullptr;
+                            }
+                        } else {
+                            // Do not emit Annex B assignment if we would've
+                            // thrown a redeclaration error.
+                            annexDef = nullptr;
+                        }
                     }
                 } else {
                     // Synthesize a new 'var' binding if one does not exist.
