@@ -1,0 +1,20 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIDOMWindow;
+
+/**
+  * Implemented by @mozilla.org/dom/activities/proxy;1
+  */
+[scriptable, uuid(e04c0bbc-ab7d-41ba-b801-1068dd58660b)]
+interface nsIActivityProxy : nsISupports
+{
+    void startActivity(in nsISupports /* MozActivity */ activity,
+                       in jsval options,
+                       in nsIDOMWindow window,
+                       in unsigned long long childID);
+    void cleanup();
+};

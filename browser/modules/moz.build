@@ -1,0 +1,66 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
+XPCSHELL_TESTS_MANIFESTS += [
+    'test/unit/social/xpcshell.ini',
+    'test/xpcshell/xpcshell.ini',
+]
+
+EXTRA_JS_MODULES += [
+    'AboutHome.jsm',
+    'AboutNewTab.jsm',
+    'BrowserUITelemetry.jsm',
+    'CastingApps.jsm',
+    'Chat.jsm',
+    'ContentClick.jsm',
+    'ContentCrashHandlers.jsm',
+    'ContentLinkHandler.jsm',
+    'ContentObservers.jsm',
+    'ContentSearch.jsm',
+    'ContentWebRTC.jsm',
+    'CustomizationTabPreloader.jsm',
+    'DirectoryLinksProvider.jsm',
+    'E10SUtils.jsm',
+    'Feeds.jsm',
+    'FormSubmitObserver.jsm',
+    'FormValidationHandler.jsm',
+    'HiddenFrame.jsm',
+    'NetworkPrioritizer.jsm',
+    'offlineAppCache.jsm',
+    'PanelFrame.jsm',
+    'PluginContent.jsm',
+    'ReaderParent.jsm',
+    'RecentWindow.jsm',
+    'RemotePrompt.jsm',
+    'SelfSupportBackend.jsm',
+    'SitePermissions.jsm',
+    'Social.jsm',
+    'TabGroupsMigrator.jsm',
+    'TransientPrefs.jsm',
+    'WebappManager.jsm',
+    'webrtcUI.jsm',
+]
+
+EXTRA_PP_JS_MODULES += [
+    'ProcessHangMonitor.jsm'
+]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    EXTRA_JS_MODULES += [
+        'Windows8WindowFrameColor.jsm',
+        'WindowsJumpLists.jsm',
+        'WindowsPreviewPerTab.jsm',
+    ]
+
+if CONFIG['NIGHTLY_BUILD']:
+    EXTRA_JS_MODULES += [
+        'SignInToWebsite.jsm',
+    ]
+
+EXTRA_PP_COMPONENTS += [
+    'browsermodules.manifest',
+]

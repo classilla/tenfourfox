@@ -1,0 +1,33 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+[ptr] native RequestHeaderTuples(mozilla::net::RequestHeaderTuples);
+[ref] native OptionalCorsPreflightArgsRef(mozilla::OptionalCorsPreflightArgs);
+
+interface nsIPrincipal;
+interface nsIURI;
+
+[uuid(893e29fb-2e84-454e-afc7-41fadbe93fd9)]
+interface nsIHttpChannelChild : nsISupports
+{
+  void addCookiesToRequest();
+
+  // Mark this channel as requiring an interception; this will propagate
+  // to the corresponding parent channel when a redirect occurs.
+  void forceIntercepted();
+
+  // Headers that the channel client has set via SetRequestHeader.
+  readonly attribute RequestHeaderTuples clientSetRequestHeaders;
+
+  // Headers that the channel client has set via SetRequestHeader.
+  [notxpcom, nostdcall]
+  void GetClientSetCorsPreflightParameters(in OptionalCorsPreflightArgsRef args);
+
+  // This method is called by nsCORSListenerProxy if we need to remove
+  // an entry from the CORS preflight cache in the parent process.
+  void removeCorsPreflightCacheEntry(in nsIURI aURI, in nsIPrincipal aRequestingPrincipal);
+};

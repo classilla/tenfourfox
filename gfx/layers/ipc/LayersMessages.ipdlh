@@ -1,0 +1,516 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=8 et :
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include LayersSurfaces;
+include protocol PCompositable;
+include protocol PCompositor;
+include protocol PLayer;
+include protocol PImageContainer;
+include protocol PRenderFrame;
+include protocol PTexture;
+
+include "gfxipc/ShadowLayerUtils.h";
+include "mozilla/GfxMessageUtils.h";
+include "ImageLayers.h";
+
+using mozilla::gfx::Filter from "mozilla/gfx/2D.h";
+using struct mozilla::gfx::Color from "mozilla/gfx/2D.h";
+using struct mozilla::gfx::Point3D from "mozilla/gfx/Point.h";
+using mozilla::gfx::IntPoint from "mozilla/gfx/Point.h";
+using class mozilla::gfx::Matrix4x4 from "mozilla/gfx/Matrix.h";
+using nscoord from "nsCoord.h";
+using struct nsRect from "nsRect.h";
+using struct nsPoint from "nsPoint.h";
+using class mozilla::TimeDuration from "mozilla/TimeStamp.h";
+using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
+using mozilla::ScreenRotation from "mozilla/WidgetUtils.h";
+using nsCSSProperty from "nsCSSProperty.h";
+using mozilla::dom::ScreenOrientationInternal from "mozilla/dom/ScreenOrientation.h";
+using struct mozilla::layers::TextureInfo from "mozilla/layers/CompositorTypes.h";
+using mozilla::LayerMargin from "Units.h";
+using mozilla::LayerPoint from "Units.h";
+using mozilla::LayerRect from "Units.h";
+using mozilla::LayerIntRegion from "Units.h";
+using mozilla::ParentLayerIntRect from "Units.h";
+using mozilla::LayoutDeviceIntRect from "Units.h";
+using mozilla::layers::ScaleMode from "mozilla/layers/LayersTypes.h";
+using mozilla::layers::EventRegions from "mozilla/layers/LayersTypes.h";
+using mozilla::layers::EventRegionsOverride from "mozilla/layers/LayersTypes.h";
+using mozilla::layers::DiagnosticTypes from "mozilla/layers/CompositorTypes.h";
+using struct mozilla::layers::FrameMetrics from "FrameMetrics.h";
+using mozilla::layers::FrameMetrics::ViewID from "FrameMetrics.h";
+using struct mozilla::layers::FenceHandle from "mozilla/layers/FenceUtils.h";
+using mozilla::layers::LayersBackend from "mozilla/layers/LayersTypes.h";
+
+namespace mozilla {
+namespace layers {
+
+struct TargetConfig {
+  IntRect naturalBounds;
+  ScreenRotation rotation;
+  ScreenOrientationInternal orientation;
+  nsIntRegion clearRegion;
+};
+
+// Create a shadow layer for |layer|
+struct OpCreatePaintedLayer    { PLayer layer; };
+struct OpCreateContainerLayer  { PLayer layer; };
+struct OpCreateImageLayer      { PLayer layer; };
+struct OpCreateColorLayer      { PLayer layer; };
+struct OpCreateCanvasLayer     { PLayer layer; };
+struct OpCreateRefLayer        { PLayer layer; };
+
+struct OpAttachCompositable {
+  PLayer layer;
+  PCompositable compositable;
+};
+
+struct OpAttachAsyncCompositable {
+  PLayer layer;
+  uint64_t containerID;
+};
+
+struct ThebesBufferData {
+  IntRect rect;
+  IntPoint rotation;
+};
+
+struct CubicBezierFunction {
+  float x1;
+  float y1;
+  float x2;
+  float y2;
+};
+
+struct StepFunction {
+  int steps;
+  // 1 = nsTimingFunction::StepStart, 2 = nsTimingFunction::StepEnd
+  int type;
+};
+
+union TimingFunction {
+  CubicBezierFunction;
+  StepFunction;
+};
+
+// Send the angle with units rather than sending all angles in radians
+// to avoid having floating point error introduced by unit switching.
+struct CSSAngle {
+  float value;
+  int unit; // an nsCSSUnit that is valid for angles
+};
+
+struct LayerColor { Color value; };
+struct Perspective { float value; };
+struct RotationX { CSSAngle angle; };
+struct RotationY { CSSAngle angle; };
+struct RotationZ { CSSAngle angle; };
+struct Rotation { CSSAngle angle; };
+struct Rotation3D {
+  float x;
+  float y;
+  float z;
+  CSSAngle angle;
+};
+struct Scale {
+  float x;
+  float y;
+  float z;
+};
+struct Skew { CSSAngle x; CSSAngle y; };
+struct SkewX { CSSAngle x; };
+struct SkewY { CSSAngle y; };
+struct TransformMatrix { Matrix4x4 value; };
+struct Translation {
+  float x;
+  float y;
+  float z;
+};
+
+union TransformFunction {
+  Perspective;
+  RotationX;
+  RotationY;
+  RotationZ;
+  Rotation;
+  Rotation3D;
+  Scale;
+  Skew;
+  SkewX;
+  SkewY;
+  Translation;
+  TransformMatrix;
+};
+
+union Animatable {
+  float;
+  TransformFunction[];
+};
+
+struct AnimationSegment {
+  Animatable startState;
+  Animatable endState;
+  float startPortion;
+  float endPortion;
+  TimingFunction sampleFn;
+};
+
+// Transforms need extra information to correctly convert the list of transform
+// functions to a Matrix4x4 that can be applied directly to the layer.
+struct TransformData {
+  // the origin of the frame being transformed in app units
+  nsPoint origin;
+  // the transform-origin property for the transform in device pixels
+  Point3D transformOrigin;
+  // the perspective-origin property for the transform in device pixels
+  Point3D perspectiveOrigin;
+  nsRect bounds;
+  nscoord perspective;
+  int32_t appUnitsPerDevPixel;
+};
+
+union AnimationData {
+  null_t;
+  TransformData;
+};
+
+struct Animation {
+  // Unlike in nsAnimationManager, this start time is at the end of the
+  // delay.  If the delay is changed dynamically, the layer's data will
+  // be updated.
+  TimeStamp startTime;
+  // The value of the animation's current time at the moment it was created.
+  // For animations that are waiting to start, their startTime will be null.
+  // Once the animation is ready to start, we calculate an appropriate value
+  // of startTime such that we begin playback from initialCurrentTime.
+  TimeDuration initialCurrentTime;
+  TimeDuration duration;
+  // For each frame, the interpolation point is computed based on the
+  // startTime, the direction, the duration, and the current time.
+  // The segments must uniquely cover the portion from 0.0 to 1.0
+  AnimationSegment[] segments;
+  // Number of times to repeat the animation, including positive infinity.
+  // Values <= 0 mean the animation will not play (although events are still
+  // dispatched on the main thread).
+  float iterationCount;
+  // This uses the NS_STYLE_ANIMATION_DIRECTION_* constants.
+  int32_t direction;
+  nsCSSProperty property;
+  AnimationData data;
+  float playbackRate;
+};
+
+// Change a layer's attributes
+struct CommonLayerAttributes {
+  IntRect layerBounds;
+  LayerIntRegion visibleRegion;
+  EventRegions eventRegions;
+  TransformMatrix transform;
+  float postXScale;
+  float postYScale;
+  uint32_t contentFlags;
+  float opacity;
+  bool useClipRect;
+  ParentLayerIntRect clipRect;
+  bool isFixedPosition;
+  uint64_t fixedPositionScrollContainerId;
+  LayerPoint fixedPositionAnchor;
+  int32_t fixedPositionSides;
+  bool isClipFixed;
+  bool isStickyPosition;
+  uint64_t stickyScrollContainerId;
+  LayerRect stickyScrollRangeOuter;
+  LayerRect stickyScrollRangeInner;
+  uint64_t scrollbarTargetContainerId;
+  uint32_t scrollbarDirection;
+  float scrollbarThumbRatio;
+  int8_t mixBlendMode;
+  bool forceIsolatedGroup;
+  nullable PLayer maskLayer;
+  PLayer[] ancestorMaskLayers;
+  // Animated colors will only honored for ColorLayers.
+  Animation[] animations;
+  nsIntRegion invalidRegion;
+  FrameMetrics[] metrics;
+  nsCString displayListLog;
+};
+
+struct PaintedLayerAttributes {
+  nsIntRegion validRegion;
+};
+struct ContainerLayerAttributes {
+  float preXScale;
+  float preYScale;
+  float inheritedXScale;
+  float inheritedYScale;
+  float presShellResolution;
+  bool scaleToResolution;
+  EventRegionsOverride eventRegionsOverride;
+  // This is a bare pointer; LayerTransactionParent::RecvUpdate prevents this
+  // from being used when !IsSameProcess(), but we should make this truly
+  // cross process at some point by passing the HMDConfig
+  uint64_t hmdInfo;
+};
+struct ColorLayerAttributes     { LayerColor color; IntRect bounds; };
+struct CanvasLayerAttributes    { Filter filter; IntRect bounds; };
+struct RefLayerAttributes {
+  int64_t id;
+  // TODO: Once bug 1132895 is fixed we shouldn't need to propagate the override
+  // explicitly here.
+  EventRegionsOverride eventRegionsOverride;
+};
+struct ImageLayerAttributes     { Filter filter; IntSize scaleToSize; ScaleMode scaleMode; };
+
+union SpecificLayerAttributes {
+  null_t;
+  PaintedLayerAttributes;
+  ContainerLayerAttributes;
+  ColorLayerAttributes;
+  CanvasLayerAttributes;
+  RefLayerAttributes;
+  ImageLayerAttributes;
+};
+
+struct LayerAttributes {
+  CommonLayerAttributes common;
+  SpecificLayerAttributes specific;
+};
+
+// See nsIWidget Configurations
+struct PluginWindowData {
+  uintptr_t windowId;
+  LayoutDeviceIntRect[] clip;
+  LayoutDeviceIntRect bounds;
+  bool visible;
+};
+
+struct OpSetLayerAttributes {
+  PLayer layer;
+  LayerAttributes attrs;
+};
+
+// Monkey with the tree structure
+struct OpSetRoot          { PLayer root; };
+struct OpInsertAfter      { PLayer container; PLayer childLayer; PLayer after; };
+struct OpPrependChild     { PLayer container; PLayer childLayer; };
+struct OpRemoveChild      { PLayer container; PLayer childLayer; };
+struct OpRepositionChild  { PLayer container; PLayer childLayer; PLayer after; };
+struct OpRaiseToTopChild  { PLayer container; PLayer childLayer; };
+
+struct OpSetDiagnosticTypes { DiagnosticTypes diagnostics; };
+struct OpWindowOverlayChanged { };
+
+struct ShmemSection {
+  Shmem shmem;
+  uint32_t offset;
+  size_t size;
+};
+
+union TileLock {
+  ShmemSection;
+  uintptr_t;
+};
+
+union MaybeTexture {
+  PTexture;
+  null_t;
+};
+
+struct TexturedTileDescriptor {
+  PTexture texture;
+  MaybeTexture textureOnWhite;
+  IntRect updateRect;
+  TileLock sharedLock;
+};
+
+struct PlaceholderTileDescriptor {
+};
+
+union TileDescriptor {
+  TexturedTileDescriptor;
+  PlaceholderTileDescriptor;
+};
+
+struct SurfaceDescriptorTiles {
+  nsIntRegion validRegion;
+  TileDescriptor[] tiles;
+  IntPoint    tileOrigin;
+  IntSize     tileSize;
+  int         firstTileX;
+  int         firstTileY;
+  int         retainedWidth;
+  int         retainedHeight;
+  float       resolution;
+  float       frameXResolution;
+  float       frameYResolution;
+};
+
+struct OpUseTiledLayerBuffer {
+  PCompositable compositable;
+  SurfaceDescriptorTiles tileLayerDescriptor;
+};
+
+struct OpUseOverlaySource {
+  PCompositable compositable;
+  OverlaySource overlay;
+  IntRect picture;
+};
+
+struct OpPaintTextureRegion {
+  PCompositable compositable;
+  ThebesBufferData bufferData;
+  nsIntRegion updatedRegion;
+};
+
+/**
+ * Tells the CompositableHost to remove the corresponding TextureHost
+ */
+struct OpRemoveTexture {
+  PCompositable compositable;
+  PTexture texture;
+};
+
+struct OpRemoveTextureAsync {
+  uint64_t holderId;
+  uint64_t transactionId;
+  PCompositable compositable;
+  PTexture texture;
+};
+
+struct OpReplyRemoveTexture {
+  uint64_t holderId;
+  uint64_t transactionId;
+};
+
+union MaybeFence {
+  FenceHandle;
+  null_t;
+};
+
+struct TimedTexture {
+  PTexture texture;
+  MaybeFence fence;
+  TimeStamp timeStamp;
+  IntRect picture;
+  uint32_t frameID;
+  uint32_t producerID;
+};
+
+/**
+ * Tells the compositor-side which textures to use (for example, as front buffer
+ * if there are several textures for double buffering).
+ * This provides a list of textures with timestamps, ordered by timestamp.
+ * The newest texture whose timestamp is <= the current time is rendered
+ * (where null is considered less than every other timestamp). If there is no
+ * such texture, the first texture is rendered.
+ * The first timestamp value can be null, but the others must not be.
+ * The list must not be empty.
+ */
+struct OpUseTexture {
+  PCompositable compositable;
+  TimedTexture[] textures;
+};
+
+struct OpUseComponentAlphaTextures {
+  PCompositable compositable;
+  PTexture textureOnBlack;
+  PTexture textureOnWhite;
+};
+
+union MaybeRegion {
+  nsIntRegion;
+  null_t;
+};
+
+struct OpDeliverFence {
+  PTexture texture;
+  FenceHandle fence;
+};
+
+struct OpDeliverFenceToTracker {
+  uint64_t destHolderId;
+  uint64_t destTransactionId;
+  FenceHandle fence;
+};
+
+union CompositableOperation {
+  OpPaintTextureRegion;
+
+  OpUseTiledLayerBuffer;
+
+  OpRemoveTexture;
+  OpRemoveTextureAsync;
+
+  OpUseTexture;
+  OpUseComponentAlphaTextures;
+  OpUseOverlaySource;
+};
+
+// A unit of a changeset; a set of these comprise a changeset
+union Edit {
+  OpCreatePaintedLayer;
+  OpCreateContainerLayer;
+  OpCreateImageLayer;
+  OpCreateColorLayer;
+  OpCreateCanvasLayer;
+  OpCreateRefLayer;
+
+  OpSetLayerAttributes;
+  OpSetDiagnosticTypes;
+  OpWindowOverlayChanged;
+
+  OpSetRoot;
+  OpInsertAfter;
+  OpPrependChild;
+  OpRemoveChild;
+  OpRepositionChild;
+  OpRaiseToTopChild;
+
+  OpAttachCompositable;
+  OpAttachAsyncCompositable;
+
+  CompositableOperation;
+};
+
+
+// Replies to operations
+
+struct OpContentBufferSwap {
+  PCompositable compositable;
+  nsIntRegion frontUpdatedRegion;
+};
+
+/**
+ * An ImageCompositeNotification is sent the first time a particular
+ * image is composited by an ImageHost.
+ */
+struct ImageCompositeNotification {
+  PImageContainer imageContainer;
+  TimeStamp imageTimeStamp;
+  TimeStamp firstCompositeTimeStamp;
+  uint32_t frameID;
+  uint32_t producerID;
+};
+
+// Unit of a "changeset reply".  This is a weird abstraction, probably
+// only to be used for buffer swapping.
+union EditReply {
+  OpContentBufferSwap;
+};
+
+union AsyncParentMessageData {
+  OpDeliverFence;
+  OpDeliverFenceToTracker;
+  OpReplyRemoveTexture;
+};
+
+union AsyncChildMessageData {
+  OpRemoveTextureAsync;
+};
+
+} // namespace
+} // namespace

@@ -1,0 +1,57 @@
+---
+# For complete sample of all build and test jobs,
+# see <gecko>/testing/taskcluster/tasks/branches/base_job_flags.yml
+
+$inherits:
+  from: tasks/branches/base_jobs.yml
+
+# Flags specific to this branch
+flags:
+  post-build:
+    - simulator
+
+builds:
+  android-api-11:
+    platforms:
+      - Android
+    types:
+      opt:
+        task: tasks/builds/android_api_11.yml
+  aries-dogfood:
+    platforms:
+      - b2g
+    types:
+      opt:
+        task: tasks/builds/b2g_aries_spark_dogfood.yml
+        additional-parameters:
+          b2g_update_channel: 'dogfood'
+  aries-ota:
+    platforms:
+      - b2g
+    types:
+      opt:
+        task: tasks/builds/b2g_aries_spark_ota_balrog_opt.yml
+        additional-parameters:
+          b2g_update_channel: 'nightly'
+      debug:
+        task: tasks/builds/b2g_aries_spark_ota_balrog_debug.yml
+        additional-parameters:
+          b2g_update_channel: 'nightly'
+  flame-kk-ota:
+    platforms:
+      - b2g
+    types:
+      opt:
+        task: tasks/builds/b2g_flame_kk_ota_opt.yml
+        additional-parameters:
+          b2g_update_channel: 'nightly'
+      debug:
+        task: tasks/builds/b2g_flame_kk_ota_debug.yml
+        additional-parameters:
+          b2g_update_channel: 'nightly'
+
+post-build:
+  simulator:
+    allowed_build_tasks:
+      - tasks/builds/mulet_linux.yml
+    task: tasks/post-builds/mulet_simulator.yml

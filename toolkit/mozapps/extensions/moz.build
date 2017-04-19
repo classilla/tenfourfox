@@ -1,0 +1,54 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+DIRS += ['internal']
+TEST_DIRS += ['test']
+
+XPIDL_SOURCES += [
+    'amIAddonManager.idl',
+    'amIAddonPathService.idl',
+    'amIWebInstaller.idl',
+    'amIWebInstallListener.idl',
+]
+
+XPIDL_MODULE = 'extensions'
+
+EXTRA_COMPONENTS += [
+    'addonManager.js',
+    'amContentHandler.js',
+    'amInstallTrigger.js',
+    'amWebInstallListener.js',
+    'nsBlocklistService.js',
+    'nsBlocklistServiceContent.js',
+]
+
+EXTRA_PP_COMPONENTS += [
+    'extensions.manifest',
+]
+
+EXTRA_JS_MODULES += [
+    'AddonManager.jsm',
+    'ChromeManifestParser.jsm',
+    'DeferredSave.jsm',
+    'LightweightThemeManager.jsm',
+]
+
+JAR_MANIFESTS += ['jar.mn']
+
+EXPORTS.mozilla += [
+    'AddonContentPolicy.h',
+    'AddonPathService.h',
+]
+
+UNIFIED_SOURCES += [
+    'AddonContentPolicy.cpp',
+    'AddonPathService.cpp',
+]
+
+FINAL_LIBRARY = 'xul'
+
+with Files('**'):
+    BUG_COMPONENT = ('Toolkit', 'Add-ons Manager')

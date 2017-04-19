@@ -1,0 +1,205 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+EXPORTS.mozilla += [
+    'GenericRefCounted.h',
+]
+
+EXPORTS.mozilla.gfx += [
+    '2D.h',
+    'BaseCoord.h',
+    'BaseMargin.h',
+    'BasePoint.h',
+    'BasePoint3D.h',
+    'BasePoint4D.h',
+    'BaseRect.h',
+    'BaseSize.h',
+    'Blur.h',
+    'BorrowedContext.h',
+    'Coord.h',
+    'CriticalSection.h',
+    'DataSurfaceHelpers.h',
+    'DrawTargetTiled.h',
+    'Filters.h',
+    'Helpers.h',
+    'HelpersCairo.h',
+    'IterableArena.h',
+    'JobScheduler.h',
+    'JobScheduler_posix.h',
+    'JobScheduler_win32.h',
+    'Logging.h',
+    'Matrix.h',
+    'MatrixFwd.h',
+    'NumericTools.h',
+    'PathHelpers.h',
+    'PatternHelpers.h',
+    'Point.h',
+    'Quaternion.h',
+    'Rect.h',
+    'Scale.h',
+    'ScaleFactor.h',
+    'ScaleFactors2D.h',
+    'SourceSurfaceCairo.h',
+    'SourceSurfaceRawData.h',
+    'StackArray.h',
+    'Tools.h',
+    'Types.h',
+    'UserData.h',
+]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('cocoa', 'uikit'):
+    EXPORTS.mozilla.gfx += [
+        'MacIOSurface.h',
+    ]
+    SOURCES += [
+        'CTGradient.m',
+        'CTGradientCPP.mm',
+    ]
+    UNIFIED_SOURCES += [
+        'DrawTargetCG.cpp',
+        'PathCG.cpp',
+        'ScaledFontMac.cpp',
+        'SourceSurfaceCG.cpp',
+    ]
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    SOURCES += [
+        'DrawTargetD2D.cpp',
+        'DrawTargetD2D1.cpp',
+        'ExtendInputEffectD2D1.cpp',
+        'FilterNodeD2D1.cpp',
+        'JobScheduler_win32.cpp',
+        'PathD2D.cpp',
+        'RadialGradientEffectD2D1.cpp',
+        'ScaledFontDWrite.cpp',
+        'ScaledFontWin.cpp',
+        'SourceSurfaceD2D.cpp',
+        'SourceSurfaceD2D1.cpp',
+        'SourceSurfaceD2DTarget.cpp',
+    ]
+    DEFINES['WIN32'] = True
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'windows':
+    SOURCES += [
+        'JobScheduler_posix.cpp',
+    ]
+
+if CONFIG['MOZ_ENABLE_SKIA']:
+    UNIFIED_SOURCES += [
+        'convolver.cpp',
+        'DrawTargetSkia.cpp',
+        'PathSkia.cpp',
+        'SourceSurfaceSkia.cpp',
+    ]
+    SOURCES += [
+        'image_operations.cpp', # Uses _USE_MATH_DEFINES
+    ]
+    EXPORTS.mozilla.gfx += [
+        'HelpersSkia.h',
+        'RefPtrSkia.h',
+    ]
+
+# Are we targeting x86 or x64?  If so, build SSE2 files.
+if CONFIG['INTEL_ARCHITECTURE']:
+    SOURCES += [
+        'BlurSSE2.cpp',
+        'FilterProcessingSSE2.cpp',
+        'ImageScalingSSE2.cpp',
+    ]
+    if CONFIG['MOZ_ENABLE_SKIA']:
+        SOURCES += [
+            'convolverSSE2.cpp',
+        ]
+    DEFINES['USE_SSE2'] = True
+    # The file uses SSE2 intrinsics, so it needs special compile flags on some
+    # compilers.
+    SOURCES['BlurSSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+    SOURCES['FilterProcessingSSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+    SOURCES['ImageScalingSSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+    if CONFIG['MOZ_ENABLE_SKIA']:
+        SOURCES['convolverSSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+elif CONFIG['CPU_ARCH'].startswith('mips'):
+    SOURCES += [
+        'BlurLS3.cpp',
+    ]
+    if CONFIG['MOZ_ENABLE_SKIA']:
+        SOURCES += [
+            'convolverLS3.cpp',
+        ]
+
+if CONFIG['TENFOURFOX_VMX']:
+    SOURCES += [
+        'BlurVMX.cpp',
+    ]
+    DEFINES['USE_VMX'] = True
+
+UNIFIED_SOURCES += [
+    'Blur.cpp',
+    'DataSourceSurface.cpp',
+    'DataSurfaceHelpers.cpp',
+    'DrawEventRecorder.cpp',
+    'DrawingJob.cpp',
+    'DrawTarget.cpp',
+    'DrawTargetCairo.cpp',
+    'DrawTargetCapture.cpp',
+    'DrawTargetDual.cpp',
+    'DrawTargetRecording.cpp',
+    'DrawTargetTiled.cpp',
+    'Factory.cpp',
+    'FilterNodeSoftware.cpp',
+    'FilterProcessing.cpp',
+    'FilterProcessingScalar.cpp',
+    'ImageScaling.cpp',
+    'JobScheduler.cpp',
+    'Matrix.cpp',
+    'Path.cpp',
+    'PathCairo.cpp',
+    'PathHelpers.cpp',
+    'PathRecording.cpp',
+    'Quaternion.cpp',
+    'RecordedEvent.cpp',
+    'Scale.cpp',
+    'ScaledFontBase.cpp',
+    'ScaledFontCairo.cpp',
+    'SourceSurfaceCairo.cpp',
+    'SourceSurfaceRawData.cpp',
+]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    EXPORTS.mozilla.gfx += [
+        'QuartzSupport.h',
+    ]
+    SOURCES += [
+        'MacIOSurface.cpp',
+        'QuartzSupport.mm',
+    ]
+
+if CONFIG['CPU_ARCH'] == 'arm' and CONFIG['BUILD_ARM_NEON']:
+    SOURCES += ['BlurNEON.cpp']
+    SOURCES['BlurNEON.cpp'].flags += ['-mfpu=neon']
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FINAL_LIBRARY = 'xul'
+
+for var in ('USE_CAIRO', 'MOZ2D_HAS_MOZ_CAIRO'):
+    DEFINES[var] = True
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('android', 'gtk2', 'gtk3', 'gonk', 'qt'):
+    DEFINES['MOZ_ENABLE_FREETYPE'] = True
+
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('android', 'gtk2', 'gtk3', 'gonk', 'qt'):
+    CXXFLAGS += CONFIG['CAIRO_FT_CFLAGS']
+
+LOCAL_INCLUDES += CONFIG['SKIA_INCLUDES']
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    # Due to bug 796023, we can't have -DUNICODE and -D_UNICODE; defining those
+    # macros changes the type of LOGFONT to LOGFONTW instead of LOGFONTA. This
+    # changes the symbol names of exported C++ functions that use LOGFONT.
+    del DEFINES['UNICODE']
+    del DEFINES['_UNICODE']

@@ -1,0 +1,56 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+XPIDL_SOURCES += [
+    'SessionStore.idl',
+]
+
+XPIDL_MODULE = 'MobileComponents'
+
+EXTRA_COMPONENTS += [
+    'AboutRedirector.js',
+    'AddonUpdateService.js',
+    'AndroidActivitiesGlue.js',
+    'BlocklistPrompt.js',
+    'BrowserCLH.js',
+    'ColorPicker.js',
+    'ContentDispatchChooser.js',
+    'DirectoryProvider.js',
+    'ImageBlockingPolicy.js',
+    'LoginManagerPrompter.js',
+    'NSSDialogService.js',
+    'Snippets.js',
+    'TabSource.js',
+    'XPIDialogService.js',
+]
+
+if not CONFIG['MOZ_B2GDROID']:
+    EXTRA_COMPONENTS += [
+        'ContentPermissionPrompt.js',
+        'FilePicker.js',
+        'HelperAppDialog.js',
+        'PromptService.js',
+        'SessionStore.js',
+        'SiteSpecificUserAgent.js',
+        'WebappsUpdateTimer.js',
+    ]
+
+if CONFIG['MOZ_PAY']:
+    if not CONFIG['MOZ_B2GDROID']:
+        EXTRA_COMPONENTS += [
+            'PaymentProviderStrategy.js',
+        ]
+    EXTRA_COMPONENTS += [
+        'PaymentsUI.js'
+    ]
+
+# Keep it this way if at all possible.  If you need preprocessing,
+# consider adding fields to AppConstants.jsm.
+EXTRA_PP_COMPONENTS += [
+    'MobileComponents.manifest',
+]
+
+DIRS += ['build']

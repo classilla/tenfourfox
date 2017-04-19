@@ -1,0 +1,13 @@
+<!ENTITY TFFuserAgent.title	"User Agent">
+<!ENTITY TFFuserAgent.prompt	"Set user agent to current version of Firefox">
+<!ENTITY TFFuserAgent.prompt2	"Select user agent string to use:">
+<!ENTITY TFFuserAgent.default	"TenFourFox (default)">
+
+<!ENTITY TFFadBlock.title	"Adblock">
+<!ENTITY TFFadBlock.prompt	"Enable basic adblock">
+
+<!ENTITY TFFpdfViewMode.title	"PDF Viewing">
+<!ENTITY TFFpdfViewMode.prompt	"Use built-in PDF viewer (slower but safer)">
+
+<!ENTITY TFFmseMode.title	"MediaSource">
+<!ENTITY TFFmseMode.prompt	"Enable MSE/media quality options (slower, if available)">

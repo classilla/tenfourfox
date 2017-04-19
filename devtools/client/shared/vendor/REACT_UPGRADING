@@ -1,0 +1,26 @@
+We have a version of React that has a few minor patches on top of it:
+https://github.com/mozilla/react. These instructions are how to
+upgrade to the latest version of React.
+
+First, rebase our fork on top of the latest version and publish it to
+our repo.
+
+Next, build React. You should already have our fork locally; make sure
+you are building our fork: https://github.com/mozilla/react
+
+* npm install
+* grunt build
+* cp build/react-with-addons.js <gecko-dev>/devtools/client/shared/vendor/react-dev.js
+
+Note that the last command above adds a `react-dev.js` file. You also
+need to generated a production version of React:
+
+* NODE_ENV=production grunt build
+* cp build/react-with-addons.js <gecko-dev>/devtools/client/shared/vendor/react.js
+
+You also need to copy the ReactDOM package. It requires React, so
+right now we are just manually changing the path from `react` to
+`devtools/client/shared/vendor/react`.
+
+* cp build/react-dom.js <gecko-dev>/devtools/client/shared/vendor/react-dom.js
+* (change `require('react')` at the top of the file to the right path)

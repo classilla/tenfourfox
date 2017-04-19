@@ -1,0 +1,24 @@
+. $topsrcdir/browser/config/mozconfig
+export CC="/opt/local/bin/gcc-mp-4.8 -flax-vector-conversions -O3 -mcpu=7400 -mtune=7400 -falign-loops=16 -falign-functions=16 -falign-labels=16 -falign-jumps=16 -read_only_relocs suppress -mdynamic-no-pic"
+export CXX="/opt/local/bin/g++-mp-4.8 -flax-vector-conversions -fpermissive -O3 -mcpu=7400 -mtune=7400 -falign-loops=16 -falign-functions=16 -falign-labels=16 -falign-jumps=16 -read_only_relocs suppress -mdynamic-no-pic"
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-ff-dbg
+mk_add_options MOZ_MAKE_FLAGS="-s -j2"
+mk_add_options AUTOCONF=autoconf213
+ac_add_options --disable-tests
+ac_add_options --disable-static
+ac_add_options --disable-crashreporter
+ac_add_options --enable-optimize
+ac_add_options --disable-cpp-exceptions
+ac_add_options --disable-debug
+ac_add_options --enable-printing
+ac_add_options --enable-prebinding
+ac_add_options --enable-macos-target=10.4
+ac_add_options --enable-chrome-format=jar
+ac_add_options --with-macos-sdk=/Developer/SDKs/MacOSX10.4u.sdk
+ac_add_options --enable-tenfourfox-vmx
+ac_add_options --enable-strip
+ac_add_options --enable-install-strip
+ac_add_options --with-system-jpeg
+ac_add_options --with-distribution-id=com.floodgap
+ac_add_options --enable-webrtc
+

@@ -1,0 +1,19 @@
+WebM/libvpx 0.9.5 has AltiVec code, but it is not part of the build system.
+
+For TenFourFox, I preparsed the .asm files into .s files that the Tiger as
+would accept, mostly with the included Perl preprocessor tool (GPL; see
+source for license) and partially by hand for some of the complicated macros
+that the preprocessor was not able to handle correctly. These were then
+integrated into VP8 and into the Firefox build system for TenFourFox.
+The original WebM .asm files are here for reference, with whatever handtuning
+I made to feed them to the preprocessor. Only the .s files themselves are
+actually compiled, however.
+
+These .s files are under the same license as the rest of WebM and may be
+returned back to the project, as they were technically already part of it
+originally, as long as credit for their original author and my own changes
+is maintained.
+
+Cameron Kaiser
+classilla@floodgap.com
+

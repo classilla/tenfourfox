@@ -1,0 +1,24 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<SearchPlugin xmlns="http://www.mozilla.org/2006/browser/search/">
+<ShortName>Bing</ShortName>
+<Image width="16" height="16">data:image/png;base64,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</Image>
+<Url type="application/x-suggestions+json" template="https://www.bing.com/osjson.aspx">
+  <Param name="query" value="{searchTerms}"/>
+  <Param name="language" value="{moz:locale}"/>
+</Url>
+<!-- this is effectively x-moz-phonesearch, but search service expects a text/html entry -->
+<Url type="text/html" method="GET" template="https://www.bing.com/search">
+  <Param name="q" value="{searchTerms}" />
+  <Param name="pc" value="MOZB" />
+  <Param name="form" value="MOZMBA" />
+</Url>
+<Url type="application/x-moz-tabletsearch" method="GET" template="https://www.bing.com/search">
+  <Param name="q" value="{searchTerms}" />
+  <Param name="pc" value="MOZA" />
+  <Param name="form" value="MOZAT" />
+</Url>
+<SearchForm>http://www.bing.com</SearchForm>
+</SearchPlugin>

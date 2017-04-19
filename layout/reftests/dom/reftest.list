@@ -1,0 +1,56 @@
+# various tests involving dynamic insertion using the DOM
+
+# append a single element
+== appendsingle.html appendsingle-ref.html
+
+# append several elements
+== appendmultiple.html appendmultiple-ref.html
+
+# insert a single element
+== insertsingle.html insertsingle-ref.html
+
+# insert several elements
+== insertmultiple.html insertmultiple-ref.html
+
+# insert multiple nodes to a parent and one of its children
+== inserttoparentandchild-1.html inserttoparentandchild-ref.html
+== inserttoparentandchild-2.html inserttoparentandchild-ref.html
+
+# insert a parent with child and then insert more children to the parent
+== insertparentandchild.html insertparentandchild-ref.html
+
+# insert nodes to two different parents
+== inserttwoparents.html inserttwoparents-ref.html
+
+# multiple content inserts and appends
+# multiple range inserts
+== insertmultiplemultiple-1.html insertmultiplemultiple-ref.html
+# a range insert and an append
+== insertmultiplemultiple-2.html insertmultiplemultiple-ref.html
+# multiple range inserts and an append
+== insertmultiplemultiple-2.html insertmultiplemultiple-ref.html
+
+# testing bindings that have multiple insertion points
+# skip XBL test case on B2G
+skip-if(B2G||Mulet) == multipleinsertionpoints-ref2.xhtml multipleinsertionpoints-ref.xhtml # Initial mulet triage: parity with B2G/B2G Desktop
+# append a single element
+skip-if(B2G||Mulet) == multipleinsertionpoints-appendsingle-1.xhtml multipleinsertionpoints-ref.xhtml # bug 773482 # Initial mulet triage: parity with B2G/B2G Desktop
+skip-if(B2G||Mulet) == multipleinsertionpoints-appendsingle-2.xhtml multipleinsertionpoints-ref.xhtml # bug 773482 # Initial mulet triage: parity with B2G/B2G Desktop
+# append several elements
+skip-if(B2G||Mulet) == multipleinsertionpoints-appendmultiple.xhtml multipleinsertionpoints-ref.xhtml # bug 773482 # Initial mulet triage: parity with B2G/B2G Desktop
+# insert a single element
+skip-if(B2G||Mulet) == multipleinsertionpoints-insertsingle-1.xhtml multipleinsertionpoints-ref.xhtml # bug 773482 # Initial mulet triage: parity with B2G/B2G Desktop
+skip-if(B2G||Mulet) == multipleinsertionpoints-insertsingle-2.xhtml multipleinsertionpoints-ref.xhtml # bug 773482 # Initial mulet triage: parity with B2G/B2G Desktop
+# insert several elements
+skip-if(B2G||Mulet) == multipleinsertionpoints-insertmultiple.xhtml multipleinsertionpoints-ref.xhtml # bug 773482 # Initial mulet triage: parity with B2G/B2G Desktop
+
+# test appending some nodes whose frame construction should be done lazily
+# followed by appending a node that might not be done lazily
+skip-if((B2G&&browserIsRemote)||Mulet) == multipleappendwithxul.xhtml multipleappendwithxul-ref.xhtml # Bug 974780 # Initial mulet triage: parity with B2G/B2G Desktop
+== multipleappendwithinput.xhtml multipleappendwithinput-ref.xhtml
+== multipleappendwitheditable.xhtml multipleappendwitheditable-ref.xhtml
+
+skip-if(B2G||Mulet) == xbl-children-1.xhtml xbl-children-1-ref.xhtml # Initial mulet triage: parity with B2G/B2G Desktop
+skip-if(B2G||Mulet) == xbl-children-2.xhtml about:blank # Initial mulet triage: parity with B2G/B2G Desktop
+skip-if(B2G||Mulet) == xbl-children-3.xhtml xbl-children-3-ref.html # Initial mulet triage: parity with B2G/B2G Desktop
+skip-if(B2G||Mulet) == xbl-children-4.xhtml xbl-children-4-ref.html # Initial mulet triage: parity with B2G/B2G Desktop

@@ -1,0 +1,16 @@
+{
+  "extends": "../../.eslintrc",
+
+  "globals": {
+    "NetUtil": true,
+    "XPCOMUtils": true,
+
+    // Test harness globals
+    "add_task": false,
+    "Assert": false,
+    "do_register_cleanup": false,
+    "do_check_eq": false,
+    "equal": false,
+    "ok": false,
+  }
+}

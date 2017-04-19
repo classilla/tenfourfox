@@ -1,0 +1,69 @@
+/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 8 -*- */
+/* vim: set sw=4 ts=8 et tw=80 ft=cpp : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include protocol PBrowser;
+include PBrowserOrId;
+
+namespace mozilla {
+namespace dom {
+
+// An IPCTabContext which corresponds to a PBrowser opened by a child when it
+// receives window.open().
+//
+// If isBrowserElement is false, this PopupIPCTabContext corresponds to an app
+// frame, and the frame's app-id and app-frame-owner-app-id will be equal to the
+// opener's values.
+//
+// If isBrowserElement is true, the frame's browserFrameOwnerAppId will be equal
+// to the opener's app-id.
+//
+// It's an error to set isBrowserElement == false if opener is a browser
+// element.  Such a PopupIPCTabContext should be rejected by code which receives
+// it.
+struct PopupIPCTabContext
+{
+  PBrowserOrId opener;
+  bool isBrowserElement;
+};
+
+// An IPCTabContext which corresponds to an app, browser, or normal frame.
+struct FrameIPCTabContext
+{
+  // The stringified originAttributes dictionary.
+  nsCString originSuffix;
+
+  // The ID of the app containing this app/browser frame, if applicable.
+  uint32_t frameOwnerAppId;
+
+  // The origin without originAttribute suffix for a signed package.
+  // This value would be empty if the TabContext doesn't own a signed
+  // package.
+  nsCString signedPkgOriginNoSuffix;
+};
+
+// XXXcatalinb: This is only used by ServiceWorkerClients::OpenWindow.
+// Because service workers don't have an associated TabChild
+// we can't satisfy the security constraints on b2g. As such, the parent
+// process will accept this tab context only on desktop.
+struct UnsafeIPCTabContext
+{ };
+
+// IPCTabContext is an analog to mozilla::dom::TabContext.  Both specify an
+// iframe/PBrowser's own and containing app-ids and tell you whether the
+// iframe/PBrowser is a browser frame.  But only IPCTabContext is allowed to
+// travel over IPC.
+//
+// We need IPCTabContext (specifically, PopupIPCTabContext) to prevent a
+// privilege escalation attack by a compromised child process.
+union IPCTabContext
+{
+  PopupIPCTabContext;
+  FrameIPCTabContext;
+  UnsafeIPCTabContext;
+};
+
+}
+}

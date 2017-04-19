@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+<!DOCTYPE html [
+  <!ENTITY % htmlDTD PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+  %htmlDTD;
+  <!ENTITY % netErrorDTD SYSTEM "chrome://global/locale/netError.dtd">
+  %netErrorDTD;
+  <!ENTITY % globalDTD SYSTEM "chrome://global/locale/global.dtd">
+  %globalDTD;
+  <!ENTITY % restorepageDTD SYSTEM "chrome://browser/locale/aboutSessionRestore.dtd">
+  %restorepageDTD;
+]>
+
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <head>
+    <title>&restorepage.tabtitle;</title>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/info-pages.css" type="text/css" media="all"/>
+    <link rel="stylesheet" href="chrome://browser/skin/aboutWelcomeBack.css" type="text/css" media="all"/>
+    <link rel="icon" type="image/png" href="chrome://global/skin/icons/information-16.png"/>
+
+    <script type="application/javascript;version=1.8" src="chrome://browser/content/aboutSessionRestore.js"/>
+  </head>
+
+  <body dir="&locale.dir;">
+
+    <div class="container">
+
+      <div class="title">
+        <h1 class="title-text">&welcomeback2.pageTitle;</h1>
+      </div>
+
+      <div class="description">
+
+        <p>&welcomeback2.pageInfo1;</p>
+        <!-- Note a href in the anchor below is added by JS -->
+        <p>&welcomeback2.beforelink.pageInfo2;<a id="linkMoreTroubleshooting" target="_blank">&welcomeback2.link.pageInfo2;</a>&welcomeback2.afterlink.pageInfo2;</p>
+
+        <div>
+          <div class="radioRestoreContainer">
+            <input class="radioRestoreButton" id="radioRestoreAll" type="radio"
+                   name="restore" checked="checked"/>
+            <label class="radioRestoreLabel" for="radioRestoreAll">&welcomeback2.label.restoreAll;</label>
+          </div>
+
+          <div class="radioRestoreContainer">
+            <input class="radioRestoreButton" id="radioRestoreChoose" type="radio"
+                   name="restore"/>
+            <label class="radioRestoreLabel" for="radioRestoreChoose">&welcomeback2.label.restoreSome;</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="tree-container">
+        <xul:tree id="tabList" flex="1" seltype="single" hidecolumnpicker="true"
+                  onclick="onListClick(event);" onkeydown="onListKeyDown(event);"
+                  _window_label="&restorepage.windowLabel;">
+          <xul:treecols>
+            <xul:treecol cycler="true" id="restore" type="checkbox" label="&restorepage.restoreHeader;"/>
+            <xul:splitter class="tree-splitter"/>
+            <xul:treecol primary="true" id="title" label="&restorepage.listHeader;" flex="1"/>
+          </xul:treecols>
+          <xul:treechildren flex="1"/>
+        </xul:tree>
+      </div>
+
+      <div class="button-container">
+        <xul:button class="primary"
+                    id="errorTryAgain"
+                    label="&welcomeback2.restoreButton;"
+                    accesskey="&welcomeback2.restoreButton.access;"
+                    oncommand="restoreSession();"/>
+      </div>
+
+      <input type="text" id="sessionData" style="display: none;"/>
+
+    </div>
+  </body>
+</html>

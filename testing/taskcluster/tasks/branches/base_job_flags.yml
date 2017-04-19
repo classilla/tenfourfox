@@ -1,0 +1,153 @@
+---
+# List of all possible flags for each category of tests used in the case where
+# "all" is specified.
+flags:
+  aliases:
+    # Aliases specify shorthands that can be used in try syntax.  An alias can
+    # specify a simple replacement:
+    #   fb: foobar  -- replaces fb with foobar
+    #
+    # or an expansion into several test suites (which cannot themselves be
+    # aliases):
+    #   footests:
+    #     - foo
+    #     - bar
+    #     - bing
+    #
+    # or a pattern or patterns (identified by leading and trailing /) that
+    # will be matched against the available flags
+    #   dt: /devtools.*/
+    #   footests:
+    #     - browser-foo
+    #     - /foo.*/   -- selects all defined flags starting with "foo"
+    #
+    # Note that alias expansion is performed in the absence of any chunk
+    # prefixes.  For example, the first example above would replace "foo-7"
+    # with "foobar-7".  Note that a few aliases allowed chunks to be specified
+    # without a leading `-`, for example 'mochitest-dt1'. That's no longer
+    # supported.
+    cppunit: /cppunit.*/
+    crashtest: /crashtest.*/
+    crashtest-e10s: /crashtest-e10s.*/
+    e10s: /.*e10s.*/
+    gaia-js-integration: /.*gaia-js-integration.*/
+    gaia-ui-test: /.*gaia-ui-test.*/
+    jittest: /jittest.*/
+    jittests: /jittest.*/
+    jsreftest: /jsreftest.*/
+    jsreftest-e10s: /jsreftest-e10s.*/
+    luciddream: /luciddream.*/
+    marionette: /marionette.*/
+    mochitest: /mochitest.*/
+    mochitests: /mochitest.*/
+    mochitest-e10s: /mochitest-e10s.*/
+    mochitests-e10s: /mochitest-e10s.*/
+    mochitest-debug: /mochitest-debug-.*/
+    mochitest-a11y: /.*mochitest-o.*/
+    mochitest-bc: /mochitest-browser-chrome.*/
+    mochitest-browser-chrome: /mochitest-browser-chrome.*/
+    mochitest-bc-e10s: /mochitest-browser-chrome-e10s.*/
+    mochitest-browser-chrome-e10s: /mochitest-browser-chrome-e10s.*/
+    mochitest-dt: /mochitest-devtools-chrome.*/
+    mochitest-dt-e10s: /mochitest-devtools-chrome-e10s.*/
+    mochitest-gl: /mochitest-webgl.*/
+    mochitest-o: /.*mochitest-o.*/
+    mochitest-other: /mochitest-other.*/
+    mochitest-push: /mochitest-push.*/
+    reftest: /(plain-)?reftest.*/
+    reftest-no-accel: /(plain-)?reftest-no-accel.*/
+    reftests: /(plain-)?reftest.*/
+    reftests-e10s: /(plain-)?reftest-e10s.*/
+    robocop: /robocop.*/
+    web-platform-test: /web-platform-tests.*/
+    web-platform-tests: /web-platform-tests.*/
+    web-platform-tests-e10s: /web-platform-tests-e10s.*/
+    web-platform-tests-reftests: /web-platform-tests-reftests.*/
+    xpcshell: /xpcshell.*/
+
+  builds:
+    - emulator
+    - emulator-jb
+    - emulator-kk
+    - emulator-x86-kk
+    - emulator-l
+    - linux32_gecko  # b2g desktop linux 32 bit
+    - linux64_gecko  # b2g desktop linux 64 bit
+    - linux64-mulet  # Firefox desktop - b2g gecko linux 64 bit
+    - macosx64_gecko # b2g desktop osx 64 bit
+    - win32_gecko    # b2g desktop win 32 bit
+    - flame-kk       # b2g flame kitkat
+    - flame-kk-eng   # b2g flame eng build
+    - flame-kk-spark-eng
+    - flame-kk-ota
+    - nexus-4
+    - nexus-4-eng
+    - nexus-4-kk
+    - nexus-4-kk-ota
+    - nexus-4-kk-eng
+    - nexus-5l
+    - nexus-5l-ota
+    - nexus-5l-eng
+    - dolphin
+    - dolphin-eng
+    - dolphin-512
+    - dolphin-512-eng
+    - aries
+    - aries-ota
+    - aries-eng
+    - aries-dogfood
+    - aries-noril
+    - android-api-11
+    - android-partner-sample1
+    - android-b2gdroid
+    - linux
+    - linux64
+    - linux64-st-an
+    - macosx64
+    - macosx64-st-an
+
+  tests:
+    - cppunit
+    - crashtest
+    - crashtest-e10s
+    - crashtest-ipc
+    - gaia-build
+    - gaia-build-unit
+    - gaia-js-integration
+    - gaia-linter
+    - gaia-unit
+    - gaia-unit-oop
+    - gaia-ui-test-sanity
+    - gaia-ui-test-functional
+    - gaia-ui-test-functional-dsds
+    - gaia-ui-test-unit
+    - jetpack
+    - jittests
+    - jsreftest
+    - jsreftest-e10s
+    - luciddream
+    - marionette
+    - marionette-webapi
+    - mochitest
+    - mochitest-browser-chrome
+    - mochitest-browser-chrome-e10s
+    - mochitest-devtools-chrome
+    - mochitest-devtools-chrome-e10s
+    - mochitest-e10s
+    - mochitest-jetpack
+    - mochitest-media
+    - mochitest-oop
+    - mochitest-other
+    - mochitest-push
+    #- mochitest-webgl -- disabled per bug 1227637 / bug 1220658
+    - mozmill
+    - reftest
+    - reftest-e10s
+    - reftest-ipc
+    - reftest-no-accel
+    - reftest-sanity-oop
+    - web-platform-tests
+    - web-platform-tests-e10s
+    - web-platform-tests-reftests
+    - xpcshell
+

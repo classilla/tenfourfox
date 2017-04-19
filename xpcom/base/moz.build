@@ -1,0 +1,159 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+XPIDL_SOURCES += [
+    'nsIConsoleListener.idl',
+    'nsIConsoleMessage.idl',
+    'nsIConsoleService.idl',
+    'nsICycleCollectorListener.idl',
+    'nsIDebug2.idl',
+    'nsIErrorService.idl',
+    'nsIException.idl',
+    'nsIGZFileWriter.idl',
+    'nsIInterfaceRequestor.idl',
+    'nsIMemory.idl',
+    'nsIMemoryInfoDumper.idl',
+    'nsIMemoryReporter.idl',
+    'nsIMessageLoop.idl',
+    'nsIMutable.idl',
+    'nsIProgrammingLanguage.idl',
+    'nsISecurityConsoleMessage.idl',
+    'nsIStatusReporter.idl',
+    'nsISupports.idl',
+    'nsIUUIDGenerator.idl',
+    'nsIVersionComparator.idl',
+    'nsIWeakReference.idl',
+    'nsrootidl.idl',
+]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    XPIDL_SOURCES += [
+        'nsIMacUtils.idl',
+    ]
+    EXPORTS.mozilla += [
+        'MacHelpers.h',
+    ]
+    UNIFIED_SOURCES += [
+        'MacHelpers.mm',
+    ]
+
+XPIDL_MODULE = 'xpcom_base'
+
+EXPORTS += [
+    'CodeAddressService.h',
+    'ErrorList.h',
+    'nsAgg.h',
+    'nsAlgorithm.h',
+    'nsAutoPtr.h',
+    'nsAutoRef.h',
+    'nsCom.h',
+    'nscore.h',
+    'nsCycleCollector.h',
+    'nsDebugImpl.h',
+    'nsDumpUtils.h',
+    'nsError.h',
+    'nsGZFileWriter.h',
+    'nsIID.h',
+    'nsInterfaceRequestorAgg.h',
+    'nsISizeOf.h',
+    'nsISupportsBase.h',
+    'nsObjCExceptions.h',
+    'nsQueryObject.h',
+    'nsTraceRefcnt.h',
+    'nsWeakPtr.h',
+]
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    EXPORTS += [
+        'nsWindowsHelpers.h',
+    ]
+
+EXPORTS.mozilla += [
+    'AvailableMemoryTracker.h',
+    'ClearOnShutdown.h',
+    'CountingAllocatorBase.h',
+    'CycleCollectedJSRuntime.h',
+    'Debug.h',
+    'DebuggerOnGCRunnable.h',
+    'DeferredFinalize.h',
+    'ErrorNames.h',
+    'HoldDropJSObjects.h',
+    'JSObjectHolder.h',
+    'LinuxUtils.h',
+    'Logging.h',
+    'nsMemoryInfoDumper.h',
+    'OwningNonNull.h',
+    'StaticMutex.h',
+    'StaticPtr.h',
+    'SystemMemoryReporter.h',
+]
+
+# nsDebugImpl isn't unified because we disable PGO so that NS_ABORT_OOM isn't
+# optimized away oddly.
+SOURCES += [
+    'nsDebugImpl.cpp',
+]
+SOURCES['nsDebugImpl.cpp'].no_pgo = True
+
+UNIFIED_SOURCES += [
+    'AvailableMemoryTracker.cpp',
+    'ClearOnShutdown.cpp',
+    'CycleCollectedJSRuntime.cpp',
+    'Debug.cpp',
+    'DebuggerOnGCRunnable.cpp',
+    'DeferredFinalize.cpp',
+    'ErrorNames.cpp',
+    'HoldDropJSObjects.cpp',
+    'JSObjectHolder.cpp',
+    'Logging.cpp',
+    'nsConsoleMessage.cpp',
+    'nsConsoleService.cpp',
+    'nsCycleCollector.cpp',
+    'nsDumpUtils.cpp',
+    'nsErrorService.cpp',
+    'nsGZFileWriter.cpp',
+    'nsInterfaceRequestorAgg.cpp',
+    'nsMemoryImpl.cpp',
+    'nsMemoryInfoDumper.cpp',
+    'nsMemoryReporterManager.cpp',
+    'nsMessageLoop.cpp',
+    'nsSecurityConsoleMessage.cpp',
+    'nsStatusReporterManager.cpp',
+    'nsSystemInfo.cpp',
+    'nsTraceRefcnt.cpp',
+    'nsUUIDGenerator.cpp',
+    'nsVersionComparatorImpl.cpp',
+]
+
+if CONFIG['OS_ARCH'] == 'Linux':
+    SOURCES += [
+        'LinuxUtils.cpp',
+        'SystemMemoryReporter.cpp',
+    ]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    SOURCES += [
+        'nsMacUtilsImpl.cpp',
+    ]
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    SOURCES += [
+        'nsCrashOnException.cpp',
+    ]
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FINAL_LIBRARY = 'xul'
+
+LOCAL_INCLUDES += [
+    '../build',
+    '/xpcom/ds',
+]
+
+if CONFIG['MOZ_WIDGET_GTK']:
+    CXXFLAGS += CONFIG['TK_CFLAGS']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

@@ -1,0 +1,40 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+SOURCES += [
+    'nsAlertsIconListener.cpp',
+    'nsGnomeModule.cpp',
+    'nsSystemAlertsService.cpp',
+]
+
+if CONFIG['MOZ_ENABLE_GCONF']:
+    SOURCES += [
+        'nsGConfService.cpp',
+    ]
+
+if CONFIG['MOZ_ENABLE_GIO']:
+    SOURCES += [
+        'nsGIOService.cpp',
+        'nsGSettingsService.cpp',
+        'nsPackageKitService.cpp'
+    ]
+
+FINAL_LIBRARY = 'xul'
+
+LOCAL_INCLUDES += [
+    '/toolkit/components/build/',
+]
+
+CXXFLAGS += CONFIG['MOZ_GCONF_CFLAGS']
+CXXFLAGS += CONFIG['MOZ_GIO_CFLAGS']
+CXXFLAGS += CONFIG['GLIB_CFLAGS']
+CXXFLAGS += CONFIG['MOZ_DBUS_GLIB_CFLAGS']
+
+if CONFIG['MOZ_ENABLE_GTK']:
+    CXXFLAGS += CONFIG['TK_CFLAGS']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

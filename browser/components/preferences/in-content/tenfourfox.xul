@@ -1,0 +1,71 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+<!-- Custom TenFourFox prefpanel (C)2016 Cameron Kaiser -->
+
+<script type="application/javascript"
+        src="chrome://browser/content/preferences/in-content/tenfourfox.js"/>
+
+<preferences id="tenFourFoxPreferences" hidden="true" data-category="paneTenFourFox">
+
+  <preference id="media.mediasource.enabled"
+              name="media.mediasource.enabled"
+              type="bool"/>
+  <preference id="pdfjs.disabled"
+              name="pdfjs.disabled"
+              type="bool"/>
+  <preference id="tenfourfox.ua.template"
+              name="tenfourfox.ua.template"
+              type="string"/>
+
+</preferences>
+
+<hbox id="header-tenfourfox"
+      class="header"
+      hidden="true"
+      data-category="paneTenFourFox">
+  <label class="header-name" flex="1">TenFourFox</label>
+  <button class="help-button"
+          aria-label="&helpButton.label;"/>
+</hbox>
+
+<groupbox id="mseModeGroup" data-category="paneTenFourFox" hidden="true">
+  <caption><label>&TFFmseMode.title;</label></caption>
+  <vbox>
+      <checkbox id="mseModeCheckbox"
+                label="&TFFmseMode.prompt;"
+                preference="media.mediasource.enabled"/>
+  </vbox>
+</groupbox>
+
+<groupbox id="pdfJsGroup" data-category="paneTenFourFox" hidden="true">
+  <caption><label>&TFFpdfViewMode.title;</label></caption>
+  <vbox>
+      <checkbox id="pdfJsCheckbox"
+                label="&TFFpdfViewMode.prompt;"
+                onsyncfrompreference="return gTenFourFoxPane.readPDFjs();"
+                onsynctopreference="return gTenFourFoxPane.writePDFjs();"
+                preference="pdfjs.disabled"/>
+  </vbox>
+</groupbox>
+
+<groupbox id="uaGroup" data-category="paneTenFourFox" hidden="true">
+  <caption><label>&TFFuserAgent.title;</label></caption>
+  <hbox align="center" flex="1">
+      <label>&TFFuserAgent.prompt2;</label>
+      <menulist id="uaBox"
+                onsyncfrompreference="return gTenFourFoxPane.readUA();"
+                onsynctopreference="return gTenFourFoxPane.writeUA();"
+                preference="tenfourfox.ua.template">
+          <menupopup>
+              <menuitem label="&TFFuserAgent.default;" value=""/>
+              <menuitem label="Firefox 52ESR (Intel)" value="fx"/>
+              <menuitem label="Classilla 9.3.x" value="classilla"/>
+              <menuitem label="Internet Explorer 8" value="ie8"/>
+              <menuitem label="Android Chrome" value="android"/>
+              <menuitem label="iOS Safari (iPad)" value="ipad"/>
+          </menupopup>
+      </menulist>
+  </hbox>
+</groupbox>

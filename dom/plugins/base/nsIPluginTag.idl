@@ -1,0 +1,75 @@
+/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIURI;
+
+[scriptable, uuid(5daa99d5-265a-4397-b429-c943803e2619)]
+interface nsIPluginTag : nsISupports
+{
+  // enabledState is stored as one of the following as an integer in prefs,
+  // so if new states are added, they must not renumber the existing states.
+  const unsigned long STATE_DISABLED = 0;
+  const unsigned long STATE_CLICKTOPLAY = 1;
+  const unsigned long STATE_ENABLED = 2;
+
+  readonly attribute AUTF8String description;
+  readonly attribute AUTF8String filename;
+  readonly attribute AUTF8String fullpath;
+  readonly attribute AUTF8String version;
+  readonly attribute AUTF8String name;
+
+  // The 'nice' name of this plugin, e.g. 'flash' 'java'
+  readonly attribute AUTF8String niceName;
+
+  /**
+   * true only if this plugin is "hardblocked" and cannot be enabled.
+   */
+  // FIXME-jsplugins QI to fakePluginTag possible
+  // FIXME-jsplugins implement missing + tests (whatever that means)
+  readonly attribute boolean blocklisted;
+
+  /**
+   * true if the state is non-default and locked, false otherwise.
+   */
+  readonly attribute boolean isEnabledStateLocked;
+
+  // If this plugin is capable of being used (not disabled, blocklisted, etc)
+  readonly attribute boolean active;
+
+  // Get a specific nsIBlocklistService::STATE_*
+  readonly attribute unsigned long blocklistState;
+
+  readonly attribute boolean disabled;
+  readonly attribute boolean clicktoplay;
+  // See the STATE_* values above.
+           attribute unsigned long enabledState;
+
+  readonly attribute PRTime lastModifiedTime;
+
+  void getMimeTypes([optional] out unsigned long aCount,
+                    [retval, array, size_is(aCount)] out wstring aResults);
+  void getMimeDescriptions([optional] out unsigned long aCount,
+                           [retval, array, size_is(aCount)]
+                           out wstring aResults);
+  void getExtensions([optional] out unsigned long aCount,
+                     [retval, array, size_is(aCount)]
+                     out wstring aResults);
+};
+
+/**
+ * An interface representing a "fake" plugin: one implemented in JavaScript, not
+ * as a NPAPI plug-in.  See nsIPluginHost.registerFakePlugin and the
+ * documentation for the FakePluginTagInit dictionary.
+ */
+[scriptable, uuid(6d22c968-226d-4156-b230-da6ad6bbf6e8)]
+interface nsIFakePluginTag : nsIPluginTag
+{
+  // The URI that should be loaded into the tag (as a frame) to handle the
+  // plugin. Note that the original data/src value for the plugin is not loaded
+  // and will need to be requested by the handler via XHR or similar if desired.
+  readonly attribute nsIURI handlerURI;
+};

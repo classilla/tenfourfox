@@ -1,0 +1,77 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+DIRS += ['profile/extensions']
+
+if CONFIG['OS_ARCH'] == 'WINNT' and CONFIG['MOZ_ASAN']:
+    GeckoProgram(CONFIG['MOZ_APP_NAME'])
+else:
+    GeckoProgram(CONFIG['MOZ_APP_NAME'], msvcrt='static')
+
+JS_PREFERENCE_PP_FILES += [
+    'profile/firefox.js',
+]
+
+SOURCES += [
+    'nsBrowserApp.cpp',
+]
+
+FINAL_TARGET_FILES += ['blocklist.xml']
+FINAL_TARGET_FILES.defaults.profile += ['profile/prefs.js']
+FINAL_TARGET_FILES.defaults += ['permissions']
+
+DEFINES['APP_VERSION'] = CONFIG['MOZ_APP_VERSION']
+
+LOCAL_INCLUDES += [
+    '!/build',
+    '/toolkit/xre',
+    '/xpcom/base',
+    '/xpcom/build',
+]
+
+DELAYLOAD_DLLS += [
+    'mozglue.dll',
+]
+
+USE_LIBS += [
+    'mozglue',
+]
+
+if CONFIG['_MSC_VER']:
+    # Always enter a Windows program through wmain, whether or not we're
+    # a console application.
+    WIN32_EXE_LDFLAGS += ['-ENTRY:wmainCRTStartup']
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    RCINCLUDE = 'splash.rc'
+    DEFINES['MOZ_PHOENIX'] = True
+
+for cdm in CONFIG['MOZ_EME_MODULES']:
+    DEFINES['MOZ_%s_EME' % cdm.upper()] = True
+
+# Control the default heap size.
+# This is the heap returned by GetProcessHeap().
+# As we use the CRT heap, the default size is too large and wastes VM.
+#
+# The default heap size is 1MB on Win32.
+# The heap will grow if need be.
+#
+# Set it to 256k.  See bug 127069.
+if CONFIG['OS_ARCH'] == 'WINNT' and not CONFIG['GNU_CC']:
+    LDFLAGS += ['/HEAP:0x40000']
+
+DISABLE_STL_WRAPPING = True
+
+if CONFIG['MOZ_LINKER']:
+    OS_LIBS += CONFIG['MOZ_ZLIB_LIBS']
+
+if CONFIG['HAVE_CLOCK_MONOTONIC']:
+    OS_LIBS += CONFIG['REALTIME_LIBS']
+
+OS_LIBS += ['-Wl,-stack_size,0x40000000,-stack_addr,0xf0000000']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

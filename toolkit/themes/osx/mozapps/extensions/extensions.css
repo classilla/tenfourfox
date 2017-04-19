@@ -1,0 +1,51 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+%include ../../../shared/extensions/extensions.inc.css
+
+.no-auto-hide > .menulist-dropmarker {
+  -moz-padding-start: 0px !important;
+}
+
+#header-utils-btn {
+  list-style-image: url("chrome://mozapps/skin/extensions/utilities.svg#utilities");
+  -moz-margin-end: 18px;
+}
+
+#header-utils-btn > .toolbarbutton-menu-dropmarker {
+  list-style-image: url("chrome://mozapps/skin/extensions/toolbarbutton-dropmarker.png");
+  padding: 0;
+  -moz-margin-start: 2px;
+}
+
+.sorter[checkState="1"] {
+  list-style-image: url("chrome://global/skin/arrow/arrow-dn.gif");
+}
+
+.sorter[checkState="2"] {
+  list-style-image: url("chrome://global/skin/arrow/arrow-up.gif");
+}
+
+.addon .relnotes-toggle {
+  -moz-box-direction: reverse;
+  list-style-image: url("chrome://global/skin/arrow/arrow-dn.gif");
+}
+
+.addon[show-relnotes] .relnotes-toggle {
+  list-style-image: url("chrome://global/skin/arrow/arrow-up.gif");
+}
+
+.download-progress {
+  margin-top: 3px;
+  margin-bottom: 3px;
+}
+
+.meta-rating > .star {
+  list-style-image: url("chrome://mozapps/skin/extensions/rating-not-won.png");
+  padding: 0 1px;
+}
+
+.meta-rating > .star[on="true"] {
+  list-style-image: url("chrome://mozapps/skin/extensions/rating-won.png");
+}

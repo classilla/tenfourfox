@@ -1,0 +1,110 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+TEST_DIRS += ['test/extensions']
+
+MOCHITEST_MANIFESTS += ['test/mochitest.ini']
+
+BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
+
+MOCHITEST_CHROME_MANIFESTS += ['test/chrome.ini']
+
+XPCSHELL_TESTS_MANIFESTS += [
+    'test/unit/xpcshell-child-process.ini',
+    'test/unit/xpcshell-parent-process.ini'
+]
+
+if CONFIG['ENABLE_INTL_API']:
+    MOCHITEST_MANIFESTS += ['test/mochitest-intl-api.ini']
+
+EXPORTS.mozilla.dom.indexedDB += [
+    'ActorsParent.h',
+    'FileSnapshot.h',
+    'IDBCursor.h',
+    'IDBDatabase.h',
+    'IDBEvents.h',
+    'IDBFactory.h',
+    'IDBFileHandle.h',
+    'IDBFileRequest.h',
+    'IDBIndex.h',
+    'IDBKeyRange.h',
+    'IDBMutableFile.h',
+    'IDBObjectStore.h',
+    'IDBRequest.h',
+    'IDBTransaction.h',
+    'IDBWrapperCache.h',
+    'IndexedDatabase.h',
+    'IndexedDatabaseManager.h',
+    'Key.h',
+    'KeyPath.h',
+    'SerializationHelpers.h',
+]
+
+UNIFIED_SOURCES += [
+    'ActorsChild.cpp',
+    'FileInfo.cpp',
+    'FileSnapshot.cpp',
+    'IDBCursor.cpp',
+    'IDBDatabase.cpp',
+    'IDBEvents.cpp',
+    'IDBFactory.cpp',
+    'IDBFileHandle.cpp',
+    'IDBFileRequest.cpp',
+    'IDBIndex.cpp',
+    'IDBKeyRange.cpp',
+    'IDBMutableFile.cpp',
+    'IDBObjectStore.cpp',
+    'IDBRequest.cpp',
+    'IDBTransaction.cpp',
+    'IDBWrapperCache.cpp',
+    'IndexedDatabaseManager.cpp',
+    'KeyPath.cpp',
+    'PermissionRequestBase.cpp',
+    'ReportInternalError.cpp',
+]
+
+SOURCES += [
+    'ActorsParent.cpp', # This file is huge.
+    'Key.cpp', # We disable a warning on this file only
+]
+
+IPDL_SOURCES += [
+    'PBackgroundIDBCursor.ipdl',
+    'PBackgroundIDBDatabase.ipdl',
+    'PBackgroundIDBDatabaseFile.ipdl',
+    'PBackgroundIDBDatabaseRequest.ipdl',
+    'PBackgroundIDBFactory.ipdl',
+    'PBackgroundIDBFactoryRequest.ipdl',
+    'PBackgroundIDBRequest.ipdl',
+    'PBackgroundIDBSharedTypes.ipdlh',
+    'PBackgroundIDBTransaction.ipdl',
+    'PBackgroundIDBVersionChangeTransaction.ipdl',
+    'PBackgroundIndexedDBUtils.ipdl',
+    'PIndexedDBPermissionRequest.ipdl',
+]
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FINAL_LIBRARY = 'xul'
+
+if CONFIG['GNU_CC']:
+    # Suppress gcc warning about a comparison being always false due to the
+    # range of the data type
+    SOURCES['Key.cpp'].flags += ['-Wno-error=type-limits']
+
+LOCAL_INCLUDES += [
+    '/db/sqlite3/src',
+    '/dom/base',
+    '/dom/storage',
+    '/dom/workers',
+    '/ipc/glue',
+    '/xpcom/build',
+    '/xpcom/threads',
+]
+
+if CONFIG['ENABLE_INTL_API']:
+    CXXFLAGS += CONFIG['MOZ_ICU_CFLAGS']
+    LOCAL_INCLUDES += CONFIG['MOZ_ICU_INCLUDES']

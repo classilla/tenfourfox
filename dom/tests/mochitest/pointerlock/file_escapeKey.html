@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html>
+<!--https://bugzilla.mozilla.org/show_bug.cgi?id=633602-->
+<head>
+  <title>Bug 633602</title>
+  <script type="application/javascript" src="/tests/SimpleTest/EventUtils.js">
+  </script>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js">
+  </script>
+  <script type="application/javascript" src="pointerlock_utils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+  <a target="_blank"
+    href="https://bugzilla.mozilla.org/show_bug.cgi?id=633602">
+    Mozilla Bug 633602
+  </a>
+  <div id="div"></div>
+  <pre id="test">
+    <script type="text/javascript">
+      /*
+       * Test for Bug 633602
+       * Escape key should unlock the pointer
+       */
+
+      SimpleTest.waitForExplicitFinish();
+
+      var div = document.getElementById("div")
+        , pointerUnLocked = false;
+
+      function start() {
+        document.addEventListener("mozfullscreenchange", enteredFullscreen);
+        div.mozRequestFullScreen();
+      }
+
+      function enteredFullscreen(e) {
+        document.removeEventListener("mozfullscreenchange", enteredFullscreen);
+        is(document.mozFullScreenElement, div, "Element #div should entered fullscreen");
+        ok(!document.mozPointerLockElement, "Pointer shouldn't have been locked");
+        document.addEventListener("mozpointerlockchange", lockedPointer);
+        div.mozRequestPointerLock();
+      }
+
+      function lockedPointer(e) {
+        document.removeEventListener("mozpointerlockchange", lockedPointer);
+        is(document.mozPointerLockElement, div, "Pointer should have been locked on #div");
+        document.addEventListener("mozpointerlockchange", unlockedPointer);
+        document.addEventListener("mozfullscreenchange", leavedFullscreen);
+        SimpleTest.executeSoon(() => synthesizeKey("VK_ESCAPE", {}));
+      }
+
+      var pointerUnlocked = false;
+      var exitedFullscreen = false;
+
+      function unlockedPointer() {
+        document.removeEventListener("mozpointerlockchange", unlockedPointer);
+        ok(!pointerUnlocked, "Shouldn't have unlocked pointer before");
+        ok(!document.mozPointerLockElement, "Pointer should have been unlocked now");
+        pointerUnlocked = true;
+        finishTest();
+      }
+
+      function leavedFullscreen() {
+        document.removeEventListener("mozfullscreenchange", leavedFullscreen);
+        ok(!exitedFullscreen, "Shouldn't have exited fullscreen before");
+        ok(!document.mozFullScreenElement, "Should have exited fullscreen now");
+        exitedFullscreen = true;
+        finishTest();
+      }
+
+      function finishTest() {
+        if (pointerUnlocked && exitedFullscreen) {
+          SimpleTest.finish();
+        }
+      }
+    </script>
+  </pre>
+</body>
+</html>

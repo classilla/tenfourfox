@@ -1,0 +1,147 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef mozilla_psm__CertVerifier_h
+#define mozilla_psm__CertVerifier_h
+
+#include "mozilla/Telemetry.h"
+#include "pkix/pkixtypes.h"
+#include "OCSPCache.h"
+#include "ScopedNSSTypes.h"
+
+namespace mozilla { namespace psm {
+
+// These values correspond to the CERT_CHAIN_KEY_SIZE_STATUS telemetry.
+enum class KeySizeStatus {
+  NeverChecked = 0,
+  LargeMinimumSucceeded = 1,
+  CompatibilityRisk = 2,
+  AlreadyBad = 3,
+};
+
+// These values correspond to the CERT_CHAIN_SIGNATURE_DIGEST telemetry.
+enum class SignatureDigestStatus {
+  NeverChecked = 0,
+  GoodAlgorithmsOnly = 1,
+  WeakEECert = 2,
+  WeakCACert = 3,
+  WeakCAAndEE = 4,
+  AlreadyBad = 5,
+};
+
+class PinningTelemetryInfo
+{
+public:
+  // Should we accumulate pinning telemetry for the result?
+  bool accumulateResult;
+  Telemetry::ID certPinningResultHistogram;
+  int32_t certPinningResultBucket;
+  // Should we accumulate telemetry for the root?
+  bool accumulateForRoot;
+  int32_t rootBucket;
+
+  void Reset() { accumulateForRoot = false; accumulateResult = false; }
+};
+
+class CertVerifier
+{
+public:
+  typedef unsigned int Flags;
+  // XXX: FLAG_LOCAL_ONLY is ignored in the classic verification case
+  static const Flags FLAG_LOCAL_ONLY;
+  // Don't perform fallback DV validation on EV validation failure.
+  static const Flags FLAG_MUST_BE_EV;
+  // TLS feature request_status should be ignored
+  static const Flags FLAG_TLS_IGNORE_STATUS_REQUEST;
+
+  // These values correspond to the SSL_OCSP_STAPLING telemetry.
+  enum OCSPStaplingStatus {
+    OCSP_STAPLING_NEVER_CHECKED = 0,
+    OCSP_STAPLING_GOOD = 1,
+    OCSP_STAPLING_NONE = 2,
+    OCSP_STAPLING_EXPIRED = 3,
+    OCSP_STAPLING_INVALID = 4,
+  };
+
+  // *evOidPolicy == SEC_OID_UNKNOWN means the cert is NOT EV
+  // Only one usage per verification is supported.
+  SECStatus VerifyCert(CERTCertificate* cert,
+                       SECCertificateUsage usage,
+                       mozilla::pkix::Time time,
+                       void* pinArg,
+                       const char* hostname,
+                       Flags flags = 0,
+       /*optional in*/ const SECItem* stapledOCSPResponse = nullptr,
+      /*optional out*/ ScopedCERTCertList* builtChain = nullptr,
+      /*optional out*/ SECOidTag* evOidPolicy = nullptr,
+      /*optional out*/ OCSPStaplingStatus* ocspStaplingStatus = nullptr,
+      /*optional out*/ KeySizeStatus* keySizeStatus = nullptr,
+      /*optional out*/ SignatureDigestStatus* sigDigestStatus = nullptr,
+      /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr);
+
+  SECStatus VerifySSLServerCert(
+                    CERTCertificate* peerCert,
+       /*optional*/ const SECItem* stapledOCSPResponse,
+                    mozilla::pkix::Time time,
+       /*optional*/ void* pinarg,
+                    const char* hostname,
+                    bool saveIntermediatesInPermanentDatabase = false,
+                    Flags flags = 0,
+   /*optional out*/ ScopedCERTCertList* builtChain = nullptr,
+   /*optional out*/ SECOidTag* evOidPolicy = nullptr,
+   /*optional out*/ OCSPStaplingStatus* ocspStaplingStatus = nullptr,
+   /*optional out*/ KeySizeStatus* keySizeStatus = nullptr,
+   /*optional out*/ SignatureDigestStatus* sigDigestStatus = nullptr,
+   /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr);
+
+  enum PinningMode {
+    pinningDisabled = 0,
+    pinningAllowUserCAMITM = 1,
+    pinningStrict = 2,
+    pinningEnforceTestMode = 3
+  };
+
+  enum class SHA1Mode {
+    Allowed = 0,
+    Forbidden = 1,
+    OnlyBefore2016 = 2
+  };
+
+  enum OcspDownloadConfig {
+    ocspOff = 0,
+    ocspOn = 1,
+    ocspEVOnly = 2
+  };
+  enum OcspStrictConfig { ocspRelaxed = 0, ocspStrict };
+  enum OcspGetConfig { ocspGetDisabled = 0, ocspGetEnabled = 1 };
+
+  CertVerifier(OcspDownloadConfig odc, OcspStrictConfig osc,
+               OcspGetConfig ogc, uint32_t certShortLifetimeInDays,
+               PinningMode pinningMode, SHA1Mode sha1Mode);
+  ~CertVerifier();
+
+  void ClearOCSPCache() { mOCSPCache.Clear(); }
+
+  const OcspDownloadConfig mOCSPDownloadConfig;
+  const bool mOCSPStrict;
+  const bool mOCSPGETEnabled;
+  const uint32_t mCertShortLifetimeInDays;
+  const PinningMode mPinningMode;
+  const SHA1Mode mSHA1Mode;
+
+private:
+  OCSPCache mOCSPCache;
+};
+
+void InitCertVerifierLog();
+SECStatus IsCertBuiltInRoot(CERTCertificate* cert, bool& result);
+mozilla::pkix::Result CertListContainsExpectedKeys(
+  const CERTCertList* certList, const char* hostname, mozilla::pkix::Time time,
+  CertVerifier::PinningMode pinningMode);
+
+} } // namespace mozilla::psm
+
+#endif // mozilla_psm__CertVerifier_h

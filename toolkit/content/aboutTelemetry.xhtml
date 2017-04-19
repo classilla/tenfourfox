@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!DOCTYPE html [
+  <!ENTITY % htmlDTD PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd"> %htmlDTD;
+  <!ENTITY % globalDTD SYSTEM "chrome://global/locale/global.dtd"> %globalDTD;
+  <!ENTITY % brandDTD SYSTEM "chrome://branding/locale/brand.dtd"> %brandDTD;
+  <!ENTITY % aboutTelemetryDTD SYSTEM "chrome://global/locale/aboutTelemetry.dtd"> %aboutTelemetryDTD;
+]>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>&aboutTelemetry.pageTitle;</title>
+
+    <link rel="stylesheet" href="chrome://global/content/aboutTelemetry.css"
+          type="text/css"/>
+
+    <script type="application/javascript;version=1.7"
+            src="chrome://global/content/aboutTelemetry.js"/>
+  </head>
+
+  <body dir="&locale.dir;">
+
+    <header id="page-description">
+      <h1>&aboutTelemetry.pageTitle;</h1>
+
+      <h2 id="page-subtitle"></h2>
+
+      <table id="settings">
+        <tr>
+          <td>
+            <p id="description-upload-enabled" class="description-enabled">&aboutTelemetry.uploadEnabled;</p>
+            <p id="description-upload-disabled" class="description-disabled">&aboutTelemetry.uploadDisabled;</p>
+          </td>
+          <td>
+            <a href="" class="change-data-choices-link">&aboutTelemetry.changeDataChoices;</a>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <p id="description-extended-recording-enabled" class="description-enabled">&aboutTelemetry.extendedRecordingEnabled;</p>
+            <p id="description-extended-recording-disabled" class="description-disabled">&aboutTelemetry.extendedRecordingDisabled;</p>
+          </td>
+          <td>
+            <a href="" class="change-data-choices-link">&aboutTelemetry.changeDataChoices;</a>
+          </td>
+        </tr>
+      </table>
+
+      <div id="ping-picker">
+        <div id="ping-source-picker">
+          &aboutTelemetry.pingDataSource;<br/>
+          <input type="radio" id="ping-source-current" name="choose-ping-source" value="current" checked="checked" />
+          &aboutTelemetry.showCurrentPingData;<br />
+          <input type="radio" id="ping-source-archive" name="choose-ping-source" value="archive" />
+          &aboutTelemetry.showArchivedPingData;<br />
+        </div>
+        <button id="show-raw-ping" type="button">&aboutTelemetry.rawPingData;</button>
+        <div id="current-ping-picker">
+          <input id="show-subsession-data" type="checkbox" />&aboutTelemetry.showSubsessionData;
+        </div>
+        <div id="archived-ping-picker" class="hidden">
+          &aboutTelemetry.choosePing;<br />
+          <button id="newer-ping" type="button">&aboutTelemetry.showNewerPing;</button>
+          <button id="older-ping" type="button">&aboutTelemetry.showOlderPing;</button><br />
+          <table>
+            <tr>
+                <th>&aboutTelemetry.archiveWeekHeader;</th>
+                <th>&aboutTelemetry.archivePingHeader;</th>
+            </tr>
+            <tr>
+                <td>
+                    <select id="choose-ping-week">
+                    </select>
+                </td>
+                <td>
+                    <select id="choose-ping-id">
+                    </select>
+                </td>
+            </tr>
+          </table>
+        </div>
+        <table>
+            <tr>
+                <th>&aboutTelemetry.payloadChoiceHeader;</th>
+            </tr>
+            <tr>
+                <td>
+                    <select id="choose-payload">
+                    </select>
+                </td>
+            </tr>
+        </table>
+      </div>
+    </header>
+
+    <div id="raw-ping-data-section" class="hidden">
+      <div id="hide-raw-ping">&#10006;</div>
+      <pre id="raw-ping-data"></pre>
+    </div>
+
+    <section id="general-data-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.generalDataSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="general-data" class="data">
+      </div>
+    </section>
+
+    <section id="environment-data-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.environmentDataSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="environment-data" class="data">
+      </div>
+    </section>
+
+    <section id="session-info-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.sessionInfoSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="session-info" class="data">
+      </div>
+    </section>
+
+    <section id="telemetry-log-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.telemetryLogSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="telemetry-log" class="data">
+      </div>
+    </section>
+
+    <section id="slow-sql-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.slowSqlSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="slow-sql-tables" class="data">
+        <p id="sql-warning" class="hidden">&aboutTelemetry.fullSqlWarning;</p>
+      </div>
+    </section>
+
+    <section id="chrome-hangs-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.chromeHangsSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="chrome-hangs" class="data">
+        <a id="chrome-hangs-fetch-symbols" href="#">&aboutTelemetry.fetchSymbols;</a>
+        <a id="chrome-hangs-hide-symbols" class="hidden" href="#">&aboutTelemetry.hideSymbols;</a>
+        <br/>
+        <br/>
+        <div id="chrome-hangs-data">
+        </div>
+      </div>
+    </section>
+
+    <section id="thread-hang-stats-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.threadHangStatsSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="thread-hang-stats" class="data">
+      </div>
+    </section>
+
+    <section id="histograms-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.histogramsSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <span class="filter-ui">
+        &aboutTelemetry.filterText; <input type="text" class="filter" id="histograms-filter" target_id="histograms"/>
+      </span>
+      <div id="histograms" class="data">
+      </div>
+    </section>
+
+    <section id="keyed-histograms-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.keyedHistogramsSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="keyed-histograms" class="data">
+      </div>
+    </section>
+
+    <section id="simple-measurements-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.simpleMeasurementsSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="simple-measurements" class="data">
+      </div>
+    </section>
+
+    <section id="late-writes-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.lateWritesSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="late-writes" class="data">
+        <a id="late-writes-fetch-symbols" href="#">&aboutTelemetry.fetchSymbols;</a>
+        <a id="late-writes-hide-symbols" class="hidden" href="#">&aboutTelemetry.hideSymbols;</a>
+        <br/>
+        <br/>
+        <div id="late-writes-data">
+        </div>
+      </div>
+    </section>
+
+    <section id="addon-details-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.addonDetailsSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="addon-details" class="data">
+      </div>
+    </section>
+
+    <section id="addon-histograms-section" class="data-section">
+      <input type="checkbox" class="statebox"/>
+      <h1 class="section-name">&aboutTelemetry.addonHistogramsSection;</h1>
+      <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+      <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+      <div id="addon-histograms" class="data">
+      </div>
+    </section>
+
+  </body>
+
+</html>
