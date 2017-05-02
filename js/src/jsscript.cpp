@@ -2060,6 +2060,7 @@ ScriptSource::setSourceCopy(ExclusiveContext* cx, SourceBufferHolder& srcBuf,
     //    thread (see HelperThreadState::canStartParseTask) which would cause a
     //    deadlock if there wasn't a second helper thread that could make
     //    progress on our compression task.
+#if(0)
     bool canCompressOffThread =
         HelperThreadState().cpuCount > 1 &&
         HelperThreadState().threadCount >= 2 &&
@@ -2073,6 +2074,10 @@ ScriptSource::setSourceCopy(ExclusiveContext* cx, SourceBufferHolder& srcBuf,
     } else if (!ensureOwnsSource(cx)) {
         return false;
     }
+#else
+    if (!ensureOwnsSource(cx))
+        return false;
+#endif
 
     return true;
 }
