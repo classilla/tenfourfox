@@ -1415,7 +1415,7 @@ pref("security.insecure_password.ui.enabled", false);
 pref("security.cert_pinning.enforcement_level", 1);
 
 // 0 = allow SHA-1
-pref("security.pki.sha1_enforcement_level", 0);
+pref("security.pki.sha1_enforcement_level", 1);
 
 // Required blocklist freshness for OneCRL OCSP bypass
 // (default is 1.25x extensions.blocklist.interval, or 30 hours)
