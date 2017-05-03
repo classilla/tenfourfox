@@ -1947,11 +1947,9 @@
 
             if (animate) {
               requestAnimationFrame(function () {
-                //this.tabContainer._handleTabTelemetryStart(t, aURI);
-
                 // kick the animation off
                 t.setAttribute("fadein", "true");
-              }.bind(this));
+              });
             }
 
             return t;
@@ -2131,8 +2129,6 @@
               this._endRemoveTab(aTab);
               return;
             }
-
-            //this.tabContainer._handleTabTelemetryStart(aTab);
 
             this._blurTab(aTab);
             aTab.style.maxWidth = ""; // ensure that fade-out transition happens
@@ -4529,8 +4525,12 @@
 
     <handlers>
       <handler event="underflow" phase="capturing"><![CDATA[
+        if (event.originalTarget != this._scrollbox)
+          return;
+
+        // Ignore vertical events
         if (event.detail == 0)
-          return; // Ignore vertical events
+          return;
 
         var tabs = document.getBindingParent(this);
         tabs.removeAttribute("overflow");
@@ -4544,8 +4544,12 @@
         tabs._positionPinnedTabs();
       ]]></handler>
       <handler event="overflow"><![CDATA[
+        if (event.originalTarget != this._scrollbox)
+          return;
+
+        // Ignore vertical events
         if (event.detail == 0)
-          return; // Ignore vertical events
+          return;
 
         var tabs = document.getBindingParent(this);
         tabs.setAttribute("overflow", "true");
@@ -4602,13 +4606,6 @@
 
           window.addEventListener("resize", this, false);
           window.addEventListener("load", this, false);
-
-          try {
-            this._tabAnimationLoggingEnabled = Services.prefs.getBoolPref("browser.tabs.animationLogging.enabled");
-          } catch (ex) {
-            this._tabAnimationLoggingEnabled = false;
-          }
-          this._browserNewtabpageEnabled = false; //Services.prefs.getBoolPref("browser.newtabpage.enabled");
         ]]>
       </constructor>
 
@@ -4757,6 +4754,12 @@
 
       <method name="adjustTabstrip">
         <body><![CDATA[
+          // If we're overflowing, tab widths don't change anymore, so we can
+          // return early to avoid flushing layout.
+          if (this.getAttribute("overflow") == "true") {
+            return;
+          }
+
           let numTabs = this.childNodes.length -
                         this.tabbrowser._removingTabs.length;
           if (numTabs > 2) {
@@ -4913,16 +4916,19 @@
 
             let scrollButtonWidth = this.mTabstrip._scrollButtonDown.getBoundingClientRect().width;
             let paddingStart = this.mTabstrip.scrollboxPaddingStart;
+            let pinnedTabWidth;
             let width = 0;
 
             for (let i = numPinned - 1; i >= 0; i--) {
               let tab = this.childNodes[i];
-              width += tab.getBoundingClientRect().width;
+              if (!pinnedTabWidth) {
+                pinnedTabWidth = tab.getBoundingClientRect().width;
+              }
+              width += pinnedTabWidth;
               tab.style.MozMarginStart = - (width + scrollButtonWidth + paddingStart) + "px";
             }
 
             this.style.MozPaddingStart = width + paddingStart + "px";
-
           } else {
             this.removeAttribute("positionpinnedtabs");
 
@@ -5258,89 +5264,6 @@
         </body>
       </method>
 
-      <method name="_handleTabTelemetryStart">
-        <parameter name="aTab"/>
-        <parameter name="aURI"/>
-        <body>
-        <![CDATA[
-/*
-          // Animation-smoothness telemetry/logging
-          if (Services.telemetry.canRecordExtended || this._tabAnimationLoggingEnabled) {
-            if (aURI == "about:newtab" && (aTab._tPos == 1 || aTab._tPos == 2)) {
-              // Indicate newtab page animation where other tabs are unaffected
-              // (for which case, the 2nd or 3rd tabs are good representatives, even if not absolute)
-              aTab._recordingTabOpenPlain = true;
-            }
-            aTab._recordingHandle = window.QueryInterface(Ci.nsIInterfaceRequestor)
-                                          .getInterface(Ci.nsIDOMWindowUtils)
-                                          .startFrameTimeRecording();
-          }
-
-          // Overall animation duration
-          aTab._animStartTime = Date.now();
-*/
-        ]]>
-        </body>
-      </method>
-
-      <method name="_handleTabTelemetryEnd">
-        <parameter name="aTab"/>
-        <body>
-        <![CDATA[
-/*
-          if (!aTab._animStartTime) {
-            return;
-          }
-
-          Services.telemetry.getHistogramById(aTab.closing ?
-                                              "FX_TAB_ANIM_CLOSE_MS" :
-                                              "FX_TAB_ANIM_OPEN_MS")
-                            .add(Date.now() - aTab._animStartTime);
-          aTab._animStartTime = 0;
-
-          // Handle tab animation smoothness telemetry/logging of frame intervals and paint times
-          if (!("_recordingHandle" in aTab)) {
-            return;
-          }
-
-          let intervals = window.QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIDOMWindowUtils)
-                                .stopFrameTimeRecording(aTab._recordingHandle);
-          delete aTab._recordingHandle;
-          let frameCount = intervals.length;
-
-          if (this._tabAnimationLoggingEnabled) {
-            let msg = "Tab " + (aTab.closing ? "close" : "open") + " (Frame-interval):\n";
-            for (let i = 0; i < frameCount; i++) {
-              msg += Math.round(intervals[i]) + "\n";
-            }
-            Services.console.logStringMessage(msg);
-          }
-
-          // For telemetry, the first frame interval is not useful since it may represent an interval
-          // to a relatively old frame (prior to recording start). So we'll ignore it for the average.
-          if (frameCount > 1) {
-            let averageInterval = 0;
-            for (let i = 1; i < frameCount; i++) {
-              averageInterval += intervals[i];
-            };
-            averageInterval = averageInterval / (frameCount - 1);
-
-            Services.telemetry.getHistogramById("FX_TAB_ANIM_ANY_FRAME_INTERVAL_MS").add(averageInterval);
-
-            if (aTab._recordingTabOpenPlain) {
-              delete aTab._recordingTabOpenPlain;
-              // While we do have a telemetry probe NEWTAB_PAGE_ENABLED to monitor newtab preview, it'll be
-              // easier to overview the data without slicing by it. Hence the additional histograms with _PREVIEW.
-              let preview = this._browserNewtabpageEnabled ? "_PREVIEW" : "";
-              Services.telemetry.getHistogramById("FX_TAB_ANIM_OPEN" + preview + "_FRAME_INTERVAL_MS").add(averageInterval);
-            }
-          }
-*/
-        ]]>
-        </body>
-      </method>
-
       <!-- Deprecated stuff, implemented for backwards compatibility. -->
       <property name="mAllTabsPopup" readonly="true"
                 onget="return document.getElementById('alltabs-popup');"/>
@@ -5354,8 +5277,6 @@
           return;
 
         var tab = event.target;
-
-        //this._handleTabTelemetryEnd(tab);
 
         if (tab.getAttribute("fadein") == "true") {
           if (tab._fullyOpen)
@@ -6389,7 +6310,7 @@
           if (val) {
             this.setAttribute("label", val);
             this.removeAttribute("inactive");
-            this._calcMouseTargetRect();
+            this._mouseTargetRect = null;
             MousePosTracker.addListener(this);
           } else {
             this.setAttribute("inactive", "true");
@@ -6405,6 +6326,9 @@
 
       <method name="getMouseTargetRect">
         <body><![CDATA[
+          if (!this._mouseTargetRect) {
+            this._calcMouseTargetRect();
+          }
           return this._mouseTargetRect;
         ]]></body>
       </method>
@@ -6429,7 +6353,7 @@
 
           switch (event.type) {
             case "resize":
-              this._calcMouseTargetRect();
+              this._mouseTargetRect = null;
               break;
           }
         ]]></body>
@@ -6460,7 +6384,7 @@
 
           if (!this.hasAttribute("sizelimit")) {
             this.setAttribute("sizelimit", "true");
-            this._calcMouseTargetRect();
+            this._mouseTargetRect = null;
           }
         </body>
       </method>

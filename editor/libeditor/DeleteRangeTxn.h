@@ -54,7 +54,7 @@ protected:
                                      int32_t aStartOffset,
                                      int32_t aEndOffset);
 
-  nsresult CreateTxnsToDeleteNodesBetween();
+  nsresult CreateTxnsToDeleteNodesBetween(nsRange *aRangeToDelete);
 
   nsresult CreateTxnsToDeleteContent(nsINode* aParent,
                                      int32_t aOffset,
@@ -63,6 +63,8 @@ protected:
 protected:
 
   /** p1 in the range */
+  /* After bug 1349940, this is only non-null until DoTransaction is called
+     and we convert it into child transactions. */
   RefPtr<nsRange> mRange;
 
   /** the editor for this transaction */

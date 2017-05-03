@@ -1046,7 +1046,8 @@ public:
     mContainerBounds(aContainerBounds),
     mParameters(aParameters),
     mPaintedLayerDataTree(*this, aBackgroundColor),
-    mFlattenToSingleLayer(aFlattenToSingleLayer)
+    mFlattenToSingleLayer(aFlattenToSingleLayer),
+    mLastDisplayPortAGR(nullptr)
   {
     nsPresContext* presContext = aContainerFrame->PresContext();
     mAppUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
@@ -1364,6 +1365,12 @@ protected:
   bool ChooseAnimatedGeometryRoot(const nsDisplayList& aList,
                                   AnimatedGeometryRoot **aAnimatedGeometryRoot);
 
+  /**
+   * Get the display port for an AGR.
+   * The result would be cached for later reusing.
+   */
+  nsRect GetDisplayPortForAnimatedGeometryRoot(AnimatedGeometryRoot* aAnimatedGeometryRoot);
+
   nsDisplayListBuilder*            mBuilder;
   LayerManager*                    mManager;
   FrameLayerBuilder*               mLayerBuilder;
@@ -1420,6 +1427,8 @@ protected:
 
   nsDataHashtable<nsGenericHashKey<MaskLayerKey>, RefPtr<ImageLayer>>
     mRecycledMaskImageLayers;
+  AnimatedGeometryRoot* mLastDisplayPortAGR;
+  nsRect mLastDisplayPortRect;
 };
 
 class PaintedDisplayItemLayerUserData : public LayerUserData
@@ -3703,6 +3712,34 @@ ContainerState::ChooseAnimatedGeometryRoot(const nsDisplayList& aList,
   return false;
 }
 
+nsRect
+ContainerState::GetDisplayPortForAnimatedGeometryRoot(AnimatedGeometryRoot* aAnimatedGeometryRoot)
+{
+// Faster version of the code from ComputeOpaqueRect (after bug 1331342).
+  if (mLastDisplayPortAGR == aAnimatedGeometryRoot) {
+    return mLastDisplayPortRect;
+  }
+
+  nsIScrollableFrame* sf = nsLayoutUtils::GetScrollableFrameFor(*aAnimatedGeometryRoot);
+  if (sf == nullptr) {
+    return nsRect();
+  }
+
+  mLastDisplayPortAGR = aAnimatedGeometryRoot;
+  nsRect& displayport = mLastDisplayPortRect;
+
+  bool usingDisplayport =
+    nsLayoutUtils::GetDisplayPort((*aAnimatedGeometryRoot)->GetContent(), &displayport);
+  if (!usingDisplayport) {
+    // No async scrolling, so all that matters is that the layer contents
+    // cover the scrollport.
+    displayport = sf->GetScrollPortRect();
+  }
+  nsIFrame* scrollFrame = do_QueryFrame(sf);
+  displayport += scrollFrame->GetOffsetToCrossDoc(mContainerReferenceFrame);
+  return displayport;
+}
+
 nsIntRegion
 ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
                                   AnimatedGeometryRoot* aAnimatedGeometryRoot,
@@ -3740,6 +3777,7 @@ ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
     }
     opaquePixels = ScaleRegionToInsidePixels(opaqueClipped, snapOpaque);
 
+#if(0)
     nsIScrollableFrame* sf = nsLayoutUtils::GetScrollableFrameFor(*aAnimatedGeometryRoot);
     if (sf) {
       nsRect displayport;
@@ -3756,6 +3794,17 @@ ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
         *aOpaqueForAnimatedGeometryRootParent = true;
       }
     }
+#else
+// backbugs from bug 1220466 and bug 1331342
+    if (IsInInactiveLayer()) return opaquePixels;
+
+    const nsRect& displayport =
+       GetDisplayPortForAnimatedGeometryRoot(aAnimatedGeometryRoot);
+    if (!displayport.IsEmpty() &&
+        opaquePixels.Contains(ScaleRegionToNearestPixels(displayport))) {
+      *aOpaqueForAnimatedGeometryRootParent = true;
+    }
+#endif
 //  }
   return opaquePixels;
 }
@@ -4041,11 +4090,11 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
         // clip we care about is the overflow:hidden clip on the scrollbar.
         mPaintedLayerDataTree.AddingOwnLayer(animatedGeometryRoot->mParentAGR,
 					     clipPtr,
-					     uniformColorPtr);
+					     IsInInactiveLayer() ? nullptr : uniformColorPtr);
       } else if (prerenderedTransform) {
         mPaintedLayerDataTree.AddingOwnLayer(animatedGeometryRoot,
 					     clipPtr,
-					     uniformColorPtr);
+					     IsInInactiveLayer() ? nullptr : uniformColorPtr);
       } else {
         // Using itemVisibleRect here isn't perfect. itemVisibleRect can be
         // larger or smaller than the potential bounds of item's contents in
@@ -4056,7 +4105,8 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
         // Time will tell whether this is good enough, or whether we need to do
         // something more sophisticated here.
         mPaintedLayerDataTree.AddingOwnLayer(animatedGeometryRoot,
-                                             &itemVisibleRect, uniformColorPtr);
+                                             &itemVisibleRect,
+                                             IsInInactiveLayer() ? nullptr : uniformColorPtr);
       }
 
       mParameters.mBackgroundColor = uniformColor;

@@ -65,11 +65,19 @@ DeleteRangeTxn::DoTransaction()
   MOZ_ASSERT(mRange && mEditor);
   nsresult res;
 
+  // Swap mRange out into a stack variable, so we make sure to null it
+  // out on return from this function.  Once this function returns, we no longer
+  // need mRange, and keeping it alive in the long term slows down all
+  // DOM mutations because it's observing them.
+  // (Modified from bug 1349940.)
+  RefPtr<nsRange> rangeToDelete;
+  rangeToDelete.swap(mRange);
+
   // build the child transactions
-  nsCOMPtr<nsINode> startParent = mRange->GetStartParent();
-  int32_t startOffset = mRange->StartOffset();
-  nsCOMPtr<nsINode> endParent = mRange->GetEndParent();
-  int32_t endOffset = mRange->EndOffset();
+  nsCOMPtr<nsINode> startParent = rangeToDelete->GetStartParent();
+  int32_t startOffset = rangeToDelete->StartOffset();
+  nsCOMPtr<nsINode> endParent = rangeToDelete->GetEndParent();
+  int32_t endOffset = rangeToDelete->EndOffset();
   MOZ_ASSERT(startParent && endParent);
 
   if (startParent == endParent) {
@@ -82,7 +90,7 @@ DeleteRangeTxn::DoTransaction()
     res = CreateTxnsToDeleteContent(startParent, startOffset, nsIEditor::eNext);
     NS_ENSURE_SUCCESS(res, res);
     // delete the intervening nodes
-    res = CreateTxnsToDeleteNodesBetween();
+    res = CreateTxnsToDeleteNodesBetween(rangeToDelete);
     NS_ENSURE_SUCCESS(res, res);
     // delete the relevant content in the end node
     res = CreateTxnsToDeleteContent(endParent, endOffset, nsIEditor::ePrevious);
@@ -110,16 +118,12 @@ DeleteRangeTxn::DoTransaction()
 NS_IMETHODIMP
 DeleteRangeTxn::UndoTransaction()
 {
-  MOZ_ASSERT(mRange && mEditor);
-
   return EditAggregateTxn::UndoTransaction();
 }
 
 NS_IMETHODIMP
 DeleteRangeTxn::RedoTransaction()
 {
-  MOZ_ASSERT(mRange && mEditor);
-
   return EditAggregateTxn::RedoTransaction();
 }
 
@@ -211,11 +215,11 @@ DeleteRangeTxn::CreateTxnsToDeleteContent(nsINode* aNode,
 }
 
 nsresult
-DeleteRangeTxn::CreateTxnsToDeleteNodesBetween()
+DeleteRangeTxn::CreateTxnsToDeleteNodesBetween(nsRange *aRangeToDelete)
 {
   nsCOMPtr<nsIContentIterator> iter = NS_NewContentSubtreeIterator();
 
-  nsresult res = iter->Init(mRange);
+  nsresult res = iter->Init(aRangeToDelete);
   NS_ENSURE_SUCCESS(res, res);
 
   while (!iter->IsDone()) {
