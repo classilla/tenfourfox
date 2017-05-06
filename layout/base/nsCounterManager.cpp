@@ -186,11 +186,7 @@ nsCounterList::RecalcAll()
 {
     mDirty = false;
 
-    nsCounterNode *node = First();
-    if (!node)
-        return;
-
-    do {
+    for (nsCounterNode* node = First(); node; node = Next(node)) {
         SetScope(node);
         node->Calc(this);
 
@@ -205,7 +201,7 @@ nsCounterList::RecalcAll()
                 useNode->mText->SetData(text);
             }
         }
-    } while ((node = Next(node)) != First());
+    }
 }
 
 nsCounterManager::nsCounterManager()
@@ -291,20 +287,16 @@ nsCounterManager::SetAllCounterStylesDirty()
 {
     for (auto iter = mNames.Iter(); !iter.Done(); iter.Next()) {
         nsCounterList* list = iter.UserData();
-        nsCounterNode* first = list->First();
-        if (first) {
-            bool changed = false;
-            nsCounterNode* node = first;
-            do {
-                if (node->mType == nsCounterNode::USE) {
-                    node->UseNode()->SetCounterStyleDirty();
-                    changed = true;
-                }
-            } while ((node = list->Next(node)) != first);
-
-            if (changed) {
-                list->SetDirty();
+        bool changed = false;
+        for (nsCounterNode* node = list->First(); node; node = list->Next(node)) {
+            if (node->mType == nsCounterNode::USE) {
+                node->UseNode()->SetCounterStyleDirty();
+                changed = true;
             }
+        }
+
+        if (changed) {
+            list->SetDirty();
         }
     }
 }
@@ -327,32 +319,29 @@ nsCounterManager::DestroyNodesFor(nsIFrame *aFrame)
 void
 nsCounterManager::Dump()
 {
-    printf("\n\nCounter Manager Lists:\n");
-    for (auto iter = mNames.Iter(); !iter.Done(); iter.Next()) {
-        printf("Counter named \"%s\":\n",
-               NS_ConvertUTF16toUTF8(iter.Key()).get());
+  printf("\n\nCounter Manager Lists:\n");
+  for (auto iter = mNames.Iter(); !iter.Done(); iter.Next()) {
+    printf("Counter named \"%s\":\n",
+           NS_ConvertUTF16toUTF8(iter.Key()).get());
 
-        nsCounterList* list = iter.UserData();
-        nsCounterNode* node = list->First();
-        if (node) {
-            int32_t i = 0;
-            do {
-                const char* types[] = { "RESET", "INCREMENT", "USE" };
-                printf("  Node #%d @%p frame=%p index=%d type=%s valAfter=%d\n"
-                       "       scope-start=%p scope-prev=%p",
-                       i++, (void*)node, (void*)node->mPseudoFrame,
-                       node->mContentIndex, types[node->mType],
-                       node->mValueAfter, (void*)node->mScopeStart,
-                       (void*)node->mScopePrev);
-                if (node->mType == nsCounterNode::USE) {
-                    nsAutoString text;
-                    node->UseNode()->GetText(text);
-                    printf(" text=%s", NS_ConvertUTF16toUTF8(text).get());
-                }
-                printf("\n");
-            } while ((node = list->Next(node)) != list->First());
-        }
+    nsCounterList* list = iter.UserData();
+    int32_t i = 0;
+    for (nsCounterNode* node = list->First(); node; node = list->Next(node)) {
+      const char* types[] = { "RESET", "INCREMENT", "USE" };
+      printf("  Node #%d @%p frame=%p index=%d type=%s valAfter=%d\n"
+             "       scope-start=%p scope-prev=%p",
+             i++, (void*)node, (void*)node->mPseudoFrame,
+             node->mContentIndex, types[node->mType],
+             node->mValueAfter, (void*)node->mScopeStart,
+             (void*)node->mScopePrev);
+      if (node->mType == nsCounterNode::USE) {
+        nsAutoString text;
+        node->UseNode()->GetText(text);
+        printf(" text=%s", NS_ConvertUTF16toUTF8(text).get());
+      }
+      printf("\n");
     }
-    printf("\n\n");
+  }
+  printf("\n\n");
 }
 #endif

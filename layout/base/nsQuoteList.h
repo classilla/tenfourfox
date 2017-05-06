@@ -70,7 +70,7 @@ struct nsQuoteNode : public nsGenConNode {
 
 class nsQuoteList : public nsGenConList {
 private:
-  nsQuoteNode* FirstNode() { return static_cast<nsQuoteNode*>(mFirstNode); }
+  nsQuoteNode* FirstNode() { return static_cast<nsQuoteNode*>(mList.getFirst()); }
 public:
   // assign the correct |mDepthBefore| value to a node that has been inserted
   // Should be called immediately after calling |Insert|.
