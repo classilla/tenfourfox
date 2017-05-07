@@ -144,6 +144,9 @@
 #include "nsComputedDOMStyle.h"
 #include "mozilla/Preferences.h"
 
+#include "nsIIOService.h"
+#include "nsISpeculativeConnect.h"
+
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -2991,6 +2994,15 @@ Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor)
 
           EventStateManager::SetActiveManager(
             aVisitor.mPresContext->EventStateManager(), this);
+
+          // OK, we're pretty sure we're going to load, so warm up a speculative
+          // connection to be sure we have one ready when we open the channel.
+          nsCOMPtr<nsISpeculativeConnect>
+            speculator(do_QueryInterface(nsContentUtils::GetIOService()));
+          nsCOMPtr<nsIInterfaceRequestor> ir = do_QueryInterface(handler);
+          // We need bug 1304219 for this part, but this will suffice for now.
+          //speculator->SpeculativeConnect2(absURI, NodePrincipal(), ir);
+          speculator->SpeculativeConnect(absURI, ir);
         }
       }
     }
