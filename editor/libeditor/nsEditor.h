@@ -883,6 +883,7 @@ protected:
   bool mDispatchInputEvent;
   bool mIsInEditAction;   // true while the instance is handling an edit action
   bool mHidingCaret;      // whether caret is hidden forcibly.
+  bool mSpellCheckerDictionaryUpdated;  // Whether spellchecker dictionary is initialized after focused.
 
   friend bool NSCanUnload(nsISupports* serviceMgr);
   friend class nsAutoTxnsConserveSelection;

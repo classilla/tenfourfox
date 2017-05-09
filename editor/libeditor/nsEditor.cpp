@@ -146,6 +146,7 @@ nsEditor::nsEditor()
 ,  mDispatchInputEvent(true)
 ,  mIsInEditAction(false)
 ,  mHidingCaret(false)
+,  mSpellCheckerDictionaryUpdated(true)
 {
 }
 
@@ -1309,6 +1310,11 @@ NS_IMETHODIMP nsEditor::SyncRealTimeSpell()
   GetInlineSpellChecker(enable, getter_AddRefs(spellChecker));
 
   if (mInlineSpellChecker) {
+    if (!mSpellCheckerDictionaryUpdated && enable) {
+      mInlineSpellChecker->UpdateCurrentDictionary();
+      mSpellCheckerDictionaryUpdated = true;
+    }
+
     // We might have a mInlineSpellChecker even if there are no dictionaries
     // available since we don't destroy the mInlineSpellChecker when the last
     // dictionariy is removed, but in that case spellChecker is null
@@ -5122,8 +5128,10 @@ void
 nsEditor::OnFocus(nsIDOMEventTarget* aFocusEventTarget)
 {
   InitializeSelection(aFocusEventTarget);
-  if (mInlineSpellChecker) {
+  mSpellCheckerDictionaryUpdated = false;
+  if (mInlineSpellChecker && CanEnableSpellCheck()) {
     mInlineSpellChecker->UpdateCurrentDictionary();
+    mSpellCheckerDictionaryUpdated = true;
   }
 }
 
