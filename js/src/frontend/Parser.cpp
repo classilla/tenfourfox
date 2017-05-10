@@ -3607,8 +3607,41 @@ Parser<FullParseHandler>::bindLexical(BindData<FullParseHandler>* data,
         // The reason we compare using >= instead of == on the block id is to
         // detect redeclarations where a 'var' binding first appeared in a
         // nested block: |{ var x; } let x;|
-        if (dn && dn->pn_blockid >= pc->blockid())
+        if (dn && dn->pn_blockid >= pc->blockid()) {
+            // XXXshu Used only for phasing in block-scope function early
+            // XXXshu errors.
+            // XXXshu
+            // XXXshu Back out when major version >= 50. See [1].
+            // XXXshu
+            // XXXshu [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1235590#c10
+            if (pn->isKind(PNK_FUNCTION) && dn->isKind(PNK_FUNCTION) && !pc->sc->strict()) {
+                if (!parser->makeDefIntoUse(dn, pn, name))
+                    return false;
+
+                MOZ_ASSERT(blockObj);
+                Shape* shape = blockObj->lastProperty()->search(cx, NameToId(name));
+                MOZ_ASSERT(shape);
+                uint32_t oldDefIndex = blockObj->shapeToIndex(*shape);
+                blockObj->updateDefinitionParseNode(oldDefIndex, dn,
+                                                    reinterpret_cast<Definition*>(pn));
+
+                //parser->addTelemetry(JSCompartment::DeprecatedBlockScopeFunRedecl);
+                JSAutoByteString bytes;
+                if (!AtomToPrintableString(cx, name, &bytes))
+                    return false;
+                if (!parser->report(ParseWarning, false, null(),
+                                    JSMSG_DEPRECATED_BLOCK_SCOPE_FUN_REDECL,
+                                    bytes.ptr()))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
             return parser->reportRedeclaration(pn, dn->kind(), name);
+        }
+
         if (!pc->define(parser->tokenStream, name, pn, bindingKind))
             return false;
     }
