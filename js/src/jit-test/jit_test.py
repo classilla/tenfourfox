@@ -59,7 +59,7 @@ def main(argv):
                   help='also run tests marked as slow')
     op.add_option('--no-slow', dest='run_slow', action='store_false',
                   help='do not run tests marked as slow (the default)')
-    op.add_option('-t', '--timeout', dest='timeout', type=float, default=150.0,
+    op.add_option('-t', '--timeout', dest='timeout', type=float, default=200.0,
                   help='set test timeout in seconds')
     op.add_option('--no-progress', dest='hide_progress', action='store_true',
                   help='hide progress bar')

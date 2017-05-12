@@ -783,10 +783,9 @@ NativeRegExpMacroAssembler::CheckGreedyLoop(Label* on_tos_equals_current_positio
 }
 
 void
-NativeRegExpMacroAssembler::CheckNotBackReference(int start_reg, Label* on_no_match,
-                                                  bool unicode)
+NativeRegExpMacroAssembler::CheckNotBackReference(int start_reg, Label* on_no_match)
 {
-    JitSpew(SPEW_PREFIX "CheckNotBackReferenceIgnoreCase(%d, %d)", start_reg, unicode);
+    JitSpew(SPEW_PREFIX "CheckNotBackReference(%d)", start_reg);
 
     Label fallthrough;
     Label success;
@@ -879,9 +878,10 @@ NativeRegExpMacroAssembler::CheckNotBackReference(int start_reg, Label* on_no_ma
 }
 
 void
-NativeRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, Label* on_no_match)
+NativeRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, Label* on_no_match,
+                                                            bool unicode)
 {
-    JitSpew(SPEW_PREFIX "CheckNotBackReferenceIgnoreCase(%d)", start_reg);
+    JitSpew(SPEW_PREFIX "CheckNotBackReferenceIgnoreCase(%d, %d)", start_reg, unicode);
 
     Label fallthrough;
 
@@ -1053,16 +1053,19 @@ NativeRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, Label
         // PowerPC specific version, somewhat more efficient (fixes issue 308)
         Register ppc0 = (temp1 == r6) ? r7 : r6;
         Register ppc1 = (temp1 == r8) ? r9 : r8;
-        int (*fun)(const char16_t*, const char16_t*, size_t) = (unicode)
-            ? CaseInsensitiveCompareUCStrings
-            : CaseInsensitiveCompareStrings   ;
 
         // This is lazy, but only incurs one extra x_subi.
         masm.x_mflr(r0);
         masm.push5(r3, r4, r5, r6, r7);
         masm.push4(r8, r9, r10, r0);
         // Load CTR for call.
-        masm.x_li32(tempRegister, (uint32_t)fun);
+        if (!unicode) {
+            int (*fun)(const char16_t*, const char16_t*, size_t) = CaseInsensitiveCompareStrings;
+            masm.x_li32(tempRegister, (uint32_t)fun);
+        } else {
+            int (*fun)(const char16_t*, const char16_t*, size_t) = CaseInsensitiveCompareUCStrings;
+            masm.x_li32(tempRegister, (uint32_t)fun);
+        }
         masm.x_mtctr(tempRegister);
         // Do computations. We need a temp register here, but they're all
         // saved, so just clobber any but temp1.
