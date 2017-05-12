@@ -291,7 +291,7 @@ static inline char* js_strdup(const char* s)
     QUALIFIERS T * \
     NEWNAME(Args&&... args) MOZ_HEAP_ALLOCATOR { \
         void* memory = ALLOCATOR(sizeof(T)); \
-        return memory \
+        return MOZ_LIKELY(memory) \
                ? new(memory) T(mozilla::Forward<Args>(args)...) \
                : nullptr; \
     }
