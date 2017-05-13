@@ -1064,26 +1064,23 @@ private:
 
         // All barriers are off by default.
         // They are enabled if necessary at the end of CodeGenerator::generate().
-        CodeOffset nopJump = toggledJump(&done);
+        CodeOffset nopJump = toggledJump(&done); // SHORT
         writePrebarrierOffset(nopJump);
 
         callPreBarrier(address, type);
-        jump(&done);
-
-        haltingAlign(8);
         bind(&done);
     }
 
     void canonicalizeDouble(FloatRegister reg) {
         Label notNaN;
-        branchDouble(DoubleOrdered, reg, reg, &notNaN);
+        branchDouble(DoubleOrdered, reg, reg, &notNaN); // SHORT
         loadConstantDouble(JS::GenericNaN(), reg);
         bind(&notNaN);
     }
 
     void canonicalizeFloat(FloatRegister reg) {
         Label notNaN;
-        branchFloat(DoubleOrdered, reg, reg, &notNaN);
+        branchFloat(DoubleOrdered, reg, reg, &notNaN); // SHORT
         loadConstantFloat32(float(JS::GenericNaN()), reg);
         bind(&notNaN);
     }
