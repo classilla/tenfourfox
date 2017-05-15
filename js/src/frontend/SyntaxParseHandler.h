@@ -131,6 +131,11 @@ class SyntaxParseHandler
         // eventually enforce extraWarnings and will require this then.)
         NodeUnparenthesizedAssignment,
 
+        // This node is necessary to determine if the base operand in an
+        // exponentiation operation is an unparenthesized unary expression.
+        // We want to reject |-2 ** 3|, but still need to allow |(-2) ** 3|.
+        NodeUnparenthesizedUnary,
+
         // This node is necessary to determine if the LHS of a property access is
         // super related.
         NodeSuperBase
@@ -235,14 +240,26 @@ class SyntaxParseHandler
     }
 
     Node newDelete(uint32_t begin, Node expr) {
-        return NodeGeneric;
+        return NodeUnparenthesizedUnary;
     }
 
     Node newTypeof(uint32_t begin, Node kid) {
-        return NodeGeneric;
+        return NodeUnparenthesizedUnary;
     }
 
     Node newUnary(ParseNodeKind kind, JSOp op, uint32_t begin, Node kid) {
+        return NodeUnparenthesizedUnary;
+    }
+
+    Node newUpdate(ParseNodeKind kind, uint32_t begin, Node kid) {
+        return NodeGeneric;
+    }
+
+    Node newSpread(uint32_t begin, Node kid) {
+        return NodeGeneric;
+    }
+
+    Node newArrayPush(uint32_t begin, Node kid) {
         return NodeGeneric;
     }
 
@@ -429,6 +446,10 @@ class SyntaxParseHandler
         return node == NodeUnparenthesizedAssignment;
     }
 
+    bool isUnparenthesizedUnaryExpression(Node node) {
+        return node == NodeUnparenthesizedUnary;
+    }
+
     bool isReturnStatement(Node node) {
         return node == NodeReturn;
     }
@@ -467,7 +488,8 @@ class SyntaxParseHandler
         if (node == NodeUnparenthesizedString ||
             node == NodeUnparenthesizedCommaExpr ||
             node == NodeUnparenthesizedYieldExpr ||
-            node == NodeUnparenthesizedAssignment)
+            node == NodeUnparenthesizedAssignment ||
+            node == NodeUnparenthesizedUnary)
         {
             return NodeGeneric;
         }

@@ -1890,7 +1890,7 @@ ASTSerializer::unop(ParseNodeKind kind, JSOp op)
     if (IsDeleteKind(kind))
         return UNOP_DELETE;
 
-    if (kind == PNK_TYPEOFNAME || kind == PNK_TYPEOFEXPR)
+    if (IsTypeofKind(kind))
         return UNOP_TYPEOF;
 
     switch (op) {

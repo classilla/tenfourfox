@@ -7350,6 +7350,11 @@ Parser<ParseHandler>::orExpr1(InHandling inHandling, YieldHandling yieldHandling
 
         ParseNodeKind pnk;
         if (tok == TOK_IN ? inHandling == InAllowed : TokenKindIsBinaryOp(tok)) {
+            // Report an error for unary expressions on the LHS of **.
+            if (tok == TOK_POW && handler.isUnparenthesizedUnaryExpression(pn)) {
+                report(ParseError, false, null(), JSMSG_BAD_POW_LEFTSIDE);
+                return null();
+            }
             pnk = BinaryOpTokenKindToParseNodeKind(tok);
         } else {
             tok = TOK_EOF;
@@ -7792,10 +7797,9 @@ Parser<ParseHandler>::unaryExpr(YieldHandling yieldHandling, TripledotHandling t
         AssignmentFlavor flavor = (tt == TOK_INC) ? IncrementAssignment : DecrementAssignment;
         if (!checkAndMarkAsIncOperand(pn2, flavor))
             return null();
-        return handler.newUnary((tt == TOK_INC) ? PNK_PREINCREMENT : PNK_PREDECREMENT,
-                                JSOP_NOP,
-                                begin,
-                                pn2);
+        return handler.newUpdate((tt == TOK_INC) ? PNK_PREINCREMENT : PNK_PREDECREMENT,
+                                 begin,
+                                 pn2);
       }
 
       case TOK_DELETE: {
@@ -7828,10 +7832,9 @@ Parser<ParseHandler>::unaryExpr(YieldHandling yieldHandling, TripledotHandling t
             AssignmentFlavor flavor = (tt == TOK_INC) ? IncrementAssignment : DecrementAssignment;
             if (!checkAndMarkAsIncOperand(pn, flavor))
                 return null();
-            return handler.newUnary((tt == TOK_INC) ? PNK_POSTINCREMENT : PNK_POSTDECREMENT,
-                                    JSOP_NOP,
-                                    begin,
-                                    pn);
+            return handler.newUpdate((tt == TOK_INC) ? PNK_POSTINCREMENT : PNK_POSTDECREMENT,
+                                     begin,
+                                     pn);
         }
         return pn;
       }
@@ -8667,7 +8670,7 @@ Parser<ParseHandler>::comprehensionTail(GeneratorKind comprehensionKind)
         return null();
 
     if (comprehensionKind == NotGenerator)
-        return handler.newUnary(PNK_ARRAYPUSH, JSOP_ARRAYPUSH, begin, bodyExpr);
+        return handler.newArrayPush(begin, bodyExpr);
 
     MOZ_ASSERT(comprehensionKind == StarGenerator);
     Node yieldExpr = newYieldExpression(begin, bodyExpr);
@@ -8794,7 +8797,7 @@ Parser<ParseHandler>::argumentList(YieldHandling yieldHandling, Node listNode, b
         if (!argNode)
             return false;
         if (spread) {
-            argNode = handler.newUnary(PNK_SPREAD, JSOP_NOP, begin, argNode);
+            argNode = handler.newSpread(begin, argNode);
             if (!argNode)
                 return false;
         }
