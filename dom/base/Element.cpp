@@ -191,6 +191,14 @@ Element::QueryInterface(REFNSIID aIID, void** aInstancePtr)
                                                                 aInstancePtr);
 }
 
+void
+Element::SetCustomElementData(CustomElementData* aData)
+{
+  nsDOMSlots *slots = DOMSlots();
+  MOZ_ASSERT(!slots->mCustomElementData, "Custom element data may not be changed once set.");
+  slots->mCustomElementData = aData;
+}
+
 EventStates
 Element::IntrinsicState() const
 {

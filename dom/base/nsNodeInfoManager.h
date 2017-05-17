@@ -33,6 +33,8 @@ class NodeInfo;
 } // namespace dom
 } // namespace mozilla
 
+#define RECENTLY_USED_NODEINFOS_SIZE 31
+
 class nsNodeInfoManager final
 {
 private:
@@ -138,6 +140,7 @@ private:
   mozilla::dom::NodeInfo * MOZ_NON_OWNING_REF mCommentNodeInfo; // WEAK to avoid circular ownership
   mozilla::dom::NodeInfo * MOZ_NON_OWNING_REF mDocumentNodeInfo; // WEAK to avoid circular ownership
   RefPtr<nsBindingManager> mBindingManager;
+  mozilla::dom::NodeInfo* mRecentlyUsedNodeInfos[RECENTLY_USED_NODEINFOS_SIZE];
 };
 
 #endif /* nsNodeInfoManager_h___ */
