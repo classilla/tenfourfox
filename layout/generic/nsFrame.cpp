@@ -870,6 +870,12 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   if (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
     PresContext()->SetBidiEnabled();
   }
+
+  /* bug 1342009 has the following:
+  RemoveStateBits(NS_FRAME_SIMPLE_EVENT_REGIONS |
+                  NS_FRAME_SIMPLE_DISPLAYLIST);
+  */
+  RemoveStateBits(NS_FRAME_SIMPLE_DISPLAYLIST);
 }
 
 // MSVC fails with link error "one or more multiply defined symbols found",
@@ -1705,8 +1711,10 @@ ApplyClipPropClipping(nsDisplayListBuilder* aBuilder,
  * handled by constructing a dedicated nsHTML/XULScrollFrame, set up clipping
  * for that overflow in aBuilder->ClipState() to clip all containing-block
  * descendants.
+ *
+ * Return true if clipping was applied.
  */
-static void
+static bool
 ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
                       const nsIFrame* aFrame,
                       const nsStyleDisplay* aDisp,
@@ -1718,7 +1726,7 @@ ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
   // is required by comboboxes which make their display text (an inline frame)
   // have clipping.
   if (!nsFrame::ShouldApplyOverflowClipping(aFrame, aDisp)) {
-    return;
+    return false;
   }
   nsRect clipRect;
   bool haveRadii = false;
@@ -1734,6 +1742,7 @@ ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
     // XXX border-radius
   }
   aClipState.ClipContainingBlockDescendantsExtra(clipRect, haveRadii ? radii : nullptr);
+  return true;
 }
 
 #ifdef DEBUG
@@ -2334,6 +2343,45 @@ WrapInWrapList(nsDisplayListBuilder* aBuilder,
   return item;
 }
 
+/**
+ * Check if a frame should be visited for building display list.
+ */
+static bool
+DescendIntoChild(nsDisplayListBuilder* aBuilder, nsIFrame *aChild,
+                 const nsRect& aDirty)
+{
+  nsIFrame* child = aChild;
+  const nsRect& dirty = aDirty;
+
+  if (!(child->GetStateBits() & NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO)) {
+    // No need to descend into child to catch placeholders for visible
+    // positioned stuff. So see if we can short-circuit frame traversal here.
+
+    // We can stop if child's frame subtree's intersection with the
+    // dirty area is empty.
+    // If the child is a scrollframe that we want to ignore, then we need
+    // to descend into it because its scrolled child may intersect the dirty
+    // area even if the scrollframe itself doesn't.
+    // There are cases where the "ignore scroll frame" on the builder is not set
+    // correctly, and so we additionally want to catch cases where the child is
+    // a root scrollframe and we are ignoring scrolling on the viewport.
+    nsIPresShell* shell = child->PresContext()->PresShell();
+    bool keepDescending = child == aBuilder->GetIgnoreScrollFrame() ||
+      (shell->IgnoringViewportScrolling() && child == shell->GetRootScrollFrame());
+    if (!keepDescending) {
+      nsRect childDirty;
+      if (!childDirty.IntersectRect(dirty, child->GetVisualOverflowRect()))
+        return false;
+      // Usually we could set dirty to childDirty now but there's no
+      // benefit, and it can be confusing. It can especially confuse
+      // situations where we're going to ignore a scrollframe's clipping;
+      // we wouldn't want to clip the dirty area to the scrollframe's
+      // bounds in that case.
+    }
+  }
+  return true;
+}
+
 void
 nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
                                    nsIFrame*               aChild,
@@ -2349,11 +2397,59 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   if (child->GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE)
     return;
   
+  const bool doingShortcut =
+    (child->GetStateBits() & NS_FRAME_SIMPLE_DISPLAYLIST) &&
+    aBuilder->IsPaintingToWindow() &&
+    // This would be changed by the change of preference.
+    aBuilder->IsBuildingLayerEventRegions() &&
+    // Animations may change the value of |HasOpacity()|.
+    !(child->GetContent() &&
+      child->GetContent()->MayHaveAnimations());
+  if (doingShortcut) {
+    // This is the shortcut for frames been handled along the common
+    // path, the most common one of THE COMMON CASE mentioned later.
+    MOZ_ASSERT(child->Type() != LayoutFrameType::Placeholder);
+    MOZ_ASSERT(!aBuilder->GetSelectedFramesOnly() &&
+               !aBuilder->GetIncludeAllOutOfFlows(),
+               "It should be held for painting to window");
+
+    // dirty rect in child-relative coordinates
+    nsRect dirty = aDirtyRect - child->GetOffsetTo(this);
+    if (!DescendIntoChild(aBuilder, child, dirty)) {
+      return;
+    }
+
+    nsDisplayListBuilder::AutoBuildingDisplayList
+      buildingForChild(aBuilder, child, dirty, false);
+
+    CheckForApzAwareEventHandlers(aBuilder, child);
+
+    nsDisplayLayerEventRegions* eventRegions = aBuilder->GetLayerEventRegions();
+    if (eventRegions) {
+      eventRegions->AddFrame(aBuilder, child);
+    }
+
+    child->MarkAbsoluteFramesForDisplayList(aBuilder, dirty);
+    aBuilder->AdjustWindowDraggingRegion(child);
+    child->BuildDisplayList(aBuilder, dirty, aLists);
+    aBuilder->DisplayCaret(child, dirty, aLists.Content());
+#ifdef DEBUG
+//    DisplayDebugBorders(aBuilder, child, aLists);
+#endif
+    return;
+  }
+
   bool isSVG = (child->GetStateBits() & NS_FRAME_SVG_LAYOUT);
+
+  // It is raised if the control flow strays off the common path.
+  // The common path is the most common one of THE COMMON CASE
+  // mentioned later.
+  bool awayFromCommonPath = false;
 
   // true if this is a real or pseudo stacking context
   bool pseudoStackingContext =
     (aFlags & DISPLAY_CHILD_FORCE_PSEUDO_STACKING_CONTEXT) != 0;
+  awayFromCommonPath |= pseudoStackingContext;
   if (!isSVG &&
       (aFlags & DISPLAY_CHILD_INLINE) &&
       !child->IsFrameOfType(eLineParticipant)) {
@@ -2361,6 +2457,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     // it acts like inline-block or inline-table. Therefore it is a
     // pseudo-stacking-context.
     pseudoStackingContext = true;
+    awayFromCommonPath = false;
   }
 
   // dirty rect in child-relative coordinates
@@ -2408,6 +2505,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       dirty.SetEmpty();
     }
     pseudoStackingContext = true;
+    awayFromCommonPath = true;
   }
   if (child->Preserves3D()) {
     nsRect* savedDirty = static_cast<nsRect*>
@@ -2430,31 +2528,9 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   if (aBuilder->GetIncludeAllOutOfFlows() &&
       (child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
     dirty = child->GetVisualOverflowRect();
-  } else if (!(child->GetStateBits() & NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO)) {
-    // No need to descend into child to catch placeholders for visible
-    // positioned stuff. So see if we can short-circuit frame traversal here.
-
-    // We can stop if child's frame subtree's intersection with the
-    // dirty area is empty.
-    // If the child is a scrollframe that we want to ignore, then we need
-    // to descend into it because its scrolled child may intersect the dirty
-    // area even if the scrollframe itself doesn't.
-    // There are cases where the "ignore scroll frame" on the builder is not set
-    // correctly, and so we additionally want to catch cases where the child is
-    // a root scrollframe and we are ignoring scrolling on the viewport.
-    nsIPresShell* shell = PresContext()->PresShell();
-    bool keepDescending = child == aBuilder->GetIgnoreScrollFrame() ||
-        (shell->IgnoringViewportScrolling() && child == shell->GetRootScrollFrame());
-    if (!keepDescending) {
-      nsRect childDirty;
-      if (!childDirty.IntersectRect(dirty, child->GetVisualOverflowRect()))
-        return;
-      // Usually we could set dirty to childDirty now but there's no
-      // benefit, and it can be confusing. It can especially confuse
-      // situations where we're going to ignore a scrollframe's clipping;
-      // we wouldn't want to clip the dirty area to the scrollframe's
-      // bounds in that case.
-    }
+    awayFromCommonPath = true;
+  } else if (!DescendIntoChild(aBuilder, child, dirty)) {
+    return;
   }
 
   // XXX need to have inline-block and inline-table set pseudoStackingContext
@@ -2465,6 +2541,16 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   if (IsThemed(ourDisp) &&
       !PresContext()->GetTheme()->WidgetIsContainer(ourDisp->mAppearance))
     return;
+
+#if(0)
+  // XXX: The backbug from bug 1342009 for tracking visibility at this
+  // point is only required if we implement bug 1261554 (then we also need
+  // bug 1284350).
+  if (aBuilder->IsPaintingToWindow() && child->TrackingVisibility()) {
+    child->PresContext()->PresShell()->EnsureFrameInApproximatelyVisibleList(child);
+    awayFromCommonPath = true;
+  }
+#endif
 
   // Child is composited if it's transformed, partially transparent, or has
   // SVG effects or a blend mode..
@@ -2494,6 +2580,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       (aFlags & DISPLAY_CHILD_FORCE_STACKING_CONTEXT)) {
     // If you change this, also change IsPseudoStackingContextFromStyle()
     pseudoStackingContext = true;
+    awayFromCommonPath = true;
   }
   NS_ASSERTION(!isStackingContext || pseudoStackingContext,
                "Stacking contexts must also be pseudo-stacking-contexts");
@@ -2506,7 +2593,30 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   if (savedOutOfFlowData) {
     clipState.SetClipForContainingBlockDescendants(
       &savedOutOfFlowData->mContainingBlockClip);
+    MOZ_ASSERT(awayFromCommonPath, "It is impossible when savedOutOfFlowData is true");
   }
+
+#if(0)
+  // XXX: there are some backbugs from bug 1342009 that should go here.
+  // These appear to be based on bug 1231538 and bug 1265237, so we
+  // probably don't need them since we don't have that particular regression.
+
+  else if (GetStateBits() & NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO &&
+             isPlaceholder) {
+    NS_ASSERTION(dirty.IsEmpty(), "should have empty dirty rect");
+    // Every item we build from now until we descent into an out of flow that
+    // does have saved out of flow data should be invisible. This state gets
+    // restored when AutoBuildingDisplayList gets out of scope.
+    aBuilder->SetBuildingInvisibleItems(true);
+
+    // If we have nested out-of-flow frames and the outer one isn't visible
+    // then we won't have stored clip data for it. We can just clear the clip
+    // instead since we know we won't render anything, and the inner out-of-flow
+    // frame will setup the correct clip for itself.
+    clipState.SetClipChainForContainingBlockDescendants(nullptr);
+    awayFromCommonPath = true;
+  }
+#endif
 
   // Setup clipping for the parent's overflow:-moz-hidden-unscrollable,
   // or overflow:hidden on elements that don't support scrolling (and therefore
@@ -2519,7 +2629,9 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   nsIFrame* parent = child->GetParent();
   const nsStyleDisplay* parentDisp =
     parent == this ? ourDisp : parent->StyleDisplay();
-  ApplyOverflowClipping(aBuilder, parent, parentDisp, clipState);
+  if (ApplyOverflowClipping(aBuilder, parent, parentDisp, clipState)) {
+    awayFromCommonPath = true;
+  }
 
   nsDisplayList list;
   nsDisplayList extraPositionedDescendants;
@@ -2538,26 +2650,43 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       // clipRect is in builder-reference-frame coordinates,
       // dirty/clippedDirtyRect are in child coordinates
       dirty.IntersectRect(dirty, clipRect);
+      awayFromCommonPath = true; // XXX bug 1342009
     }
 
     child->MarkAbsoluteFramesForDisplayList(aBuilder, dirty);
 
-    // moved here from below
+    // moved here from below (bug 1220466)
     if (aBuilder->IsBuildingLayerEventRegions()) {
       // If this frame has a different animated geometry root than its parent,
       // make sure we accumulate event regions for its layer.
-      if (buildingForChild.IsAnimatedGeometryRoot()) {
+      if (buildingForChild.IsAnimatedGeometryRoot() || isPositioned) {
         nsDisplayLayerEventRegions* eventRegions =
           new (aBuilder) nsDisplayLayerEventRegions(aBuilder, child);
         eventRegions->AddFrame(aBuilder, child);
         aBuilder->SetLayerEventRegions(eventRegions);
-        aLists.BorderBackground()->AppendNewToTop(eventRegions);
-      }
-    }
 
-    nsDisplayLayerEventRegions* eventRegions = aBuilder->GetLayerEventRegions();
-    if (eventRegions) {
-      eventRegions->AddFrame(aBuilder, child);
+        // various backbugs from 1342009 follow, including 1303408 and
+        // 1287142:
+
+        if (isPositioned) {
+          // We need this nsDisplayLayerEventRegions to be sorted with the positioned
+          // elements as positioned elements will be sorted on top of normal elements
+          list.AppendNewToTop(eventRegions);
+        } else {
+          aLists.BorderBackground()->AppendNewToTop(eventRegions);
+        }
+      } else {
+        nsDisplayLayerEventRegions* eventRegions = aBuilder->GetLayerEventRegions();
+        if (eventRegions) {
+          eventRegions->AddFrame(aBuilder, child);
+        }
+        if (!awayFromCommonPath &&
+            aBuilder->IsPaintingToWindow() &&
+            !buildingForChild.MaybeAnimatedGeometryRoot()) {
+          // The shortcut is available for the child for next time.
+          child->AddStateBits(NS_FRAME_SIMPLE_DISPLAYLIST);
+        }
+      }
     }
 
     if (!pseudoStackingContext) {

@@ -254,6 +254,14 @@ FRAME_STATE_BIT(Generic, 53, NS_FRAME_IS_NONDISPLAY)
 // Frame has a LayerActivityProperty property
 FRAME_STATE_BIT(Generic, 54, NS_FRAME_HAS_LAYER_ACTIVITY_PROPERTY)
 
+// The display list of the frame can be handled by the shortcut for
+// COMMON CASE. This is bug 1342009, but it uses bit 57. Since we might
+// implement NS_FRAME_HAS_PROPERTIES (56) in the near future, we will use bit
+// 55. XXX: Dump bit 57 and make it all work out -- we'd need the backout
+// bits from bug 1250244 and then just not implement the replacement API.
+// However, that's only worth doing if we're really short on bits later.
+FRAME_STATE_BIT(Generic, 55, NS_FRAME_SIMPLE_DISPLAYLIST)
+
 // Frame has VR content, and needs VR display items created
 FRAME_STATE_BIT(Generic, 57, NS_FRAME_HAS_VR_CONTENT)
 

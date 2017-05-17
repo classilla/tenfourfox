@@ -160,6 +160,15 @@ class nsDisplayListBuilder {
   typedef mozilla::LayoutDeviceIntRect LayoutDeviceIntRect;
   typedef mozilla::LayoutDeviceIntRegion LayoutDeviceIntRegion;
 
+  /**
+   * A frame can be in one of three states of AGR.
+   * AGR_NO     means the frame is not an AGR for now.
+   * AGR_YES    means the frame is an AGR for now.
+   * AGR_MAYBE  means the frame is not an AGR for now, but a transition
+   *            to AGR_YES without restyling is possible.
+   */
+  enum AGRState { AGR_NO, AGR_YES, AGR_MAYBE };
+
 public:
   typedef mozilla::FramePropertyDescriptor FramePropertyDescriptor;
   typedef mozilla::FrameLayerBuilder FrameLayerBuilder;
@@ -636,8 +645,9 @@ public:
           aBuilder->FindReferenceFrameFor(aForChild,
               &aBuilder->mCurrentOffsetToReferenceFrame);
       }
+      mCurrentAGRState = aBuilder->IsAnimatedGeometryRoot(aForChild);
       if (aBuilder->mCurrentFrame == aForChild->GetParent()) {
-        if (aBuilder->IsAnimatedGeometryRoot(aForChild)) {
+        if (mCurrentAGRState == AGR_YES) {
           aBuilder->mCurrentAGR = aBuilder->WrapAGRForFrame(aForChild, aBuilder->mCurrentAGR);
         }
       } else if (aForChild != aBuilder->mCurrentFrame) {
@@ -661,8 +671,10 @@ public:
       return mPrevAnimatedGeometryRoot;
     }
     bool IsAnimatedGeometryRoot() const {
-      return *mBuilder->mCurrentAGR == mBuilder->mCurrentFrame;
-
+      return mCurrentAGRState == AGR_YES;
+    }
+    bool MaybeAnimatedGeometryRoot() const {
+      return mCurrentAGRState == AGR_MAYBE;
     }
     ~AutoBuildingDisplayList() {
       mBuilder->mCurrentFrame = mPrevFrame;
@@ -676,6 +688,7 @@ public:
     }
   private:
     nsDisplayListBuilder* mBuilder;
+    AGRState              mCurrentAGRState;
     const nsIFrame*       mPrevFrame;
     const nsIFrame*       mPrevReferenceFrame;
     nsIFrame*             mPrevAnimatedGeometryRoot;
@@ -938,7 +951,7 @@ private:
    * Returns whether a frame acts as an animated geometry root, optionally
    * returning the next ancestor to check.
    */
-  bool IsAnimatedGeometryRoot(nsIFrame* aFrame, nsIFrame** aParent = nullptr);
+  AGRState IsAnimatedGeometryRoot(nsIFrame* aFrame, nsIFrame** aParent = nullptr);
 
   /**
    * Returns the nearest ancestor frame to aFrame that is considered to have

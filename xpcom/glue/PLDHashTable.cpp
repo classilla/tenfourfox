@@ -395,6 +395,49 @@ PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash)
   // if Reason==ForAdd.)
   PLDHashEntryHdr* firstRemoved = nullptr;
 
+#if(1)
+  // Speed up table searches a la bug 1352888, but we go one further by having
+  // separate for(;;) loops for ForAdd and everything else, which hoists the
+  // check up and eliminates up to several branches in the loop.
+
+  if (Reason == ForAdd) {
+    for (;;) {
+      if (!firstRemoved) {
+        if (MOZ_UNLIKELY(EntryIsRemoved(entry))) {
+          firstRemoved = entry;
+        } else {
+          entry->mKeyHash |= kCollisionFlag;
+        }
+      }
+
+      hash1 -= hash2;
+      hash1 &= sizeMask;
+
+      entry = AddressEntry(hash1);
+      if (EntryIsFree(entry)) {
+        return (firstRemoved ? firstRemoved : entry);
+      }
+
+      if (MatchEntryKeyhash(entry, aKeyHash) &&
+          matchEntry(this, entry, aKey)) {
+        return entry;
+      }
+    }
+  } else for (;;) {
+    hash1 -= hash2;
+    hash1 &= sizeMask;
+
+    entry = AddressEntry(hash1);
+    if (EntryIsFree(entry)) {
+      return nullptr;
+    }
+
+    if (MatchEntryKeyhash(entry, aKeyHash) &&
+        matchEntry(this, entry, aKey)) {
+      return entry;
+    }
+  }
+#else
   for (;;) {
     if (Reason == ForAdd) {
       if (MOZ_UNLIKELY(EntryIsRemoved(entry))) {
@@ -420,6 +463,7 @@ PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash)
       return entry;
     }
   }
+#endif
 
   // NOTREACHED
   return nullptr;
