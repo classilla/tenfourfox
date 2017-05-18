@@ -298,6 +298,9 @@ static const PLDHashTableOps AtomTableOps = {
   AtomTableInitEntry
 };
 
+#define RECENTLY_USED_MAIN_THREAD_ATOM_CACHE_SIZE 31
+static nsIAtom*
+  sRecentlyUsedMainThreadAtoms[RECENTLY_USED_MAIN_THREAD_ATOM_CACHE_SIZE] = {};
 
 static inline
 void
@@ -651,6 +654,8 @@ NS_NewAtom(const char16_t* aUTF16String)
   return NS_NewAtom(nsDependentString(aUTF16String));
 }
 
+// Equivalent to current NS_Atomize and called by NS_AtomizeMainThread.
+// Left as such for legacy callers in our older 45-era codebase.
 already_AddRefed<nsIAtom>
 NS_NewAtom(const nsAString& aUTF16String)
 {
@@ -669,6 +674,43 @@ NS_NewAtom(const nsAString& aUTF16String)
   he->mAtom = atom;
 
   return atom.forget();
+}
+
+// From bug 1351303, modified for Mozilla 45.
+already_AddRefed<nsIAtom>
+NS_AtomizeMainThread(const nsAString& aUTF16String)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  nsCOMPtr<nsIAtom> retVal;
+  uint32_t hash;
+  AtomTableKey key(aUTF16String.Data(), aUTF16String.Length(), &hash);
+  uint32_t index = hash % RECENTLY_USED_MAIN_THREAD_ATOM_CACHE_SIZE;
+  nsIAtom* atom = sRecentlyUsedMainThreadAtoms[index];
+
+  if (atom) {
+    // This isn't ideal, but covers for the collision case, I guess.
+    // The atom names shouldn't be very long in any event.
+    uint32_t length = atom->GetLength();
+    if (length == key.mLength &&
+        (memcmp(atom->GetUTF16String(),
+                key.mUTF16String, length * sizeof(char16_t)) == 0)) {
+      retVal = atom;
+      return retVal.forget();
+    }
+  }
+
+  // Inline relevant parts of GetAtomHashEntry.
+  AtomTableEntry* he = static_cast<AtomTableEntry*>(gAtomTable->Add(&key));
+  if (he->mAtom) {
+    retVal = he->mAtom;
+  } else {
+    RefPtr<AtomImpl> atom = new AtomImpl(aUTF16String, hash);
+    he->mAtom = atom;
+    retVal = he->mAtom; // XXX?
+  }
+
+  sRecentlyUsedMainThreadAtoms[index] = retVal;
+  return retVal.forget();
 }
 
 nsIAtom*

@@ -110,7 +110,7 @@ class nsHtml5TreeOperation {
       }
       nsAutoString str;
       aAtom->ToString(str);
-      return do_GetAtom(str);
+      return NS_AtomizeMainThread(str);
     }
 
     static nsresult AppendTextToTextNode(const char16_t* aBuffer,

@@ -1197,10 +1197,10 @@ Element::SetAttribute(const nsAString& aName,
     if (IsHTMLElement() && IsInHTMLDocument()) {
       nsAutoString lower;
       nsContentUtils::ASCIIToLower(aName, lower);
-      nameAtom = do_GetAtom(lower);
+      nameAtom = NS_AtomizeMainThread(lower);
     }
     else {
-      nameAtom = do_GetAtom(aName);
+      nameAtom = NS_AtomizeMainThread(aName);
     }
     if (!nameAtom) {
       aError.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -1282,7 +1282,7 @@ Element::GetAttributeNS(const nsAString& aNamespaceURI,
     return;
   }
 
-  nsCOMPtr<nsIAtom> name = do_GetAtom(aLocalName);
+  nsCOMPtr<nsIAtom> name = NS_AtomizeMainThread(aLocalName);
   bool hasAttr = GetAttr(nsid, name, aReturn);
   if (!hasAttr) {
     SetDOMStringToNull(aReturn);
@@ -1314,7 +1314,7 @@ Element::RemoveAttributeNS(const nsAString& aNamespaceURI,
                            const nsAString& aLocalName,
                            ErrorResult& aError)
 {
-  nsCOMPtr<nsIAtom> name = do_GetAtom(aLocalName);
+  nsCOMPtr<nsIAtom> name = NS_AtomizeMainThread(aLocalName);
   int32_t nsid =
     nsContentUtils::NameSpaceManager()->GetNameSpaceID(aNamespaceURI);
 
@@ -1400,7 +1400,7 @@ Element::HasAttributeNS(const nsAString& aNamespaceURI,
     return false;
   }
 
-  nsCOMPtr<nsIAtom> name = do_GetAtom(aLocalName);
+  nsCOMPtr<nsIAtom> name = NS_AtomizeMainThread(aLocalName);
   return HasAttr(nsid, name);
 }
 
