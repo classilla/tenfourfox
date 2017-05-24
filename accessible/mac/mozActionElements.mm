@@ -13,7 +13,13 @@
 #include "nsDeckFrame.h"
 #include "nsObjCExceptions.h"
 
-typedef uint32_t NSUInteger;
+#ifndef NSINTEGER_DEFINED
+	#if __LP64__ || NS_BUILD_32_LIKE_64
+		typedef unsigned long NSUInteger;
+	#else
+		typedef unsigned int NSUInteger;
+	#endif
+#endif
 
 using namespace mozilla::a11y;
 
