@@ -654,7 +654,7 @@ NS_NewAtom(const char16_t* aUTF16String)
   return NS_NewAtom(nsDependentString(aUTF16String));
 }
 
-// Equivalent to current NS_Atomize and called by NS_AtomizeMainThread.
+// Equivalent to current NS_Atomize.
 // Left as such for legacy callers in our older 45-era codebase.
 already_AddRefed<nsIAtom>
 NS_NewAtom(const nsAString& aUTF16String)
@@ -680,6 +680,7 @@ NS_NewAtom(const nsAString& aUTF16String)
 already_AddRefed<nsIAtom>
 NS_AtomizeMainThread(const nsAString& aUTF16String)
 {
+#if(0)
   MOZ_ASSERT(NS_IsMainThread());
   nsCOMPtr<nsIAtom> retVal;
   uint32_t hash;
@@ -687,7 +688,7 @@ NS_AtomizeMainThread(const nsAString& aUTF16String)
   uint32_t index = hash % RECENTLY_USED_MAIN_THREAD_ATOM_CACHE_SIZE;
   nsIAtom* atom = sRecentlyUsedMainThreadAtoms[index];
 
-  if (atom) {
+  if (atom && atom->GetUTF16String()) { // wallpaper
     // This isn't ideal, but covers for the collision case, I guess.
     // The atom names shouldn't be very long in any event.
     uint32_t length = atom->GetLength();
@@ -711,6 +712,9 @@ NS_AtomizeMainThread(const nsAString& aUTF16String)
 
   sRecentlyUsedMainThreadAtoms[index] = retVal;
   return retVal.forget();
+#else
+  return NS_NewAtom(aUTF16String);
+#endif
 }
 
 nsIAtom*
