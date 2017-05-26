@@ -2281,7 +2281,7 @@
 
             // update the UI early for responsiveness
             aTab.collapsed = true;
-            this.tabContainer._fillTrailingGap();
+            //this.tabContainer._fillTrailingGap();
             this._blurTab(aTab);
 
             this._removingTabs.splice(this._removingTabs.indexOf(aTab), 1);
@@ -5077,7 +5077,7 @@
               var width = this.mTabstrip.boxObject.width;
               if (width != this.mTabstripWidth) {
                 this.adjustTabstrip();
-                this._fillTrailingGap();
+                //this._fillTrailingGap();
                 this._handleTabSelect();
                 this.mTabstripWidth = width;
               }
@@ -5237,7 +5237,7 @@
           this.adjustTabstrip();
 
           if (tab.getAttribute("selected") == "true") {
-            this._fillTrailingGap();
+            //this._fillTrailingGap();
             this._handleTabSelect();
           } else {
             this._notifyBackgroundTab(tab);
