@@ -23,7 +23,21 @@ var versionNum = Components.classes["@mozilla.org/xre/app-info;1"]
                            .getService(Components.interfaces.nsIXULAppInfo)
                            .version;
 var version = document.getElementById("version");
-version.textContent += " " + versionNum;
+
+// paranoia
+if (versionNum.substr(0,3) == "45.") {
+  // FPR series
+  var vf = 0 + versionNum.substr(3);
+  var pl = ""+ (vf - (vf|0));
+  pl = 0 + pl.substr(1); 
+  vf = vf|0; vf -= 9;
+  // XXX localize me
+  version.textContent = "Feature Parity Release "+vf+
+    ((pl > 0) ? " (Security Parity Release "+pl+")" : "")+
+    " ("+versionNum+")";
+} else {
+  version.textContent += " " + versionNum;
+}
 
 // append user agent
 var ua = navigator.userAgent;

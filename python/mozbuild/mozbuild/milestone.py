@@ -44,9 +44,18 @@ def get_milestone_major(milestone):
     return milestone.split('.')[0]
 
 
+def get_milestone_minor(milestone):
+    """
+    Returns the minor (second) part of the milestone.
+    """
+
+    return milestone.split('.')[1]
+
+
 def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--uaversion', default=False, action='store_true')
+    parser.add_argument('--fprversion', default=False, action='store_true')
     parser.add_argument('--symbolversion', default=False, action='store_true')
     parser.add_argument('--topsrcdir', metavar='TOPSRCDIR', required=True)
     options = parser.parse_args(args)
@@ -60,6 +69,11 @@ def main(args):
         # level (bugs 572659 and 870868).
         uaversion = "%s.0" % (get_milestone_major(milestone),)
         print(uaversion)
+
+    elif options.fprversion:
+        # Compute the FPR from the milestone (basically - 9).
+        fprversion = "FPR%s" % (int(get_milestone_minor(milestone))-9,)
+        print(fprversion)
 
     elif options.symbolversion:
         # Only expose major milestone and alpha version. Used for symbol

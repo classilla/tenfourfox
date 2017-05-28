@@ -294,7 +294,7 @@ nsHttpHandler::Init()
 
     nsHttpChannelAuthProvider::InitializePrefs();
 
-    mMisc.AssignLiteral("rv:" MOZILLA_UAVERSION);
+    mMisc.AssignLiteral(TENFOURFOX_FPRVERSION "; rv:" MOZILLA_UAVERSION);
 
     mCompatFirefox.AssignLiteral("Firefox/" MOZILLA_UAVERSION);
 
