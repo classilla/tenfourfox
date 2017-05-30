@@ -9411,7 +9411,7 @@ void
 nsGlobalWindow::SetActive(bool aActive)
 {
   nsPIDOMWindow::SetActive(aActive);
-  if (mDoc) {
+  if (MOZ_LIKELY(mDoc)) {
     NotifyDocumentTree(mDoc, nullptr);
   }
 }
