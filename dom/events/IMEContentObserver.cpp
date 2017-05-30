@@ -561,6 +561,12 @@ IMEContentObserver::Destroy()
   }
 }
 
+bool
+IMEContentObserver::Destroyed() const
+{
+  return !mWidget;
+}
+
 void
 IMEContentObserver::DisconnectFromEventStateManager()
 {
@@ -735,6 +741,16 @@ IMEContentObserver::HandleQueryContentEvent(WidgetQueryContentEvent* aEvent)
   mIsHandlingQueryContentEvent = true;
   ContentEventHandler handler(GetPresContext());
   nsresult rv = handler.HandleQueryContentEvent(aEvent);
+  if (NS_WARN_IF(Destroyed())) {
+    // If this has already destroyed during querying the content, the query
+    // is outdated even if it's succeeded.  So, make the query fail.
+    aEvent->mSucceeded = false;
+    MOZ_LOG(sIMECOLog, LogLevel::Warning,
+      ("0x%p IMEContentObserver::HandleQueryContentEvent(), WARNING, "
+       "IMEContentObserver has been destroyed during the query, "
+       "making the query fail", this));
+    return rv;
+  }
   if (aEvent->mSucceeded) {
     // We need to guarantee that mRootContent should be always same value for
     // the observing editor.
