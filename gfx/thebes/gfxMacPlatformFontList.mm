@@ -223,6 +223,16 @@ if (!mIsDataUserFont || mIsLocalUserFont) {
                 charmap->ClearRange(sr->rangeStart, sr->rangeEnd);
             }
         }
+
+        // Bug 1360309: several of Apple's Chinese fonts have spurious blank
+        // glyphs for obscure Tibetan codepoints. Blacklist these so that font
+        // fallback will not use them.
+        // (It is not likely to encounter these on 10.4 or 10.5.)
+        if (mRequiresAAT && (FamilyName().EqualsLiteral("Songti SC") ||
+                             FamilyName().EqualsLiteral("Songti TC") ||
+                             FamilyName().EqualsLiteral("STSong"))) {
+            charmap->ClearRange(0x0f8c, 0x0f8f);
+        }
     }
 
     mHasCmapTable = NS_SUCCEEDED(rv);
