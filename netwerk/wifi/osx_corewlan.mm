@@ -19,6 +19,16 @@
 #include "nsWifiMonitor.h"
 #include "nsWifiAccessPoint.h"
 
+#ifndef NSINTEGER_DEFINED
+	#if __LP64__ || NS_BUILD_32_LIKE_64
+		typedef unsigned long NSUInteger;
+		typedef long NSInteger;
+	#else
+		typedef unsigned int NSUInteger;
+		typedef int NSInteger;
+	#endif
+#endif
+
 // Undo bug 848435. We still sort of support running under Rosetta on
 // Snow Leopard, so we still need to support CoreWLAN, sort of. Also
 // see bug 514626. This is actually called from nsWifiScannerMac now
@@ -82,7 +92,6 @@ GetAccessPointsFromWLAN(nsCOMArray<nsWifiAccessPoint> &accessPoints)
         // [CWInterface bssid] returns a string formatted "00:00:00:00:00:00".
         NSString* macString = [anObject bssid];
         if (macString && ([macString length] == 17)) {
-#define NSUInteger PRUint32
           for (NSUInteger i = 0; i < 6; ++i) {
             NSString* part = [macString substringWithRange:NSMakeRange(i * 3, 2)];
             NSScanner* scanner = [NSScanner scannerWithString:part];
@@ -99,7 +108,6 @@ GetAccessPointsFromWLAN(nsCOMArray<nsWifiAccessPoint> &accessPoints)
       // [CWInterface rssi] is deprecated).
       int signal = 0;
       if ([anObject respondsToSelector:@selector(rssiValue)]) {
-#define NSInteger PRInt32
         signal = (int) ((NSInteger) [anObject rssiValue]);
       } else {
         signal = [[anObject rssi] intValue];
