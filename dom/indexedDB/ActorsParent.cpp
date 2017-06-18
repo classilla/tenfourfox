@@ -19381,11 +19381,17 @@ FactoryOp::FinishSendResults()
   RefPtr<Factory> factory;
   mFactory.swap(factory);
 
+  // It can happen that this FactoryOp is only held alive by the gFactoryOps.
+  RefPtr<FactoryOp> kungFuDeathGrip;
+
   if (mBlockedDatabaseOpen) {
     if (mDelayedOp) {
       MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToCurrentThread(mDelayedOp)));
       mDelayedOp = nullptr;
     }
+
+    // Add a self reference before removing ourself from the array.
+    kungFuDeathGrip = this;
 
     MOZ_ASSERT(gFactoryOps);
     gFactoryOps->RemoveElement(this);

@@ -262,6 +262,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 	spec.Equals("https://www.apple.com/wss/fonts/SF-Pro-Display/v1/sf-pro-display_regular.ttf") ||
 	spec.Equals("https://www.apple.com/wss/fonts/SF-Pro-Display/v1/sf-pro-display_light.woff") ||
 	spec.Equals("https://www.apple.com/wss/fonts/SF-Pro-Display/v1/sf-pro-display_light.ttf") ||
+	spec.Equals("https://www.apple.com/wss/fonts/SF-Pro-Display/v1/sf-pro-display_semibold.woff") ||
+	spec.Equals("https://www.apple.com/wss/fonts/SF-Pro-Display/v1/sf-pro-display_semibold.ttf") ||
 	spec.Equals("http://www.apple.com/wss/fonts/SF-Pro-Text/v1/sf-pro-text_bold.woff") ||
 	spec.Equals("http://www.apple.com/wss/fonts/SF-Pro-Text/v1/sf-pro-text_bold.ttf") ||
 	spec.Equals("http://www.apple.com/wss/fonts/SF-Pro-Text/v1/sf-pro-text_medium.woff") ||
@@ -278,6 +280,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 	spec.Equals("http://www.apple.com/wss/fonts/SF-Pro-Display/v1/sf-pro-display_regular.ttf") ||
 	spec.Equals("http://www.apple.com/wss/fonts/SF-Pro-Display/v1/sf-pro-display_light.woff") ||
 	spec.Equals("http://www.apple.com/wss/fonts/SF-Pro-Display/v1/sf-pro-display_light.ttf") ||
+	spec.Equals("http://www.apple.com/wss/fonts/SF-Pro-Display/v1/sf-pro-display_semibold.woff") ||
+	spec.Equals("http://www.apple.com/wss/fonts/SF-Pro-Display/v1/sf-pro-display_semibold.ttf") ||
 	0) {
 	if (NS_SUCCEEDED(rv)) // Don't print if we couldn't get the URL.
 	fprintf(stderr,
