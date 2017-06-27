@@ -39,6 +39,11 @@ LIBRARY_VERSION	= $(MOD_MAJOR_VERSION)
 
 RELEASE_LIBS = $(TARGETS)
 
+ifeq ($(TENFOURFOX_VMX),1)
+CSRCS += plvmx.c
+CFLAGS += -faltivec
+endif
+
 ifeq ($(OS_ARCH),WINNT)
 RES=$(OBJDIR)/plc.res
 RESNAME=plc.rc

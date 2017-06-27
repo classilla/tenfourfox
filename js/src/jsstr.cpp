@@ -51,6 +51,9 @@
 #include "vm/StringObject-inl.h"
 #include "vm/TypeInference-inl.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 using namespace js;
 using namespace js::gc;
 using namespace js::unicode;
@@ -1155,10 +1158,12 @@ FirstCharMatcherUnrolled(const TextChar* text, uint32_t n, const PatChar pat)
 static const char*
 FirstCharMatcher8bit(const char* text, uint32_t n, const char pat)
 {
-#if  defined(__clang__)
+#ifndef TENFOURFOX_VMX
+#warning using non-VMX memchr
     return FirstCharMatcherUnrolled<char, char>(text, n, pat);
 #else
-    return reinterpret_cast<const char*>(memchr(text, pat, n));
+#warning using VMX memchr
+    return reinterpret_cast<const char*>(vmx_memchr(text, pat, n));
 #endif
 }
 

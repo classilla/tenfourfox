@@ -667,6 +667,7 @@ DLL_SUFFIX
 LIB_SUFFIX
 OBJ_SUFFIX
 CPU_ARCH
+TENFOURFOX_VMX
 PR_MD_ARCH_DIR
 PR_MD_ASFILES
 PR_MD_CSRCS
@@ -801,6 +802,7 @@ enable_x32
 enable_64bit
 enable_mdupdate
 enable_cplus
+enable_tenfourfox_vmx
 with_arm_kuser
 with_macos_sdk
 enable_macos_target
@@ -1465,6 +1467,7 @@ Optional Features:
   --enable-macos-target=VER
                           Set the minimum MacOS version needed at runtime
                           10.2 for ppc, 10.4 for x86
+  --enable-tenfourfox-vmx Enable VMX SIMD features for PowerPC
   --disable-os2-high-mem  Disable high-memory support on OS/2
 
   --enable-strip          Enable stripping of shared libs and programs
@@ -2495,6 +2498,7 @@ _HAVE_PTHREADS=
 USE_PTHREADS=
 USE_USER_PTHREADS=
 USE_NSPR_THREADS=
+TENFOURFOX_VMX=
 USE_N32=
 USE_X32=
 USE_64=
@@ -2900,6 +2904,16 @@ if test "${enable_n32+set}" = set; then :
 	USE_N32=1
       else if test "$enableval" = "no"; then
 	USE_N32=
+      fi
+    fi
+fi
+
+# Check whether --enable-tenfourfox-vmx was given.
+if test "${enable_tenfourfox_vmx+set}" = set; then :
+  enableval=$enable_tenfourfox_vmx;  if test "$enableval" = "yes"; then
+	TENFOURFOX_VMX=1
+      else if test "$enableval" = "no"; then
+	TENFOURFOX_VMX=
       fi
     fi
 fi
@@ -6523,6 +6537,10 @@ fi
     $as_echo "#define HAVE_BSD_FLOCK 1" >>confdefs.h
 
     $as_echo "#define HAVE_SOCKLEN_T 1" >>confdefs.h
+
+    if test -n "$TENFOURFOX_VMX"; then
+      $as_echo "#define TENFOURFOX_VMX 1" >>confdefs.h
+    fi
 
     AS='$(CC) -x assembler-with-cpp'
     CFLAGS="$CFLAGS -Wall -fno-common"

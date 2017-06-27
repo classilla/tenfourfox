@@ -9337,6 +9337,9 @@ ac_configure_args="$ac_configure_args --prefix=$dist"
 if test "$MOZ_MEMORY"; then
    ac_configure_args="$ac_configure_args --enable-jemalloc"
 fi
+if test "$TENFOURFOX_VMX"; then
+   ac_configure_args="$ac_configure_args --enable-tenfourfox-vmx"
+fi
 if test -n "$ZLIB_IN_MOZGLUE"; then
    MOZ_ZLIB_LIBS=
 fi
@@ -9355,6 +9358,7 @@ export DIST
 export MOZ_LINKER
 export ZLIB_IN_MOZGLUE
 export MOZ_MEMORY
+export TENFOURFOX_VMX
 
 if ! test -e js; then
     mkdir js

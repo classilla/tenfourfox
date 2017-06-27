@@ -313,6 +313,15 @@ AC_ARG_ENABLE(optimize,
           MOZ_OPTIMIZE=
       fi ])
 
+AC_ARG_ENABLE(tenfourfox-vmx,
+[ --enable-tenfourfox-vmx Turn on AltiVec-VMX specific options for TenFourFox ],
+[ if test "$enableval" != "no"; then
+    AC_DEFINE(TENFOURFOX_VMX)
+    TENFOURFOX_VMX=1
+  else
+    TENFOURFOX_VMX=
+  fi ])
+
 AC_ARG_ENABLE(debug,
     [  --enable-debug[=DBG]    Enable debugging (using compiler flags DBG)],
     [ if test "$enableval" != "no"; then
@@ -3049,6 +3058,7 @@ AC_SUBST(PR_MD_CSRCS)
 AC_SUBST(PR_MD_ASFILES)
 AC_SUBST(PR_MD_ARCH_DIR)
 AC_SUBST(CPU_ARCH)
+AC_SUBST(TENFOURFOX_VMX)
 
 AC_SUBST(OBJ_SUFFIX)
 AC_SUBST(LIB_SUFFIX)
