@@ -80,6 +80,9 @@
 
 #include "GeckoProfiler.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 #ifdef DEBUG
 #undef NOISY_REFLOW
 #undef NOISY_TRIM
@@ -2891,7 +2894,7 @@ static int32_t FindChar(const nsTextFragment* frag,
   } else {
     if (uint16_t(ch) <= 0xFF) {
       const char* str = frag->Get1b() + aOffset;
-      const void* p = memchr(str, ch, aLength);
+      const void* p = VMX_MEMCHR(str, ch, aLength);
       if (p)
         return (static_cast<const char*>(p) - str) + aOffset;
     }

@@ -12,6 +12,9 @@
 
 #include "nscore.h" // for |char16_t|
 
+#include "mozilla-config.h"
+#include "plvmx.h" // for |vmx_memchr| (if implemented)
+
 // This file may be used (through nsUTF8Utils.h) from non-XPCOM code, in
 // particular the standalone software updater. In that case stub out
 // the macros provided by nsDebug.h which are only usable when linking XPCOM
@@ -501,8 +504,8 @@ struct nsCharTraits<char>
   static const char_type*
   find(const char_type* aStr, size_t aN, char_type aChar)
   {
-    return reinterpret_cast<const char_type*>(memchr(aStr, to_int_type(aChar),
-                                                     aN));
+    return reinterpret_cast<const char_type*>(VMX_MEMCHR(aStr, to_int_type(aChar),
+                                                         aN));
   }
 };
 

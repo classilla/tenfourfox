@@ -50,6 +50,9 @@
 #include <algorithm>
 #include <cmath>
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::unicode;
@@ -2742,7 +2745,7 @@ inline static bool IsChar8Bit(char16_t aCh) { return aCh < 0x100; }
 
 inline static bool HasSpaces(const uint8_t *aString, uint32_t aLen)
 {
-    return memchr(aString, 0x20, aLen) != nullptr;
+    return VMX_MEMCHR(aString, 0x20, aLen) != nullptr;
 }
 
 inline static bool HasSpaces(const char16_t *aString, uint32_t aLen)
