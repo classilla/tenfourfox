@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include "plvmx.h"
 
-void *vmx_memchr(const void *b, int c, size_t length) {
+/* VMX/AltiVec specific libc functions for TenFourFox. */
 
+void *vmx_memchr(const void *b, int c, size_t length) {
 
 /* From:
 https://github.com/ridiculousfish/HexFiend/blob/4d5bcee5715f5f288649f7471d1da5bd06376f46/framework/sources/HFFastMemchr.m
-   with some optimizations */
+   with some optimizations and fixes. */
 
     const unsigned char *haystack = (const unsigned char *)b;
     unsigned char needle = (unsigned char)c;
@@ -16,7 +17,7 @@ https://github.com/ridiculousfish/HexFiend/blob/4d5bcee5715f5f288649f7471d1da5bd
     // It is possible for altivecLength to be < 0 for short strings.
     int altivecLength = length - prefixLength - suffixLength;
 
-    if (altivecLength < 16) {
+    if (altivecLength < 32) { // not worth the setup
         while (length--) {
             if (*haystack == needle) return (void *)haystack;
             haystack++;
@@ -46,19 +47,35 @@ https://github.com/ridiculousfish/HexFiend/blob/4d5bcee5715f5f288649f7471d1da5bd
     
 foundResult:
         ;
-    /* some byte has the result - look in groups of 4 to find which it is */
-    unsigned numWords = 4;
     unsigned int val;
-    while (numWords--) {
-        val = *(unsigned int*)haystack;
-        if (((val >> 24) & 0xFF) == needle) return (void *)haystack;
-        if (((val >> 16) & 0xFF) == needle) return (void *)(1 + haystack);
-        if (((val >> 8) & 0xFF)  == needle) return (void *)(2 + haystack);
-        if ((val & 0xFF)         == needle) return (void *)(3 + haystack);
-        haystack += 4;
-    }
     
-    /* should never get here */
+    // Some byte has the result; look in groups of 4 to find which one.
+    // Unroll the loop.
+    val = *(unsigned int*)haystack;
+    if (((val >> 24) & 0xFF) == needle) return (void *)haystack;
+    if (((val >> 16) & 0xFF) == needle) return (void *)(1 + haystack);
+    if (((val >> 8) & 0xFF)  == needle) return (void *)(2 + haystack);
+    if ((val & 0xFF)         == needle) return (void *)(3 + haystack);
+    haystack += 4;
+    val = *(unsigned int*)haystack;
+    if (((val >> 24) & 0xFF) == needle) return (void *)haystack;
+    if (((val >> 16) & 0xFF) == needle) return (void *)(1 + haystack);
+    if (((val >> 8) & 0xFF)  == needle) return (void *)(2 + haystack);
+    if ((val & 0xFF)         == needle) return (void *)(3 + haystack);
+    haystack += 4;
+    val = *(unsigned int*)haystack;
+    if (((val >> 24) & 0xFF) == needle) return (void *)haystack;
+    if (((val >> 16) & 0xFF) == needle) return (void *)(1 + haystack);
+    if (((val >> 8) & 0xFF)  == needle) return (void *)(2 + haystack);
+    if ((val & 0xFF)         == needle) return (void *)(3 + haystack);
+    haystack += 4;
+    val = *(unsigned int*)haystack;
+    if (((val >> 24) & 0xFF) == needle) return (void *)haystack;
+    if (((val >> 16) & 0xFF) == needle) return (void *)(1 + haystack);
+    if (((val >> 8) & 0xFF)  == needle) return (void *)(2 + haystack);
+    if ((val & 0xFF)         == needle) return (void *)(3 + haystack);
+    
+    // unreachable
     fprintf(stderr, "failed vmx_memchr()\n");
     return NULL;
 }
