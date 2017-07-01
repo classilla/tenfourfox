@@ -158,6 +158,11 @@ public:
   MOZ_WARN_UNUSED_RESULT bool SetValue(const nsAString& aValue,
                                        uint32_t aFlags);
   void GetValue(nsAString& aValue, bool aIgnoreWrap) const;
+  bool HasNonEmptyValue();
+  // The following methods are for textarea element to use whether default
+  // value or not.
+  // XXX We might have to add assertion when it is into editable,
+  // or reconsider fixing bug 597525 to remove these.
   void EmptyValue() { if (mValue) mValue->Truncate(); }
   bool IsEmpty() const { return mValue ? mValue->IsEmpty() : true; }
 

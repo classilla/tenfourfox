@@ -2668,9 +2668,12 @@ nsGenericHTMLElement::Blur(mozilla::ErrorResult& aError)
 void
 nsGenericHTMLElement::Focus(ErrorResult& aError)
 {
-  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm) {
-    aError = fm->SetFocus(this, 0);
+    if (fm->CanSkipFocus(this))
+      fm->NeedsFlushBeforeEventHandling(this);
+    else
+      aError = fm->SetFocus(this, 0);
   }
 }
 

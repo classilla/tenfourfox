@@ -1465,6 +1465,10 @@ HTMLInputElement::GetValueInternal(nsAString& aValue) const
 bool
 HTMLInputElement::IsValueEmpty() const
 {
+  if (GetValueMode() == VALUE_MODE_VALUE && IsSingleLineTextControl(false)) {
+    return !mInputData.mState->HasNonEmptyValue();
+  }
+
   nsAutoString value;
   GetValueInternal(value);
 
@@ -4277,6 +4281,14 @@ HTMLInputElement::UnbindFromTree(bool aDeep, bool aNullParent)
 void
 HTMLInputElement::HandleTypeChange(uint8_t aNewType)
 {
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (fm) {
+    // Input element can represent very different kinds of UIs, and we may
+    // need to flush styling even when focusing the already focused input
+    // element.
+    fm->NeedsFlushBeforeEventHandling(this);
+  }
+
   if (mType == NS_FORM_INPUT_RANGE && mIsDraggingRange) {
     CancelRangeThumbDrag(false);
   }

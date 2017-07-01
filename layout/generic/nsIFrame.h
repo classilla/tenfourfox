@@ -3152,6 +3152,8 @@ protected:
     VisualDeltas mVisualDeltas;
   } mOverflow;
 
+  bool mMayHaveRoundedCorners : 1;
+
   // Helpers
   /**
    * Can we stop inside this frame when we're skipping non-rendered whitespace?

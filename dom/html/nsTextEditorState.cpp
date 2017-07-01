@@ -2174,6 +2174,23 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
   return true;
 }
 
+bool
+nsTextEditorState::HasNonEmptyValue()
+{
+  if (mEditor && mBoundFrame && mEditorInitialized &&
+      !mIsCommittingComposition) {
+    bool empty;
+    nsresult rv = mEditor->GetDocumentIsEmpty(&empty);
+    if (NS_SUCCEEDED(rv)) {
+      return !empty;
+    }
+  }
+
+  nsAutoString value;
+  GetValue(value, true);
+  return !value.IsEmpty();
+}
+
 void
 nsTextEditorState::InitializeKeyboardEventListeners()
 {

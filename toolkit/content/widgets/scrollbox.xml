@@ -196,10 +196,39 @@
 
       <field name="_scrollTarget">null</field>
 
+      <method name="_boundsWithoutFlushing">
+        <parameter name="element"/>
+        <body><![CDATA[
+          if (!("_DOMWindowUtils" in this)) {
+            try {
+              this._DOMWindowUtils =
+                window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                      .getInterface(Components.interfaces.nsIDOMWindowUtils);
+            } catch (e) {
+              // Can't access nsIDOMWindowUtils if we're unprivileged.
+              this._DOMWindowUtils = null;
+            }
+          }
+
+          return this._DOMWindowUtils ?
+                 this._DOMWindowUtils.getBoundsWithoutFlushing(element) :
+                 element.getBoundingClientRect();
+        ]]></body>
+      </method>
+
       <method name="_canScrollToElement">
         <parameter name="element"/>
         <body><![CDATA[
-          return window.getComputedStyle(element).display != "none";
+          if (element.hidden) {
+            return false;
+          }
+
+          // See if the element is hidden via CSS without the hidden attribute.
+          // If we get only zeros for the client rect, this means the element
+          // is hidden. As a performance optimization, we don't flush layout
+          // here which means that on the fly changes aren't fully supported.
+          let rect = this._boundsWithoutFlushing(element);
+          return !!(rect.top || rect.left || rect.width || rect.height);
         ]]></body>
       </method>
 
@@ -458,29 +487,29 @@
       </method>
 
       <method name="_updateScrollButtonsDisabledState">
+        <parameter name="aScrolling"/>
         <body><![CDATA[
-          var scrolledToStart = false;
-          var scrolledToEnd = false;
+          let scrolledToStart;
+          let scrolledToEnd;
 
+          // Avoid flushing layout when not overflowing or when scrolling.
           if (this.hasAttribute("notoverflowing")) {
             scrolledToStart = true;
             scrolledToEnd = true;
-          }
-          else if (this.scrollPosition == 0) {
+          } else if (aScrolling) {
+            scrolledToStart = false;
+            scrolledToEnd = false;
+          } else if (this.scrollPosition == 0) {
             // In the RTL case, this means the _last_ element in the
             // scrollbox is visible
-            if (this._isRTLScrollbox) 
-              scrolledToEnd = true;
-            else
-              scrolledToStart = true;
+            scrolledToEnd = this._isRTLScrollbox;
+            scrolledToStart = !this._isRTLScrollbox;
           }
           else if (this.scrollClientSize + this.scrollPosition == this.scrollSize) {
             // In the RTL case, this means the _first_ element in the
             // scrollbox is visible
-            if (this._isRTLScrollbox)
-              scrolledToStart = true;
-            else
-              scrolledToEnd = true;
+            scrolledToStart = this._isRTLScrollbox;
+            scrolledToEnd = !this._isRTLScrollbox;
           }
 
           if (scrolledToEnd)
@@ -600,8 +629,29 @@
           this.setAttribute("notoverflowing", "true");
         }
       ]]></handler>
+      <handler event="scroll"><![CDATA[
+        if (!this._delayedUpdateScrollButtonsTimer) {
+          // This is the beginning of a scrolling animation. We need to update
+          // scroll buttons now in case we were scrolled to the start or to the
+          // end before we started scrolling.
+          this._updateScrollButtonsDisabledState(true);
+        } else {
+          // We're in the middle of the scrolling animation. We'll restart the
+          // delayed update request so that we only update the scroll buttons
+          // a second time once we're done scrolling.
+          window.clearTimeout(this._delayedUpdateScrollButtonsTimer);
+        }
 
-      <handler event="scroll" action="this._updateScrollButtonsDisabledState()"/>
+        // Try to detect the end of the scrolling animation to update the
+        // scroll buttons again. To avoid false positives, this timeout needs
+        // to be big enough to account for intermediate frames that don't move
+        // the scroll position in case we're scrolling slowly.
+        this._delayedUpdateScrollButtonsTimer = setTimeout(() => {
+          // Scrolling animation has finished.
+          this._delayedUpdateScrollButtonsTimer = 0;
+          this._updateScrollButtonsDisabledState();
+        }, 500);
+      ]]></handler>
     </handlers>
   </binding>
 
