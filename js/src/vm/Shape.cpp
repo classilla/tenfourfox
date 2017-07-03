@@ -483,15 +483,7 @@ NativeObject::addProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId
     MOZ_ASSERT(!JSID_IS_VOID(id));
     MOZ_ASSERT(getter != JS_PropertyStub);
     MOZ_ASSERT(setter != JS_StrictPropertyStub);
-
-    bool extensible;
-    if (!IsExtensible(cx, obj, &extensible))
-        return nullptr;
-    if (!extensible) {
-        if (cx->isJSContext())
-            obj->reportNotExtensible(cx->asJSContext());
-        return nullptr;
-    }
+    MOZ_ASSERT(obj->nonProxyIsExtensible());
 
     ShapeTable::Entry* entry = nullptr;
     if (obj->inDictionaryMode())
@@ -719,17 +711,7 @@ NativeObject::putProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId
          * You can't add properties to a non-extensible object, but you can change
          * attributes of properties in such objects.
          */
-        bool extensible;
-
-        if (!IsExtensible(cx, obj, &extensible))
-            return nullptr;
-
-        if (!extensible) {
-            if (cx->isJSContext())
-                obj->reportNotExtensible(cx->asJSContext());
-            return nullptr;
-        }
-
+        MOZ_ASSERT(obj->nonProxyIsExtensible());
         return addPropertyInternal(cx, obj, id, getter, setter, slot, attrs, flags,
                                    entry, true);
     }

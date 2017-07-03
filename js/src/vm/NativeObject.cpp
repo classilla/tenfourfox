@@ -996,11 +996,12 @@ js::NativeLookupOwnProperty<NoGC>(ExclusiveContext* cx, NativeObject* obj, jsid 
 
 /*** [[DefineOwnProperty]] ***********************************************************************/
 
-static inline bool
+static MOZ_ALWAYS_INLINE bool
 CallAddPropertyHook(ExclusiveContext* cx, HandleNativeObject obj, HandleShape shape,
                     HandleValue value)
 {
-    if (JSAddPropertyOp addProperty = obj->getClass()->addProperty) {
+    JSAddPropertyOp addProperty = obj->getClass()->addProperty;
+    if (MOZ_UNLIKELY(addProperty)) {
         if (!cx->shouldBeJSContext())
             return false;
 
@@ -1013,7 +1014,7 @@ CallAddPropertyHook(ExclusiveContext* cx, HandleNativeObject obj, HandleShape sh
     return true;
 }
 
-static inline bool
+static MOZ_ALWAYS_INLINE bool
 CallAddPropertyHookDense(ExclusiveContext* cx, HandleNativeObject obj, uint32_t index,
                          HandleValue value)
 {
@@ -1026,7 +1027,8 @@ CallAddPropertyHookDense(ExclusiveContext* cx, HandleNativeObject obj, uint32_t 
         return true;
     }
 
-    if (JSAddPropertyOp addProperty = obj->getClass()->addProperty) {
+    JSAddPropertyOp addProperty = obj->getClass()->addProperty;
+    if (MOZ_UNLIKELY(addProperty)) {
         if (!cx->shouldBeJSContext())
             return false;
 
@@ -1042,10 +1044,12 @@ CallAddPropertyHookDense(ExclusiveContext* cx, HandleNativeObject obj, uint32_t 
     return true;
 }
 
-static bool
-UpdateShapeTypeAndValue(ExclusiveContext* cx, NativeObject* obj, Shape* shape, const Value& value)
+static MOZ_ALWAYS_INLINE void
+UpdateShapeTypeAndValue(ExclusiveContext* cx, NativeObject* obj, Shape* shape,
+                        jsid id, const Value& value)
 {
-    jsid id = shape->propid();
+    MOZ_ASSERT(id == shape->propid());
+
     if (shape->hasSlot()) {
         obj->setSlotWithType(cx, shape, value, /* overwriting = */ false);
 
@@ -1061,7 +1065,6 @@ UpdateShapeTypeAndValue(ExclusiveContext* cx, NativeObject* obj, Shape* shape, c
         MarkTypePropertyNonData(cx, obj, id);
     if (!shape->writable())
         MarkTypePropertyNonWritable(cx, obj, id);
-    return true;
 }
 
 static bool
@@ -1166,8 +1169,7 @@ AddOrChangeProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId id,
     if (!shape)
         return false;
 
-    if (!UpdateShapeTypeAndValue(cx, obj, shape, desc.value()))
-        return false;
+    UpdateShapeTypeAndValue(cx, obj, shape, id, desc.value());
 
     // Clear any existing dense index after adding a sparse indexed property,
     // and investigate converting the object to dense indexes.
@@ -1396,10 +1398,8 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         // type for this property that doesn't match the value in the slot.
         // Update the type here, even though this DefineProperty call is
         // otherwise a no-op. (See bug 1125624 comment 13.)
-        if (!IsImplicitDenseOrTypedArrayElement(shape) && desc.hasValue()) {
-            if (!UpdateShapeTypeAndValue(cx, obj, shape, desc.value()))
-                return false;
-        }
+        if (!IsImplicitDenseOrTypedArrayElement(shape) && desc.hasValue())
+            UpdateShapeTypeAndValue(cx, obj, shape, id, desc.value());
         return result.succeed();
     }
 
