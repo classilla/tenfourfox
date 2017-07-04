@@ -130,8 +130,27 @@ EmitBaselineTailCallVM(JitCode *target, MacroAssembler &masm, uint32_t argSize)
 inline void
 EmitIonTailCallVM(JitCode* target, MacroAssembler& masm, uint32_t stackSize)
 {
-    // XXX. When we do implement this, remember that MIPS now uses ra, not on-stack return addresses.
-    MOZ_CRASH("Not implemented yet.");
+    // Based on x86. As above, we assume during this that Baseline R0 and R1
+    // have been pushed, and that Baseline R2 is unused. The argregs will not
+    // be set until we actually call the VMWrapper, so we can trample R2's set.
+    ispew("[[ EmitIonTailCallVM");
+
+    // For tail calls, find the already pushed JitFrame_IonJS signifying the
+    // end of the Ion frame. Retrieve the length of the frame and repush
+    // JitFrame_IonJS with the extra stacksize, rendering the original
+    // JitFrame_IonJS obsolete.
+    MOZ_ASSERT(stackSize < 16383);
+    masm.lwz(r3, r1, stackSize);
+    masm.x_srwi(r3, r3, FRAMESIZE_SHIFT);
+    masm.addi(r3, r3, (stackSize + JitStubFrameLayout::Size() - sizeof(intptr_t)));
+
+    // Push frame descriptor and perform the tail call. The call is to
+    // Ion code, so it does not need to be ABI compliant.
+    // XXX: could be mtctr/mFD/push2/bctr
+    masm.makeFrameDescriptor(r3, JitFrame_IonJS);
+    masm.push2(r3, ICTailCallReg);
+    masm.branch(target);
+    ispew("   EmitIonTailCallVM ]]");
 }
 
 inline void
@@ -164,8 +183,26 @@ EmitBaselineCallVM(JitCode *target, MacroAssembler &masm)
 inline void
 EmitIonCallVM(JitCode* target, size_t stackSlots, MacroAssembler& masm)
 {
-	// XXX. See EmitIonTailCallVM above.
-    MOZ_CRASH("Not implemented yet.");
+    // Based on x86.
+    ispew("[[ EmitIonCallVM");
+
+    // Stubs often use the return address, which is actually accounted by the
+    // caller of the stub, though in the stubcode we fake that it's part of the
+    // stub in order to make it possible to pop it. As a result we have to
+    // fix it here by subtracting it or else it would be counted twice.
+    uint32_t framePushed = masm.framePushed() - sizeof(void*);
+
+    uint32_t descriptor = MakeFrameDescriptor(framePushed, JitFrame_IonStub);
+    masm.Push(Imm32(descriptor));
+    masm.call(target);
+
+    // Remove rest of the frame left on the stack. We remove the return address
+    // which is implicitly popped when returning.
+    size_t framePop = sizeof(ExitFrameLayout) - sizeof(void*);
+
+    // Pop arguments from framePushed.
+    masm.implicitPop(stackSlots * sizeof(void*) + framePop);
+    ispew("   EmitIonCallVM ]]");
 }
 
 // Size of values pushed by EmitEnterStubFrame.
@@ -214,7 +251,10 @@ EmitBaselineEnterStubFrame(MacroAssembler &masm, Register scratch)
 inline void
 EmitIonEnterStubFrame(MacroAssembler& masm, Register scratch)
 {
-    MOZ_CRASH("Not implemented yet.");
+    MOZ_ASSERT(scratch != ICTailCallReg);
+
+    masm.lwz(ICTailCallReg, stackPointerRegister, 0);
+    masm.Push2(ICTailCallReg, ICStubReg);
 }
 
 inline void
@@ -248,7 +288,7 @@ EmitBaselineLeaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false)
 inline void
 EmitIonLeaveStubFrame(MacroAssembler& masm)
 {
-    MOZ_CRASH("Not implemented yet.");
+    masm.Pop2(ICStubReg, ICTailCallReg);
 }
 
 inline void
