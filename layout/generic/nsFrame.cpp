@@ -2418,7 +2418,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   if (doingShortcut) {
     // This is the shortcut for frames been handled along the common
     // path, the most common one of THE COMMON CASE mentioned later.
-    MOZ_ASSERT(child->Type() != LayoutFrameType::Placeholder);
+    //MOZ_ASSERT(child->Type() != LayoutFrameType::Placeholder);
     MOZ_ASSERT(!aBuilder->GetSelectedFramesOnly() &&
                !aBuilder->GetIncludeAllOutOfFlows(),
                "It should be held for painting to window");
