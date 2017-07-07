@@ -276,7 +276,7 @@ ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
     // Guard on int.
     masm.x_li32(r0, JSVAL_TAG_INT32);
-    masm.cmpw(R0.typeReg(), r0);
+    masm.cmplw(R0.typeReg(), r0);
     PPC_BC(Assembler::NotEqual, failure);
 
     switch (op) {
