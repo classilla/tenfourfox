@@ -116,6 +116,10 @@ static const int kSurrogateRangeCount = ArrayLength(kSurrogateRanges);
 static const int kLineTerminatorRanges[] = { 0x000A, 0x000B, 0x000D, 0x000E,
     0x2028, 0x202A, 0x10000 };
 static const int kLineTerminatorRangeCount = ArrayLength(kLineTerminatorRanges);
+// bug 1373195
+static const int kLineTerminatorAndSurrogateRanges[] = { 0x000A, 0x000B,
+    0x000D, 0x000E, 0x2028, 0x202A, 0xD800, 0xE000, 0x10000 };
+static const int kLineTerminatorAndSurrogateRangeCount = ArrayLength(kLineTerminatorAndSurrogateRanges);
 static const int kMaxOneByteCharCode = 0xff;
 static const int kMaxUtf16CodeUnit = 0xffff;
 
@@ -137,10 +141,10 @@ AddClass(const int* elmv, int elmc,
     }
 }
 
-static void
-AddClassNegated(const int* elmv,
-                int elmc,
-                CharacterRangeVector* ranges)
+void
+js::irregexp::AddClassNegated(const int* elmv,
+                              int elmc,
+                              CharacterRangeVector* ranges)
 {
     elmc--;
     MOZ_ASSERT(elmv[elmc] == 0x10000);
@@ -275,7 +279,7 @@ static const size_t kEcma262UnCanonicalizeMaxWidth = 4;
 
 // Returns the number of characters in the equivalence class, omitting those
 // that cannot occur in the source string if it is a one byte string.
-static int
+static MOZ_ALWAYS_INLINE int
 GetCaseIndependentLetters(char16_t character,
                           bool ascii_subject,
                           bool unicode,
@@ -378,6 +382,10 @@ CharacterRange::AddCaseEquivalents(bool is_ascii, bool unicode, CharacterRangeVe
             return;
         if (top > kMaxOneByteCharCode)
             top = kMaxOneByteCharCode;
+    } else {
+        // Nothing to do for surrogates.
+        if (bottom >= unicode::LeadSurrogateMin && top <= unicode::TrailSurrogateMax)
+            return;
     }
 
     for (char16_t c = bottom;; c++) {
@@ -917,7 +925,17 @@ void TextNode::MakeCaseIndependent(bool is_ascii, bool unicode)
             if (cc->is_standard(alloc()))
                 continue;
 
+            // Similarly, there's nothing to do for the character class
+            // containing all characters except line terminators and surrogates.
+            // This one is added by UnicodeEverythingAtom.
             CharacterRangeVector& ranges = cc->ranges(alloc());
+            if (CompareInverseRanges(ranges,
+                                     kLineTerminatorAndSurrogateRanges,
+                                     kLineTerminatorAndSurrogateRangeCount))
+            {
+                continue;
+            }
+
             int range_count = ranges.length();
             for (int j = 0; j < range_count; j++)
                 ranges[j].AddCaseEquivalents(is_ascii, unicode, &ranges);

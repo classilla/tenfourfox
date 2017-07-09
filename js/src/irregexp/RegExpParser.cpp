@@ -35,6 +35,14 @@
 using namespace js;
 using namespace js::irregexp;
 
+// Bug 1373195 put these into RegExpCharacters, but we don't have that
+// in this version of irregexp, so this should be kept in sync with
+// RegExpEngine.
+static const int kLineTerminatorAndSurrogateRanges[] = { 0x000A, 0x000B,
+    0x000D, 0x000E, 0x2028, 0x202A, 0xD800, 0xE000, 0x10000 };
+static const int kLineTerminatorAndSurrogateRangeCount = 9;
+
+
 // ----------------------------------------------------------------------------
 // RegExpBuilder
 
@@ -1335,11 +1343,9 @@ UnicodeEverythingAtom(LifoAlloc* alloc)
     // everything except \x0a, \x0d, \u2028 and \u2029
 
     CharacterRangeVector* ranges = alloc->newInfallible<CharacterRangeVector>(*alloc);
-    ranges->append(CharacterRange::Range(0x0, 0x09));
-    ranges->append(CharacterRange::Range(0x0b, 0x0c));
-    ranges->append(CharacterRange::Range(0x0e, 0x2027));
-    ranges->append(CharacterRange::Range(0x202A, unicode::LeadSurrogateMin - 1));
-    ranges->append(CharacterRange::Range(unicode::TrailSurrogateMax + 1, unicode::UTF16Max));
+    AddClassNegated(kLineTerminatorAndSurrogateRanges,
+                    kLineTerminatorAndSurrogateRangeCount,
+                    ranges);
     builder->AddAtom(alloc->newInfallible<RegExpCharacterClass>(ranges, false));
 
     builder->NewAlternative();

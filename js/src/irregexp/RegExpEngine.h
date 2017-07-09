@@ -1508,6 +1508,9 @@ class Analysis : public NodeVisitor
     void operator=(Analysis&) = delete;
 };
 
+void
+AddClassNegated(const int* elmv, int elmc, CharacterRangeVector* ranges);
+
 } }  // namespace js::irregexp
 
 #endif  // V8_JSREGEXP_H_
