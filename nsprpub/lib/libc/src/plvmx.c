@@ -17,7 +17,7 @@ https://github.com/ridiculousfish/HexFiend/blob/4d5bcee5715f5f288649f7471d1da5bd
     // It is possible for altivecLength to be < 0 for short strings.
     int altivecLength = length - prefixLength - suffixLength;
 
-    if (altivecLength < 32) { // not worth the setup
+    if (altivecLength < 16) {
         while (length--) {
             if (*haystack == needle) return (void *)haystack;
             haystack++;
