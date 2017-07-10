@@ -95,6 +95,9 @@ public:
   {
     mElements.SetCapacity(aCapacity);
   }
+
+  virtual void LastRelease() {}
+
 protected:
   virtual ~nsBaseContentList();
 
@@ -347,6 +350,8 @@ public:
     mState = LIST_DIRTY;
     Reset();
   }
+
+  virtual void LastRelease() override;
 
 protected:
   /**
