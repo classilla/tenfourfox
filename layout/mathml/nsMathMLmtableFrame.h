@@ -256,8 +256,6 @@ public:
                                   nsDisplayListBuilder* aBuilder,
                                   const nsDisplayListSet& aLists) override;
 
-  virtual int32_t GetRowSpan() override;
-  virtual int32_t GetColSpan() override;
   virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsTableCellFrame::IsFrameOfType(aFlags & ~(nsIFrame::eMathML));

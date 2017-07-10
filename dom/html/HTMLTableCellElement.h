@@ -37,7 +37,7 @@ public:
   }
   void SetColSpan(uint32_t aColSpan, ErrorResult& aError)
   {
-    SetHTMLIntAttr(nsGkAtoms::colspan, aColSpan, aError);
+    SetUnsignedIntAttr(nsGkAtoms::colspan, aColSpan, aError);
   }
   uint32_t RowSpan() const
   {
@@ -45,7 +45,7 @@ public:
   }
   void SetRowSpan(uint32_t aRowSpan, ErrorResult& aError)
   {
-    SetHTMLIntAttr(nsGkAtoms::rowspan, aRowSpan, aError);
+    SetUnsignedIntAttr(nsGkAtoms::rowspan, aRowSpan, aError);
   }
   //already_AddRefed<nsDOMSettableTokenList> Headers() const;
   void GetHeaders(DOMString& aHeaders)
