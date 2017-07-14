@@ -10,6 +10,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/Range.h"
+#include "mozilla/Maybe.h"
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
@@ -694,16 +695,18 @@ class JSDependentString : public JSLinearString
     JSDependentString& asDependent() const = delete;
 
     /* The offset of this string's chars in base->chars(). */
-    size_t baseOffset() const {
+    MOZ_ALWAYS_INLINE mozilla::Maybe<size_t> baseOffset() const {
         MOZ_ASSERT(JSString::isDependent());
         JS::AutoCheckCannotGC nogc;
+        if (MOZ_UNLIKELY(base()->isUndepended()))
+            return mozilla::Nothing();
         size_t offset;
         if (hasTwoByteChars())
             offset = twoByteChars(nogc) - base()->twoByteChars(nogc);
         else
             offset = latin1Chars(nogc) - base()->latin1Chars(nogc);
         MOZ_ASSERT(offset < base()->length());
-        return offset;
+        return mozilla::Some(offset);
     }
 
   public:
