@@ -4822,7 +4822,17 @@ CanvasRenderingContext2D::DrawWindow(nsGlobalWindow& window, double x,
     return;
   }
 
+  // Flush layout updates
+  if (!(flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH)) {
+    nsContentUtils::FlushLayoutForTree(&window);
+  }
+
   EnsureTarget();
+
+  if (!IsTargetValid()) {
+    return;
+  }
+
   // We can't allow web apps to call this until we fix at least the
   // following potential security issues:
   // -- rendering cross-domain IFRAMEs and then extracting the results
@@ -4834,11 +4844,6 @@ CanvasRenderingContext2D::DrawWindow(nsGlobalWindow& window, double x,
     // XXX ERRMSG we need to report an error to developers here! (bug 329026)
     error.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
-  }
-
-  // Flush layout updates
-  if (!(flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH)) {
-    nsContentUtils::FlushLayoutForTree(&window);
   }
 
   RefPtr<nsPresContext> presContext;

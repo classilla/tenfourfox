@@ -44,11 +44,13 @@ protected:
 public:
   inline void TraceSelf(JSTracer* trc)
   {
+    // XXX: Until we implement something like bug 1235598 (and its successor
+    // bug 1238786), we need these null checks.
     if (mTypedObj) {
       JS_CallUnbarrieredObjectTracer(trc, &mTypedObj, "TypedArray.mTypedObj");
     }
     if (mWrappedObj) {
-      JS_CallUnbarrieredObjectTracer(trc, &mTypedObj, "TypedArray.mWrappedObj");
+      JS_CallUnbarrieredObjectTracer(trc, &mWrappedObj, "TypedArray.mWrappedObj");
     }
   }
 
