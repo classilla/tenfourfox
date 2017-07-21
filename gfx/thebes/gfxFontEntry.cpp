@@ -1720,6 +1720,8 @@ gfxFontFamily::ReadFaceNames(gfxPlatformFontList *aPlatformFontList,
     }
 #endif
 
+#ifdef __LP64__
+// Can't run on 10.4-10.6.
     if (!mOtherFamilyNamesInitialized &&
         aFontInfoData &&
         aFontInfoData->mLoadOtherNames &&
@@ -1742,6 +1744,7 @@ gfxFontFamily::ReadFaceNames(gfxPlatformFontList *aPlatformFontList,
         (mFaceNamesInitialized || !aNeedFullnamePostscriptNames)) {
         return;
     }
+#endif
 
     FindStyleVariations(aFontInfoData);
 
