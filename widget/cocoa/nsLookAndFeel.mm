@@ -522,7 +522,7 @@ nsLookAndFeel::GetFloatImpl(FloatID aID, float &aResult)
 
 bool nsLookAndFeel::UseOverlayScrollbars()
 {
-#if(0)
+#ifdef __LP64__
   return GetInt(eIntID_UseOverlayScrollbars) != 0;
 #else
   return false; // Unpossible before 10.7.
@@ -531,7 +531,7 @@ bool nsLookAndFeel::UseOverlayScrollbars()
 
 bool nsLookAndFeel::SystemWantsOverlayScrollbars()
 {
-#if(0)
+#ifdef __LP64__
   return ([NSScroller respondsToSelector:@selector(preferredScrollerStyle)] &&
           [NSScroller preferredScrollerStyle] == mozNSScrollerStyleOverlay);
 #else
@@ -541,7 +541,7 @@ bool nsLookAndFeel::SystemWantsOverlayScrollbars()
 
 bool nsLookAndFeel::AllowOverlayScrollbarsOverlap()
 {
-#if(0)
+#ifdef __LP64__
   return (UseOverlayScrollbars() && nsCocoaFeatures::OnMountainLionOrLater());
 #else
   return false; // Unpossible before 10.7.
