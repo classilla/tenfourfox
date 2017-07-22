@@ -14,6 +14,7 @@
 #include "nsIHttpChannel.h"
 #include "nsIURL.h"
 #include "nsISimpleEnumerator.h"
+#include "nsISupportsPriority.h"
 #include "nsNetUtil.h"
 #include "nsString.h"
 #include "nsXPIDLString.h"
@@ -134,7 +135,19 @@ nsPrefetchNode::OpenChannel()
             false);
     }
 
-    return mChannel->AsyncOpen2(this);
+    // Reduce the priority of prefetch network requests.
+    nsCOMPtr<nsISupportsPriority> priorityChannel = do_QueryInterface(mChannel);
+    if (priorityChannel) {
+      priorityChannel->AdjustPriority(nsISupportsPriority::PRIORITY_LOWEST);
+    }
+
+    rv = mChannel->AsyncOpen2(this);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      // Drop the ref to the channel, because we don't want to end up with
+      // cycles through it.
+      mChannel = nullptr;
+    }
+    return rv;
 }
 
 nsresult
