@@ -597,12 +597,17 @@ ImageDocument::UpdateSizeFromLayout()
 {
   // Pull an updated size from the content frame to account for any size
   // change due to CSS properties like |image-orientation|.
-  Element* contentElement = mImageContent->AsElement();
-  if (!contentElement) {
+  if (!mImageContent) {
     return;
   }
 
-  nsIFrame* contentFrame = contentElement->GetPrimaryFrame(Flush_Frames);
+  // Need strong ref, because GetPrimaryFrame can run script.
+  nsCOMPtr<Element> imageContent = mImageContent->AsElement();
+  if (!imageContent) {
+    return;
+  }
+
+  nsIFrame* contentFrame = imageContent->GetPrimaryFrame(Flush_Frames);
   if (!contentFrame) {
     return;
   }
