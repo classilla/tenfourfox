@@ -2826,6 +2826,9 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  // XXX. When we implement CSP sandbox (bug 671389), we need to also
+  // add bugs 1073952 and 1377426 to avoid a nasty hole.
+
   // ----- Enforce frame-ancestor policy on any applied policies
   nsCOMPtr<nsIDocShell> docShell(mDocumentContainer);
   if (docShell) {
