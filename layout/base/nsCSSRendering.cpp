@@ -17,6 +17,7 @@
 #include "mozilla/HashFunctions.h"
 #include "mozilla/MathAlgorithms.h"
 
+#include "nsISVGChildFrame.h"
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
 #include "nsIFrame.h"
@@ -4806,8 +4807,13 @@ nsImageRenderer::PrepareImage()
       mImageElementSurface =
         nsLayoutUtils::SurfaceFromElement(property->GetReferencedElement());
       if (!mImageElementSurface.GetSourceSurface()) {
-        mPaintServerFrame = property->GetReferencedFrame();
-        if (!mPaintServerFrame) {
+        nsIFrame* paintServerFrame = property->GetReferencedFrame();
+        // If there's no referenced frame, or the referenced frame is
+        // non-displayable SVG, then we have nothing valid to paint.
+        if (!paintServerFrame ||
+            (paintServerFrame->IsFrameOfType(nsIFrame::eSVG) &&
+             !paintServerFrame->IsFrameOfType(nsIFrame::eSVGPaintServer) &&
+             !static_cast<nsISVGChildFrame*>(do_QueryFrame(paintServerFrame)))) {
           mPrepareResult = DrawResult::BAD_IMAGE;
           return false;
         }
