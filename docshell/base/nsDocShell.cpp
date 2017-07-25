@@ -13876,9 +13876,15 @@ DocShellOriginAttributes
 nsDocShell::GetOriginAttributes()
 {
   DocShellOriginAttributes attrs;
+  nsCOMPtr<nsIDocument> doc;
+
+  // It is possible to have a null document. If so, act as if we are
+  // the topmost docshell, since this usually occurs on shutdown.
   RefPtr<nsDocShell> parent = GetParentDocshell();
-  if (parent) {
-    nsCOMPtr<nsIPrincipal> parentPrin = parent->GetDocument()->NodePrincipal();
+  if (MOZ_LIKELY(parent))
+    doc = parent->GetDocument();
+  if (MOZ_LIKELY(doc)) {
+    nsCOMPtr<nsIPrincipal> parentPrin = doc->NodePrincipal();
     PrincipalOriginAttributes poa = BasePrincipal::Cast(parentPrin)->OriginAttributesRef();
     attrs.InheritFromDocToChildDocShell(poa);
   } else {

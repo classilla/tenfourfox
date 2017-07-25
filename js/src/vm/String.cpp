@@ -681,7 +681,7 @@ JSDependentString::dumpRepresentation(FILE* fp, int indent) const
     indent += 2;
 
     if (mozilla::Maybe<size_t> offset = baseOffset())
-        fprintf(fp, "%*soffset: %" PRIuSIZE "\n", indent, "", *offset);
+        fprintf(fp, "%*soffset: %zu\n", indent, "", *offset);
 
     fprintf(fp, "%*sbase: ", indent, "");
     base()->dumpRepresentation(fp, indent);
