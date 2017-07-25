@@ -547,6 +547,7 @@ static bool FindTagInTableDir(FallibleTArray<uint8_t>& table,
   // 96 bit header (three 32-bit words). One day we could even write
   // an AltiVec version ...
 #ifdef DEBUG_X
+  fprintf(stderr, "Tables: ");
   uint32_t j = 12;
 #endif
   uint32_t i;
@@ -628,7 +629,7 @@ MacOSFontEntry::HasFontTable(uint32_t aTableTag)
       mFontTableDir.SetLength(mFontTableDirSize, fallible);
       
 #ifdef DEBUG
-      fprintf(stderr, "Size of %s font table directory: %i\nTables: ",
+      fprintf(stderr, "Size of %s font table directory: %i\n",
                 NS_ConvertUTF16toUTF8(mName).get(), mFontTableDir.Length());
 #endif
       if (MOZ_LIKELY(::ATSFontGetTableDirectory(fontRef, mFontTableDirSize,
