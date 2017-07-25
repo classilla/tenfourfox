@@ -136,7 +136,7 @@ gfxPlatformMac::GetCachedDirForFont(nsString name)
 void
 gfxPlatformMac::SetCachedDirForFont(nsString name, uint8_t* table, ByteCount sizer)
 {
-	if (sizer < 0 || sizer > 1024) return;
+	if (MOZ_UNLIKELY(sizer < 1 || sizer > 1023)) return;
 
 	FontDirWrapper *k = new FontDirWrapper(sizer, table);
 	PlatformFontDirCache.Put(name, k);
