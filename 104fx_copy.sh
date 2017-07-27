@@ -4,7 +4,7 @@
 
 set verbose
 set ppath=$1
-cp -RL obj-ff-dbg/dist/TenFourFox.app $ppath || exit
+cp -RL obj-ff-dbg/dist/TenFourFox.app $ppath || cp -RL obj-ff-dbg/dist/TenFourFoxDebug.app $ppath || exit
 cd $ppath/Contents/MacOS || exit
 
 # determine which libgcc got linked (default to /opt/local/lib/gcc48)
