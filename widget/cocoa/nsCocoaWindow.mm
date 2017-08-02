@@ -4029,7 +4029,7 @@ TitlebarDrawCallback(void* aInfo, CGContextRef aContext)
   }
   if (target) {
 #ifdef DEBUG
-    fprintf(stderr, "trying to deliver this event too\n");
+    fprintf(stderr, "trying to deliver this event too (%i)\n", (uint32_t)type);
 #endif
 
 	// TenFourFox issue 248
@@ -4108,10 +4108,16 @@ TitlebarDrawCallback(void* aInfo, CGContextRef aContext)
         [target otherMouseDragged:anEvent];
         break;
       default:
+#if DEBUG
+fprintf(stderr, "don't know this event type! sending to super\n");
+#endif
         [super sendEvent:anEvent];
         break;
     }
   } else {
+#if DEBUG
+fprintf(stderr, "no target for this event! sending to super\n");
+#endif
     [super sendEvent:anEvent];
   }
 
