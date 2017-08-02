@@ -327,7 +327,7 @@ InitGlobalLexicalOperation(JSContext* cx, ClonedBlockObject* lexicalScopeArg,
     Rooted<ClonedBlockObject*> lexicalScope(cx, lexicalScopeArg);
     RootedShape shape(cx, lexicalScope->lookup(cx, script->getName(pc)));
     MOZ_ASSERT(shape);
-    lexicalScope->setSlot(shape->slot(), value);
+    lexicalScope->setSlotWithType(cx, shape, value);
 }
 
 inline bool
