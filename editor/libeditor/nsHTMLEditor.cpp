@@ -154,6 +154,8 @@ nsHTMLEditor::~nsHTMLEditor()
   }
 
   RemoveEventListeners();
+
+  HideAnonymousEditingUIs();
 }
 
 void
