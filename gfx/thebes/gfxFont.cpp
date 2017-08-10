@@ -2745,7 +2745,7 @@ inline static bool IsChar8Bit(char16_t aCh) { return aCh < 0x100; }
 
 inline static bool HasSpaces(const uint8_t *aString, uint32_t aLen)
 {
-    return VMX_MEMCHR(aString, 0x20, aLen) != nullptr;
+    return VMX_HASCHR(aString, 0x20, aLen);
 }
 
 inline static bool HasSpaces(const char16_t *aString, uint32_t aLen)
@@ -2857,7 +2857,7 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
                                                     aRunScript,
                                                     aVertical,
                                                     aTextRun);
-            if (!ok) {
+            if (MOZ_UNLIKELY(!ok)) {
                 return false;
             }
         } else if (length > 0) {
@@ -2875,7 +2875,7 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
                                               hash, aRunScript, aVertical,
                                               appUnitsPerDevUnit,
                                               wordFlags, tp);
-            if (sw) {
+            if (MOZ_LIKELY(sw)) {
                 aTextRun->CopyGlyphDataFrom(sw, aRunStart + wordStart);
             } else {
                 return false; // failed, presumably out of memory?
@@ -2905,7 +2905,7 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
                                   gfxShapedWord::HashMix(0, boundary),
                                   aRunScript, aVertical, appUnitsPerDevUnit,
                                   flags | gfxTextRunFactory::TEXT_IS_8BIT, tp);
-                if (sw) {
+                if (MOZ_LIKELY(sw)) {
                     aTextRun->CopyGlyphDataFrom(sw, aRunStart + i);
                 } else {
                     return false;

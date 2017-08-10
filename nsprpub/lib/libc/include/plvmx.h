@@ -13,14 +13,21 @@
 extern "C" {
 #endif
 
+int   vmx_haschr(const void *b, int c, size_t len);
 void *vmx_memchr(const void *b, int c, size_t len);
 
 #if defined (__cplusplus)
 }
 #endif
 
+#define VMX_HASCHR vmx_haschr
 #define VMX_MEMCHR vmx_memchr
 #else
+#if defined (__cplusplus)
+#define VMX_HASCHR(a,b,c) (memchr(a,b,c) != nullptr)
+#else
+#define VMX_HASCHR(a,b,c) (!!memchr(a,b,c))
+#endif
 #define VMX_MEMCHR memchr
 #endif
 
