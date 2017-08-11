@@ -422,14 +422,28 @@ nsHttpHandler::InitConnectionMgr()
 }
 
 nsresult
-nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request, bool isSecure)
+nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request,
+                                         bool isSecure,
+                                         const nsACString &hostLine)
 {
     nsresult rv;
 
-    // Add the "User-Agent" header
-    rv = request->SetHeader(nsHttp::User_Agent, UserAgent(),
-                            false, nsHttpHeaderArray::eVarietyDefault);
-    if (NS_FAILED(rv)) return rv;
+    // Add the "User-Agent" header (unless we have blacklisted this site and
+    // we aren't using a custom user agent; see TenFourFox issue 422).
+    if (mUserAgentOverride || (
+            !hostLine.EqualsLiteral("i.imgur.com") &&
+            !hostLine.EqualsLiteral("imgur.com") &&
+    1)) {
+        rv = request->SetHeader(nsHttp::User_Agent, UserAgent(),
+                                false, nsHttpHeaderArray::eVarietyDefault);
+        if (NS_FAILED(rv)) return rv;
+    }
+#if DEBUG
+    else {
+        fprintf(stderr, "User agent header suppressed for host: %s\n",
+                PromiseFlatCString(hostLine).get());
+    }
+#endif
 
     // MIME based content negotiation lives!
     // Add the "Accept" header.  Note, this is set as an override because the

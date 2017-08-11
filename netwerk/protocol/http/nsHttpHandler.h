@@ -67,7 +67,8 @@ public:
     nsHttpHandler();
 
     nsresult Init();
-    nsresult AddStandardRequestHeaders(nsHttpHeaderArray *, bool isSecure);
+    nsresult AddStandardRequestHeaders(nsHttpHeaderArray *, bool isSecure,
+                                       const nsACString &hostLine);
     nsresult AddConnectionHeader(nsHttpHeaderArray *,
                                  uint32_t capabilities);
     bool     IsAcceptableEncoding(const char *encoding, bool isSecure);
