@@ -794,6 +794,7 @@ struct JSRuntime : public JS::shadow::Runtime,
 
   private:
     mozilla::Atomic<uint32_t, mozilla::Relaxed> interrupt_;
+    mozilla::Atomic<uint32_t, mozilla::Relaxed> interruptRegExpJit_;
 
     /* Call this to accumulate telemetry data. */
     JSAccumulateTelemetryDataCallback telemetryCallback;
@@ -840,6 +841,10 @@ struct JSRuntime : public JS::shadow::Runtime,
     void* addressOfInterruptUint32() {
         static_assert(sizeof(interrupt_) == sizeof(uint32_t), "Assumed by JIT callers");
         return &interrupt_;
+    }
+    void* addressOfInterruptRegExpJitUint32() { // see bug 1386199
+        static_assert(sizeof(interruptRegExpJit_) == sizeof(uint32_t), "Assumed by JIT callers");
+        return &interruptRegExpJit_;
     }
 
     /* Set when handling a signal for a thread associated with this runtime. */

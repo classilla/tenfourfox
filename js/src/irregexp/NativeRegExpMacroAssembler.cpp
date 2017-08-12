@@ -617,7 +617,7 @@ NativeRegExpMacroAssembler::Backtrack()
     // Check for an interrupt.
     Label noInterrupt;
     masm.branch32(Assembler::Equal,
-                  AbsoluteAddress(runtime->addressOfInterruptUint32()), Imm32(0),
+                  AbsoluteAddress(runtime->addressOfInterruptRegExpJitUint32()), Imm32(0),
                   &noInterrupt);
     masm.movePtr(ImmWord(RegExpRunStatus_Error), temp0);
     masm.jump(&exit_label_);
@@ -627,7 +627,7 @@ NativeRegExpMacroAssembler::Backtrack()
     PopBacktrack(temp0);
     masm.jump(temp0);
 #else
-    masm.x_li32(addressTempRegister, (uint32_t)runtime->addressOfInterruptUint32());
+    masm.x_li32(addressTempRegister, (uint32_t)runtime->addressOfInterruptRegExpJitUint32());
     masm.lwz(tempRegister, addressTempRegister, 0);
     PPC_BC(noIRQ, tempRegister, Imm32(0), Equal);
     masm.movePtr(ImmWord(RegExpRunStatus_Error), temp0);

@@ -2330,13 +2330,16 @@ IonBuilder::inlineUnsafeSetReservedSlot(CallInfo& callInfo)
     }
     if (getInlineReturnType() != MIRType_Undefined)
         return InliningStatus_NotInlined;
-    if (callInfo.getArg(0)->type() != MIRType_Object)
+
+    MDefinition* obj = callInfo.getArg(0);
+    if (obj->type() != MIRType_Object && obj->type() != MIRType_Value)
         return InliningStatus_NotInlined;
-    if (callInfo.getArg(1)->type() != MIRType_Int32)
+
+    MDefinition* arg = callInfo.getArg(1);
+    if (arg->type() != MIRType_Int32)
         return InliningStatus_NotInlined;
 
     // Don't inline if we don't have a constant slot.
-    MDefinition* arg = callInfo.getArg(1);
     if (!arg->isConstantValue())
         return InliningStatus_NotInlined;
     uint32_t slot = arg->constantValue().toPrivateUint32();
@@ -2344,12 +2347,12 @@ IonBuilder::inlineUnsafeSetReservedSlot(CallInfo& callInfo)
     callInfo.setImplicitlyUsedUnchecked();
 
     MStoreFixedSlot* store =
-        MStoreFixedSlot::NewBarriered(alloc(), callInfo.getArg(0), slot, callInfo.getArg(2));
+        MStoreFixedSlot::NewBarriered(alloc(), obj, slot, callInfo.getArg(2));
     current->add(store);
     current->push(store);
 
     if (NeedsPostBarrier(callInfo.getArg(2)))
-        current->add(MPostWriteBarrier::New(alloc(), callInfo.getArg(0), callInfo.getArg(2)));
+        current->add(MPostWriteBarrier::New(alloc(), obj, callInfo.getArg(2)));
 
     return InliningStatus_Inlined;
 }
@@ -2361,20 +2364,23 @@ IonBuilder::inlineUnsafeGetReservedSlot(CallInfo& callInfo, MIRType knownValueTy
         trackOptimizationOutcome(TrackedOutcome::CantInlineNativeBadForm);
         return InliningStatus_NotInlined;
     }
-    if (callInfo.getArg(0)->type() != MIRType_Object)
+
+    MDefinition* obj = callInfo.getArg(0);
+    if (obj->type() != MIRType_Object && obj->type() != MIRType_Value)
         return InliningStatus_NotInlined;
-    if (callInfo.getArg(1)->type() != MIRType_Int32)
+
+    MDefinition* arg = callInfo.getArg(1);
+    if (arg->type() != MIRType_Int32)
         return InliningStatus_NotInlined;
 
     // Don't inline if we don't have a constant slot.
-    MDefinition* arg = callInfo.getArg(1);
     if (!arg->isConstantValue())
         return InliningStatus_NotInlined;
     uint32_t slot = arg->constantValue().toPrivateUint32();
 
     callInfo.setImplicitlyUsedUnchecked();
 
-    MLoadFixedSlot* load = MLoadFixedSlot::New(alloc(), callInfo.getArg(0), slot);
+    MLoadFixedSlot* load = MLoadFixedSlot::New(alloc(), obj, slot);
     current->add(load);
     current->push(load);
     if (knownValueType != MIRType_Value) {
