@@ -137,6 +137,12 @@ public:
     GetHref(aRetval);
   }
 
+  void
+  ToJSON(nsAString& aResult, ErrorResult& aRv) const
+  {
+    GetHref(aResult); // XXX: aRv not currently used
+  }
+
   // URLSearchParamsObserver
   void URLSearchParamsUpdated(URLSearchParams* aSearchParams) override;
 

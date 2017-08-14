@@ -47,6 +47,8 @@ interface URL {
   readonly attribute URLSearchParams searchParams;
   [Throws=Workers]
            attribute USVString hash;
+  [Throws]
+           USVString toJSON();
 };
 
 partial interface URL {
