@@ -969,6 +969,12 @@ nsINode::CompareDocumentPosition(nsINode& aOtherNode) const
 }
 
 bool
+nsINode::IsSameNode(nsINode *other)
+{
+  return other == this;
+}
+
+bool
 nsINode::IsEqualNode(nsINode* aOther)
 {
   if (!aOther) {

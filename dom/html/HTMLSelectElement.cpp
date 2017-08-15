@@ -1149,9 +1149,11 @@ HTMLSelectElement::SetValue(const nsAString& aValue)
     option->GetValue(optionVal);
     if (optionVal.Equals(aValue)) {
       SetSelectedIndexInternal(int32_t(i), true);
-      break;
+      return NS_OK;
     }
   }
+  // No matching option was found.
+  SetSelectedIndexInternal(-1, true);
   return NS_OK;
 }
 
