@@ -85,8 +85,10 @@ nsContextMenu.prototype = {
     // Initialize (disable/remove) menu items.
     this.initItems();
 
+/*
     // Register this opening of the menu with telemetry:
     this._checkTelemetryForMenu(aXulMenu);
+*/
   },
 
   hiding: function CM_hiding() {
