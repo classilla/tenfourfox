@@ -7296,10 +7296,6 @@ Parser<ParseHandler>::expr(InHandling inHandling, YieldHandling yieldHandling,
     if (!seq)
         return null();
     while (true) {
-        if (handler.isUnparenthesizedYieldExpression(pn)) {
-            report(ParseError, false, pn, JSMSG_BAD_YIELD_SYNTAX);
-            return null();
-        }
 
         pn = assignExpr(inHandling, yieldHandling, tripledotHandling);
         if (!pn)
@@ -8877,15 +8873,6 @@ Parser<ParseHandler>::argumentList(YieldHandling yieldHandling, Node listNode, b
                 return false;
         }
 
-        if (handler.isUnparenthesizedYieldExpression(argNode)) {
-            TokenKind tt;
-            if (!tokenStream.peekToken(&tt))
-                return false;
-            if (tt == TOK_COMMA) {
-                report(ParseError, false, argNode, JSMSG_BAD_YIELD_SYNTAX);
-                return false;
-            }
-        }
 #if JS_HAS_GENERATOR_EXPRS
         if (!spread) {
             if (!tokenStream.matchToken(&matched, TOK_FOR))
