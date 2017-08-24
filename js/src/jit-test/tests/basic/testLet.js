@@ -179,6 +179,7 @@ isParseError('for (let [x, y, x] in o) {}');
 isParseError('for (let [x, [y, [x]]] in o) {}');
 
 // for(let ... in ...) scoping bugs (bug 1069480)
+// XXX: ES6 now requires these to be ReferenceErrors; see the test from ESR52.
 test('for each (let [x, y] in x) {return x + y;}', [['ponies', '']], undefined);
 test('for each (let [{0: x, 1: y}, z] in x) {return x + y + z;}', [[['po','nies'], '']], undefined);
 test('for (let x in eval("x")) {return x;}', {ponies:true}, undefined);
@@ -189,18 +190,6 @@ test('for (let x in x) {break;}return eval("x");');
 test('try {for (let x in eval("throw x")) {}} catch (e) {return e;}', undefined, undefined);
 test('try {for each (let x in x) {eval("throw x");}} catch (e) {return e;}', ['ponies'], undefined);
 test('for each (let {x: y, y: x} in [{x: x, y: x}]) {return y;}', undefined, undefined);
-
-// genexps
-test('return (i for (i in x)).next();', {ponies:true});
-test('return (eval("i") for (i in x)).next();', {ponies:true});
-test('return (eval("i") for (i in eval("x"))).next();', {ponies:true});
-test('try {return (eval("throw i") for (i in x)).next();} catch (e) {return e;}', {ponies:true});
-
-// array comprehension
-test('return [i for (i in x)][0];', {ponies:true});
-test('return [eval("i") for (i in x)][0];', {ponies:true});
-test('return [eval("i") for (i in eval("x"))][0];', {ponies:true});
-test('try {return [eval("throw i") for (i in x)][0];} catch (e) {return e;}', {ponies:true});
 
 // don't forget about switch craziness
 test('var y = 3;switch (function () {return eval("y");}()) {case 3:let y;return x;default:;}');
