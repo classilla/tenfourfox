@@ -5910,7 +5910,7 @@ Parser<ParseHandler>::forStatement(YieldHandling yieldHandling)
         if (matched) {
             iflags = JSITER_FOREACH;
             isForEach = true;
-            addTelemetry(JSCompartment::DeprecatedForEach);
+            //addTelemetry(JSCompartment::DeprecatedForEach);
             if (versionNumber() < JSVERSION_LATEST) {
                 if (!report(ParseWarning, pc->sc->strict(), null(), JSMSG_DEPRECATED_FOR_EACH))
                     return null();
@@ -8392,7 +8392,7 @@ Parser<FullParseHandler>::legacyComprehensionTail(ParseNode* bodyExpr, unsigned 
                 return null();
             if (matched) {
                 pn2->pn_iflags |= JSITER_FOREACH;
-                addTelemetry(JSCompartment::DeprecatedForEach);
+                //addTelemetry(JSCompartment::DeprecatedForEach);
                 if (versionNumber() < JSVERSION_LATEST) {
                     if (!report(ParseWarning, pc->sc->strict(), pn2, JSMSG_DEPRECATED_FOR_EACH))
                         return null();
@@ -10084,16 +10084,6 @@ Parser<ParseHandler>::primaryExpr(YieldHandling yieldHandling, TripledotHandling
     }
 }
 
-template <typename ParseHandler>
-typename ParseHandler::Node
-Parser<ParseHandler>::exprInParens(InHandling inHandling, YieldHandling yieldHandling,
-                                   TripledotHandling tripledotHandling,
-                                   PossibleError* possibleError)
-{
-    MOZ_ASSERT(tokenStream.isCurrentTokenType(TOK_LP));
-    return expr(inHandling, yieldHandling, tripledotHandling, possibleError, PredictInvoked);
-}
-
 // Legacy generator comprehensions can appear anywhere an expression is
 // enclosed in parentheses, even if those parentheses are part of statement
 // syntax or a function call:
@@ -10111,6 +10101,44 @@ Parser<ParseHandler>::exprInParens(InHandling inHandling, YieldHandling yieldHan
 //     sum(x*x for (x in y)); // ok
 //     sum(for (x of y) x*x); // SyntaxError: needs more parens
 //
+template <typename ParseHandler>
+typename ParseHandler::Node
+Parser<ParseHandler>::exprInParens(InHandling inHandling, YieldHandling yieldHandling,
+                                   TripledotHandling tripledotHandling,
+                                   PossibleError* possibleError)
+{
+    MOZ_ASSERT(tokenStream.isCurrentTokenType(TOK_LP));
+    uint32_t begin = pos().begin;
+    uint32_t startYieldOffset = pc->lastYieldOffset;
+
+    Node pn = expr(inHandling, yieldHandling, tripledotHandling, possibleError, PredictInvoked);
+    if (!pn)
+        return null();
+
+#if JS_HAS_GENERATOR_EXPRS
+    bool matched;
+    if (!tokenStream.matchToken(&matched, TOK_FOR))
+        return null();
+    if (matched) {
+        if (pc->lastYieldOffset != startYieldOffset) {
+            reportWithOffset(ParseError, false, pc->lastYieldOffset,
+                             JSMSG_BAD_GENEXP_BODY, js_yield_str);
+            return null();
+        }
+        if (handler.isUnparenthesizedCommaExpression(pn)) {
+            report(ParseError, false, null(), JSMSG_BAD_GENERATOR_SYNTAX);
+            return null();
+        }
+        pn = legacyGeneratorExpr(pn);
+        if (!pn)
+            return null();
+        handler.setBeginPosition(pn, begin);
+    }
+#endif /* JS_HAS_GENERATOR_EXPRS */
+
+    return pn;
+}
+
 template <typename ParseHandler>
 typename ParseHandler::Node
 Parser<ParseHandler>::exprInParens(InHandling inHandling, YieldHandling yieldHandling,
