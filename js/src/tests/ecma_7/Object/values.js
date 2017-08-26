@@ -3,7 +3,6 @@
  * http://creativecommons.org/licenses/publicdomain/
  */
 
-if ("values" in Object) {
     assertEq(Object.values.length, 1);
 
     var o, values;
@@ -88,7 +87,6 @@ if ("values" in Object) {
     assertEq(ownKeysCallCount, 1);
     assertDeepEq(values, [3, 1]);
     assertDeepEq(getOwnPropertyDescriptorCalls, ["c", "a"]);
-}
 
 if (typeof reportCompare === "function")
     reportCompare(true, true);
