@@ -254,8 +254,10 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
+/*
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
                                   "resource://gre/modules/TelemetryStopwatch.jsm");
+*/
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
@@ -859,9 +861,11 @@ Search.prototype = {
     if (!this.pending)
       return;
 
+/*
     TelemetryStopwatch.start(TELEMETRY_1ST_RESULT, this);
     if (this._searchString)
       TelemetryStopwatch.start(TELEMETRY_6_FIRST_RESULTS, this);
+*/
 
     // Since we call the synchronous parseSubmissionURL function later, we must
     // wait for the initialization of PlacesSearchAutocompleteProvider first.
@@ -1339,7 +1343,7 @@ Search.prototype = {
   },
 
   _onResultRow: function (row) {
-    TelemetryStopwatch.finish(TELEMETRY_1ST_RESULT, this);
+    //TelemetryStopwatch.finish(TELEMETRY_1ST_RESULT, this);
     let queryType = row.getResultByIndex(QUERYINDEX_QUERYTYPE);
     let match;
     switch (queryType) {
@@ -1430,8 +1434,10 @@ Search.prototype = {
                                match.style,
                                match.finalCompleteValue);
 
+/*
     if (this._result.matchCount == 6)
       TelemetryStopwatch.finish(TELEMETRY_6_FIRST_RESULTS, this);
+*/
 
     this.notifyResults(true);
   },
@@ -1939,8 +1945,10 @@ UnifiedComplete.prototype = {
    *        results or not.
    */
   finishSearch: function (notify=false) {
+/*
     TelemetryStopwatch.cancel(TELEMETRY_1ST_RESULT, this);
     TelemetryStopwatch.cancel(TELEMETRY_6_FIRST_RESULTS, this);
+*/
     // Clear state now to avoid race conditions, see below.
     let search = this._currentSearch;
     this._lastLowResultsSearchSuggestion = search._lastLowResultsSearchSuggestion;

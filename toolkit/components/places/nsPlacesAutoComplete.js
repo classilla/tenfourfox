@@ -8,8 +8,10 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
+/*
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
                                   "resource://gre/modules/TelemetryStopwatch.jsm");
+*/
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
@@ -1525,7 +1527,7 @@ urlInlineComplete.prototype = {
       let query = this._hostQuery;
       query.params.search_string = this._currentSearchString.toLowerCase();
       // This is just to measure the delay to reach the UI, not the query time.
-      TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
+      //TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
       let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
         handleResult: aResultSet => {
           if (this._pendingSearch != pendingSearch)
@@ -1555,7 +1557,7 @@ urlInlineComplete.prototype = {
         handleCompletion: aReason => {
           if (this._pendingSearch != pendingSearch)
             return;
-          TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
+          //TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
           this._finishSearch();
         }
       }, this._db);

@@ -55,11 +55,13 @@ this.PlacesDBUtils = {
     else {
       // All tasks have been completed.
       // Telemetry the time it took for maintenance, if a start time exists.
+/*
       if (aTasks._telemetryStart) {
         Services.telemetry.getHistogramById("PLACES_IDLE_MAINTENANCE_TIME_MS")
                           .add(Date.now() - aTasks._telemetryStart);
         aTasks._telemetryStart = 0;
       }
+*/
 
       if (aTasks.callback) {
         let scope = aTasks.scope || Cu.getGlobalForObject(aTasks.callback);
@@ -92,7 +94,7 @@ this.PlacesDBUtils = {
     , this.checkCoherence
     , this._refreshUI
     ]);
-    tasks._telemetryStart = Date.now();
+    //tasks._telemetryStart = Date.now();
     tasks.callback = function() {
       Services.prefs.setIntPref("places.database.lastMaintenance",
                                 parseInt(Date.now() / 1000));
@@ -870,6 +872,7 @@ this.PlacesDBUtils = {
   telemetry: function PDBU_telemetry(aTasks, aHealthReportCallback=null)
   {
     let tasks = new Tasks(aTasks);
+/*
 
     let isTelemetry = !aHealthReportCallback;
 
@@ -948,7 +951,7 @@ this.PlacesDBUtils = {
       },
 
       { histogram: "PLACES_DATABASE_PAGESIZE_B",
-        query:     "PRAGMA page_size /* PlacesDBUtils.jsm PAGESIZE_B */" },
+        query:     "PRAGMA page_size" },
 
       { histogram: "PLACES_DATABASE_SIZE_PER_PAGE_B",
         query:     "PRAGMA page_count",
@@ -1053,6 +1056,7 @@ this.PlacesDBUtils = {
       );
     }
 
+*/
     PlacesDBUtils._executeTasks(tasks);
   },
 

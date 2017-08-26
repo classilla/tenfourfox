@@ -674,6 +674,7 @@ AsyncFetchAndSetIconForPage::OnStopRequest(nsIRequest* aRequest,
 
   mIcon.expiration = GetExpirationTimeFromChannel(channel);
 
+#if(0)
   // Telemetry probes to measure the favicon file sizes for each different file type.
   // This allow us to measure common file sizes while also observing each type popularity.
   if (mIcon.mimeType.EqualsLiteral("image/png")) {
@@ -700,6 +701,7 @@ AsyncFetchAndSetIconForPage::OnStopRequest(nsIRequest* aRequest,
   else {
     mozilla::Telemetry::Accumulate(mozilla::Telemetry::PLACES_FAVICON_OTHER_SIZES, mIcon.data.Length());
   }
+#endif
 
   rv = OptimizeIconSize(mIcon, favicons);
   NS_ENSURE_SUCCESS(rv, rv);
