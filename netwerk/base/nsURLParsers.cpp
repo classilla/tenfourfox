@@ -12,6 +12,9 @@
 #include "nsString.h"
 #include "nsCRT.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 using namespace mozilla;
 
 //----------------------------------------------------------------------------
@@ -524,7 +527,7 @@ nsAuthURLParser::ParseUserInfo(const char *userinfo, int32_t userinfoLen,
         return NS_OK;
     }
 
-    const char *p = (const char *) memchr(userinfo, ':', userinfoLen);
+    const char *p = (const char *) VMX_MEMCHR(userinfo, ':', userinfoLen);
     if (p) {
         // userinfo = <username:password>
         if (p == userinfo) {

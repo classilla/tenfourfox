@@ -30,6 +30,9 @@
 
 #include "CNNICHashWhitelist.inc"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 using namespace mozilla;
 using namespace mozilla::pkix;
 
@@ -314,7 +317,7 @@ GetOCSPAuthorityInfoAccessLocation(PLArenaPool* arena,
           const SECItem& location = current->name.other;
           // (location.len + 1) must be small enough to fit into a uint32_t,
           // but we limit it to a smaller bound to reduce OOM risk.
-          if (location.len > 1024 || memchr(location.data, 0, location.len)) {
+          if (location.len > 1024 || VMX_HASCHR(location.data, 0, location.len)) {
             // Reject embedded nulls. (NSS doesn't do this)
             return Result::ERROR_CERT_BAD_ACCESS_LOCATION;
           }

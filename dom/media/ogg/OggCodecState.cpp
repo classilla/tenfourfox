@@ -18,6 +18,9 @@
 #include "VideoUtils.h"
 #include <algorithm>
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 // On Android JellyBean, the hardware.h header redefines version_major and
 // version_minor, which breaks our build.  See:
 // https://bugzilla.mozilla.org/show_bug.cgi?id=912702#c6
@@ -115,7 +118,7 @@ bool OggCodecState::AddVorbisComment(MetadataTags* aTags,
                                        const char* aComment,
                                        uint32_t aLength)
 {
-  const char* div = (const char*)memchr(aComment, '=', aLength);
+  const char* div = (const char*)VMX_MEMCHR(aComment, '=', aLength);
   if (!div) {
     LOG(LogLevel::Debug, ("Skipping comment: no separator"));
     return false;

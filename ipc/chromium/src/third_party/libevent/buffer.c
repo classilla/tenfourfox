@@ -91,6 +91,9 @@
 #include "evbuffer-internal.h"
 #include "bufferevent-internal.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 /* some systems do not have MAP_FAILED */
 #ifndef MAP_FAILED
 #define MAP_FAILED	((void *)-1)
@@ -1299,7 +1302,7 @@ evbuffer_strchr(struct evbuffer_ptr *it, const char chr)
 	size_t i = it->_internal.pos_in_chain;
 	while (chain != NULL) {
 		char *buffer = (char *)chain->buffer + chain->misalign;
-		char *cp = memchr(buffer+i, chr, chain->off-i);
+		char *cp = VMX_MEMCHR(buffer+i, chr, chain->off-i);
 		if (cp) {
 			it->_internal.chain = chain;
 			it->_internal.pos_in_chain = cp - buffer;
@@ -1317,7 +1320,12 @@ evbuffer_strchr(struct evbuffer_ptr *it, const char chr)
 static inline char *
 find_eol_char(char *s, size_t len)
 {
+#if TENFOURFOX_VMX
+#warning using accelerated VMX libevent
+#define CHUNK_SZ 1024
+#else
 #define CHUNK_SZ 128
+#endif
 	/* Lots of benchmarking found this approach to be faster in practice
 	 * than doing two memchrs over the whole buffer, doin a memchr on each
 	 * char of the buffer, or trying to emulate memchr by hand. */
@@ -1325,8 +1333,8 @@ find_eol_char(char *s, size_t len)
 	s_end = s+len;
 	while (s < s_end) {
 		size_t chunk = (s + CHUNK_SZ < s_end) ? CHUNK_SZ : (s_end - s);
-		cr = memchr(s, '\r', chunk);
-		lf = memchr(s, '\n', chunk);
+		cr = VMX_MEMCHR(s, '\r', chunk);
+		lf = VMX_MEMCHR(s, '\n', chunk);
 		if (cr) {
 			if (lf && lf < cr)
 				return lf;
@@ -2528,7 +2536,7 @@ evbuffer_search_range(struct evbuffer *buffer, const char *what, size_t len, con
 		const unsigned char *start_at =
 		    chain->buffer + chain->misalign +
 		    pos._internal.pos_in_chain;
-		p = memchr(start_at, first,
+		p = VMX_MEMCHR(start_at, first,
 		    chain->off - pos._internal.pos_in_chain);
 		if (p) {
 			pos.pos += p - start_at;

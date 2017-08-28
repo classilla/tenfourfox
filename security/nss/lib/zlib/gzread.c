@@ -5,6 +5,9 @@
 
 #include "gzguts.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 /* Local functions */
 local int gz_load OF((gz_statep, unsigned char *, unsigned, unsigned *));
 local int gz_avail OF((gz_statep));
@@ -581,7 +584,7 @@ char * ZEXPORT gzgets(file, buf, len)
 
         /* look for end-of-line in current output buffer */
         n = state->have > left ? left : state->have;
-        eol = memchr(state->next, '\n', n);
+        eol = VMX_MEMCHR(state->next, '\n', n);
         if (eol != NULL)
             n = (unsigned)(eol - state->next) + 1;
 

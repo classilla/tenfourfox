@@ -38,6 +38,9 @@
 #include "nsISchedulingContext.h"
 #include <algorithm>
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 #ifdef MOZ_WIDGET_GONK
 #include "NetStatistics.h"
 #endif
@@ -1500,7 +1503,7 @@ nsHttpTransaction::ParseHead(char *buf,
     // otherwise we can assume that we don't have a HTTP/0.9 response.
 
     MOZ_ASSERT (mHttpResponseMatched);
-    while ((eol = static_cast<char *>(memchr(buf, '\n', count - *countRead))) != nullptr) {
+    while ((eol = static_cast<char *>(VMX_MEMCHR(buf, '\n', count - *countRead))) != nullptr) {
         // found line in range [buf:eol]
         len = eol - buf + 1;
 

@@ -12,6 +12,9 @@
 #include "nsCRT.h"
 #include "plstr.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 static const char hexCharsUpper[] = "0123456789ABCDEF";
 static const char hexCharsUpperLower[] = "0123456789ABCDEFabcdef";
 
@@ -529,7 +532,7 @@ NS_EscapeURL(const nsAFlatString& aStr, const nsTArray<char16_t>& aForbidden,
   return aStr;
 }
 
-#define ISHEX(c) memchr(hexCharsUpperLower, c, sizeof(hexCharsUpperLower)-1)
+#define ISHEX(c) VMX_HASCHR(hexCharsUpperLower, c, sizeof(hexCharsUpperLower)-1)
 
 bool
 NS_UnescapeURL(const char* aStr, int32_t aLen, uint32_t aFlags,

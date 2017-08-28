@@ -24,6 +24,9 @@
 #include <string.h>
 #include <ogg/ogg.h>
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 /* A complete description of Ogg framing exists in docs/framing.html */
 
 int ogg_page_version(const ogg_page *og){
@@ -735,7 +738,7 @@ long ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
   oy->bodybytes=0;
 
   /* search for possible capture */
-  next=memchr(page+1,'O',bytes-1);
+  next=VMX_MEMCHR(page+1,'O',bytes-1);
   if(!next)
     next=oy->data+oy->fill;
 

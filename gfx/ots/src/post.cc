@@ -6,6 +6,9 @@
 
 #include "maxp.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 // post - PostScript
 // http://www.microsoft.com/typography/otspec/post.htm
 
@@ -95,7 +98,7 @@ bool ots_post_parse(Font *font, const uint8_t *data, size_t length) {
     if (strings + 1 + string_length > strings_end) {
       return OTS_FAILURE_MSG("Bad string length %d", string_length);
     }
-    if (std::memchr(strings + 1, '\0', string_length)) {
+    if (VMX_HASCHR(strings + 1, '\0', string_length)) {
       return OTS_FAILURE_MSG("Bad string of length %d", string_length);
     }
     post->names.push_back(

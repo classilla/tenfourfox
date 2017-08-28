@@ -18,6 +18,9 @@
 #include "nsContentSecurityManager.h"
 #include "nsHttp.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 //
 // Helper function for determining the length of data bytes up to
 // the next multipart token.  A token is usually preceded by a LF
@@ -1187,7 +1190,7 @@ nsMultiMixedConv::ParseHeaders(nsIChannel *aChannel, char *&aPtr,
     }
 
     mContentLength = UINT64_MAX; // XXX what if we were already called?
-    while (cursorLen && (newLine = (char *) memchr(cursor, nsCRT::LF, cursorLen))) {
+    while (cursorLen && (newLine = (char *) VMX_MEMCHR(cursor, nsCRT::LF, cursorLen))) {
         // adjust for linefeeds
         if ((newLine > cursor) && (newLine[-1] == nsCRT::CR) ) { // CRLF
             lineFeedIncrement = 2;
