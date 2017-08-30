@@ -182,6 +182,12 @@ static uint32_t sVideoQueueDefaultSize = MAX_VIDEO_QUEUE_SIZE;
 static uint32_t sVideoQueueHWAccelSize = MIN_VIDEO_QUEUE_SIZE;
 static uint32_t sVideoQueueSendToCompositorSize = VIDEO_QUEUE_SEND_TO_COMPOSITOR_SIZE;
 
+// TenFourFox issue 434
+// Seconds to stall the video decoder on initial startup to allow sufficient
+// buildup in memory and other items onscreen to render.
+static const uint32_t DEFAULT_VIDEO_DECODE_STARTUP_DELAY = 6;
+static uint32_t sVideoDecodeStartupDelay = DEFAULT_VIDEO_DECODE_STARTUP_DELAY;
+
 static void InitVideoQueuePrefs() {
   MOZ_ASSERT(NS_IsMainThread());
   static bool sPrefInit = false;
@@ -193,6 +199,8 @@ static void InitVideoQueuePrefs() {
       "media.video-queue.hw-accel-size", MIN_VIDEO_QUEUE_SIZE);
     sVideoQueueSendToCompositorSize = Preferences::GetUint(
       "media.video-queue.send-to-compositor-size", VIDEO_QUEUE_SEND_TO_COMPOSITOR_SIZE);
+    sVideoDecodeStartupDelay = Preferences::GetUint(
+      "tenfourfox.media.decode_delay", DEFAULT_VIDEO_DECODE_STARTUP_DELAY);
   }
 }
 
@@ -2040,8 +2048,16 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
     return;
   }
 
-  StartDecoding();
-
+  // TenFourFox issue 434
+  SetState(DECODER_STATE_STARTUP_DELAY);
+  if (HasVideo() && MOZ_LIKELY(sVideoDecodeStartupDelay > 0)) {
+    FrameStatistics& frameStats = *mFrameStats;
+    // Fake out MSE by saying we've already dropped a crapload of frames.
+    frameStats.NotifyDecodedFrames(0, 0, 2000);
+    // Stall a bit to let everything load.
+    ScheduleStateMachineIn(USECS_PER_S * sVideoDecodeStartupDelay);
+    return;
+  }
   ScheduleStateMachine();
 }
 
@@ -2321,6 +2337,22 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       return NS_OK;
     }
 
+    // TenFourFox issue 434
+    case DECODER_STATE_STARTUP_DELAY: {
+      // We have to implement this as a separate phase, because we don't
+      // know if we haz video until after metadata is read.
+      StartDecoding();
+
+      if (HasVideo() && MOZ_LIKELY(sVideoDecodeStartupDelay > 0)) {
+        FrameStatistics& frameStats = *mFrameStats;
+        // Fake out MSE by saying we've dropped a crapload more of frames.
+        frameStats.NotifyDecodedFrames(0, 0, 2000);
+      }
+
+      ScheduleStateMachine();
+      return NS_OK;
+    }
+
     case DECODER_STATE_DECODING: {
       if (IsDecodingFirstFrame()) {
         // We haven't completed decoding our first frames, we can't start
@@ -2509,6 +2541,7 @@ MediaDecoderStateMachine::CheckFrameValidity(VideoData* aData)
     // hardware acceleration. We use 10 as the corrupt value because RollingMean<>
     // only supports integer types.
     mCorruptFrames.insert(10);
+#if(0)
     if (mReader->VideoIsHardwareAccelerated() &&
         frameStats.GetPresentedFrames() > 60 &&
         mCorruptFrames.mean() >= 2 /* 20% */) {
@@ -2518,6 +2551,7 @@ MediaDecoderStateMachine::CheckFrameValidity(VideoData* aData)
         mCorruptFrames.clear();
       gfxCriticalNote << "Too many dropped/corrupted frames, disabling DXVA";
     }
+#endif
   } else {
     mCorruptFrames.insert(0);
   }
