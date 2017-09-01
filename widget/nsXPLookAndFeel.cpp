@@ -821,7 +821,7 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, bool aUseStandinsForNativeColors,
 nsresult
 nsXPLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
 {
-  if (!sInitialized)
+  if (MOZ_UNLIKELY(!sInitialized))
     Init();
 
   // Set the default values for these prefs. but allow different platforms
@@ -845,7 +845,7 @@ nsXPLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
   }
 
   for (unsigned int i = 0; i < ArrayLength(sIntPrefs); ++i) {
-    if (sIntPrefs[i].isSet && (sIntPrefs[i].id == aID)) {
+    if (MOZ_UNLIKELY(sIntPrefs[i].isSet && (sIntPrefs[i].id == aID))) {
       aResult = sIntPrefs[i].intVar;
       return NS_OK;
     }
@@ -857,11 +857,11 @@ nsXPLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
 nsresult
 nsXPLookAndFeel::GetFloatImpl(FloatID aID, float &aResult)
 {
-  if (!sInitialized)
+  if (MOZ_UNLIKELY(!sInitialized))
     Init();
 
   for (unsigned int i = 0; i < ArrayLength(sFloatPrefs); ++i) {
-    if (sFloatPrefs[i].isSet && sFloatPrefs[i].id == aID) {
+    if (MOZ_UNLIKELY(sFloatPrefs[i].isSet && sFloatPrefs[i].id == aID)) {
       aResult = sFloatPrefs[i].floatVar;
       return NS_OK;
     }

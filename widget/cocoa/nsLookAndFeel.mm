@@ -347,7 +347,7 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
       aResult = 4;
       break;
     case eIntID_ScrollArrowStyle:
-#if(0)
+#ifdef __LP64__
       if (nsCocoaFeatures::OnLionOrLater()) {
         // OS X Lion's scrollbars have no arrows
         aResult = eScrollArrow_None;
@@ -374,18 +374,24 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
       aResult = eScrollThumbStyle_Proportional;
       break;
     case eIntID_UseOverlayScrollbars:
+      aResult = 0;
+#ifdef __LP64__
       if (!mUseOverlayScrollbarsCached) {
         mUseOverlayScrollbars = SystemWantsOverlayScrollbars() ? 1 : 0;
         mUseOverlayScrollbarsCached = true;
       }
       aResult = mUseOverlayScrollbars;
+#endif
       break;
     case eIntID_AllowOverlayScrollbarsOverlap:
+      aResult = 0;
+#ifdef __LP64__
       if (!mAllowOverlayScrollbarsOverlapCached) {
         mAllowOverlayScrollbarsOverlap = AllowOverlayScrollbarsOverlap() ? 1 : 0;
         mAllowOverlayScrollbarsOverlapCached = true;
       }
       aResult = mAllowOverlayScrollbarsOverlap;
+#endif
       break;
     case eIntID_ScrollbarDisplayOnMouseMove:
       aResult = 0;
@@ -474,10 +480,12 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
       break;
     case eIntID_SwipeAnimationEnabled:
       aResult = 0;
+#ifdef __LP64__
       if ([NSEvent respondsToSelector:@selector(
             isSwipeTrackingFromScrollEventsEnabled)]) {
         aResult = [NSEvent isSwipeTrackingFromScrollEventsEnabled] ? 1 : 0;
       }
+#endif
       break;
     case eIntID_ColorPickerAvailable:
       aResult = 1;
