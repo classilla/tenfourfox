@@ -185,7 +185,8 @@ static uint32_t sVideoQueueSendToCompositorSize = VIDEO_QUEUE_SEND_TO_COMPOSITOR
 // TenFourFox issue 434
 // Seconds to stall the video decoder on initial startup to allow sufficient
 // buildup in memory and other items onscreen to render.
-static const uint32_t DEFAULT_VIDEO_DECODE_STARTUP_DELAY = 6;
+// Currently disabled by default.
+static const uint32_t DEFAULT_VIDEO_DECODE_STARTUP_DELAY = 0;
 static uint32_t sVideoDecodeStartupDelay = DEFAULT_VIDEO_DECODE_STARTUP_DELAY;
 
 static void InitVideoQueuePrefs() {
@@ -2053,7 +2054,7 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
   if (HasVideo() && MOZ_LIKELY(sVideoDecodeStartupDelay > 0)) {
     FrameStatistics& frameStats = *mFrameStats;
     // Fake out MSE by saying we've already dropped a crapload of frames.
-    frameStats.NotifyDecodedFrames(0, 0, 2000);
+    frameStats.NotifyDecodedFrames(0, 0, 4000);
     // Stall a bit to let everything load.
     ScheduleStateMachineIn(USECS_PER_S * sVideoDecodeStartupDelay);
     return;
@@ -2346,7 +2347,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       if (HasVideo() && MOZ_LIKELY(sVideoDecodeStartupDelay > 0)) {
         FrameStatistics& frameStats = *mFrameStats;
         // Fake out MSE by saying we've dropped a crapload more of frames.
-        frameStats.NotifyDecodedFrames(0, 0, 2000);
+        frameStats.NotifyDecodedFrames(0, 0, 4000);
       }
 
       ScheduleStateMachine();
