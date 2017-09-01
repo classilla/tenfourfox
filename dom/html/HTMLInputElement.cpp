@@ -865,6 +865,7 @@ HTMLInputElement::HTMLInputElement(already_AddRefed<mozilla::dom::NodeInfo>& aNo
   , mNumberControlSpinnerSpinsUp(false)
   , mPickerRunning(false)
   , mSelectionCached(true)
+  , mHasPatternAttribute(false)
 {
   // We are in a type=text so we now we currenty need a nsTextEditorState.
   mInputData.mState = new nsTextEditorState(this);
@@ -1150,6 +1151,10 @@ HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
     } else if (MaxLengthApplies() && aName == nsGkAtoms::maxlength) {
       UpdateTooLongValidityState();
     } else if (aName == nsGkAtoms::pattern) {
+      // Although pattern attribute only applies to single line text controls,
+      // we set this flag for all input types to save having to check the type
+      // here.
+      mHasPatternAttribute = !!aValue;
       UpdatePatternMismatchValidityState();
     } else if (aName == nsGkAtoms::multiple) {
       UpdateTypeMismatchValidityState();
@@ -6426,8 +6431,7 @@ HTMLInputElement::HasTypeMismatch() const
 bool
 HTMLInputElement::HasPatternMismatch() const
 {
-  if (!DoesPatternApply() ||
-      !HasAttr(kNameSpaceID_None, nsGkAtoms::pattern)) {
+  if (!mHasPatternAttribute || !DoesPatternApply()) {
     return false;
   }
 
