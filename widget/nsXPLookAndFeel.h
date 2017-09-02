@@ -114,6 +114,8 @@ protected:
 
   static nsLookAndFeel* sInstance;
   static bool sShutdown;
+  static bool sAnyIntPrefsSet;
+  static bool sAnyFloatPrefsSet;
 };
 
 #endif

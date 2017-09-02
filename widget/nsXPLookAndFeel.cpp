@@ -250,6 +250,8 @@ bool nsXPLookAndFeel::sUseStandinsForNativeColors = false;
 
 nsLookAndFeel* nsXPLookAndFeel::sInstance = nullptr;
 bool nsXPLookAndFeel::sShutdown = false;
+bool nsXPLookAndFeel::sAnyIntPrefsSet = false;
+bool nsXPLookAndFeel::sAnyFloatPrefsSet = false;
 
 // static
 nsLookAndFeel*
@@ -296,6 +298,7 @@ nsXPLookAndFeel::IntPrefChanged(nsLookAndFeelIntPref *data)
   }
   data->intVar = intpref;
   data->isSet = true;
+  sAnyIntPrefsSet = true;
 #ifdef DEBUG_akkana
   printf("====== Changed int pref %s to %d\n", data->name, data->intVar);
 #endif
@@ -316,6 +319,7 @@ nsXPLookAndFeel::FloatPrefChanged(nsLookAndFeelFloatPref *data)
   }
   data->floatVar = (float)intpref / 100.0f;
   data->isSet = true;
+  sAnyFloatPrefsSet = true;
 #ifdef DEBUG_akkana
   printf("====== Changed float pref %s to %f\n", data->name, data->floatVar);
 #endif
@@ -359,6 +363,7 @@ nsXPLookAndFeel::InitFromPref(nsLookAndFeelIntPref* aPref)
   int32_t intpref;
   nsresult rv = Preferences::GetInt(aPref->name, &intpref);
   if (NS_SUCCEEDED(rv)) {
+    sAnyIntPrefsSet = true;
     aPref->isSet = true;
     aPref->intVar = intpref;
   }
@@ -370,6 +375,7 @@ nsXPLookAndFeel::InitFromPref(nsLookAndFeelFloatPref* aPref)
   int32_t intpref;
   nsresult rv = Preferences::GetInt(aPref->name, &intpref);
   if (NS_SUCCEEDED(rv)) {
+    sAnyFloatPrefsSet = true;
     aPref->isSet = true;
     aPref->floatVar = (float)intpref / 100.0f;
   }
@@ -404,6 +410,11 @@ nsXPLookAndFeel::OnPrefChanged(const char* aPref, void* aClosure)
 
   nsDependentCString prefName(aPref);
   unsigned int i;
+  
+  // reset the set caches just in case we can optimize checks away
+  sAnyFloatPrefsSet = false;
+  sAnyIntPrefsSet = false;
+  
   for (i = 0; i < ArrayLength(sIntPrefs); ++i) {
     if (prefName.Equals(sIntPrefs[i].name)) {
       IntPrefChanged(&sIntPrefs[i]);
@@ -446,6 +457,11 @@ nsXPLookAndFeel::Init()
   Preferences::RegisterCallback(OnPrefChanged, "accessibility.tabfocus");
 
   unsigned int i;
+  
+  // reset the set caches just in case we can optimize checks away
+  sAnyFloatPrefsSet = false;
+  sAnyIntPrefsSet = false;
+
   for (i = 0; i < ArrayLength(sIntPrefs); ++i) {
     InitFromPref(&sIntPrefs[i]);
   }
@@ -465,6 +481,8 @@ nsXPLookAndFeel::Init()
                                "ui.use_standins_for_native_colors",
                                sUseStandinsForNativeColors);
 
+// Unpossible in TenFourFox and irrelevant before 10.7.
+#ifdef __LP64__
   if (XRE_IsContentProcess()) {
     mozilla::dom::ContentChild* cc =
       mozilla::dom::ContentChild::GetSingleton();
@@ -473,6 +491,7 @@ nsXPLookAndFeel::Init()
     cc->SendGetLookAndFeelCache(&lookAndFeelIntCache);
     LookAndFeel::SetIntCache(lookAndFeelIntCache);
   }
+#endif
 }
 
 nsXPLookAndFeel::~nsXPLookAndFeel()
@@ -548,9 +567,9 @@ nsXPLookAndFeel::ColorIsNotCSSAccessible(ColorID aID)
     case eColorID_IMESelectedConvertedTextUnderline:
     case eColorID_SpellCheckerUnderline:
       result = true;
-      break;
+      return result;
     default:
-      break;
+      return result;
   }
 
   return result;
@@ -565,95 +584,95 @@ nsXPLookAndFeel::GetStandinForNativeColor(ColorID aID)
   // except Mac-specific colors which are taken from Mac OS 10.7.
   switch (aID) {
     // CSS 2 colors:
-    case eColorID_activeborder:      result = NS_RGB(0xB4, 0xB4, 0xB4); break;
-    case eColorID_activecaption:     result = NS_RGB(0x99, 0xB4, 0xD1); break;
-    case eColorID_appworkspace:      result = NS_RGB(0xAB, 0xAB, 0xAB); break;
-    case eColorID_background:        result = NS_RGB(0x00, 0x00, 0x00); break;
-    case eColorID_buttonface:        result = NS_RGB(0xF0, 0xF0, 0xF0); break;
-    case eColorID_buttonhighlight:   result = NS_RGB(0xFF, 0xFF, 0xFF); break;
-    case eColorID_buttonshadow:      result = NS_RGB(0xA0, 0xA0, 0xA0); break;
-    case eColorID_buttontext:        result = NS_RGB(0x00, 0x00, 0x00); break;
-    case eColorID_captiontext:       result = NS_RGB(0x00, 0x00, 0x00); break;
-    case eColorID_graytext:          result = NS_RGB(0x6D, 0x6D, 0x6D); break;
-    case eColorID_highlight:         result = NS_RGB(0x33, 0x99, 0xFF); break;
-    case eColorID_highlighttext:     result = NS_RGB(0xFF, 0xFF, 0xFF); break;
-    case eColorID_inactiveborder:    result = NS_RGB(0xF4, 0xF7, 0xFC); break;
-    case eColorID_inactivecaption:   result = NS_RGB(0xBF, 0xCD, 0xDB); break;
+    case eColorID_activeborder:      result = NS_RGB(0xB4, 0xB4, 0xB4); return result;
+    case eColorID_activecaption:     result = NS_RGB(0x99, 0xB4, 0xD1); return result;
+    case eColorID_appworkspace:      result = NS_RGB(0xAB, 0xAB, 0xAB); return result;
+    case eColorID_background:        result = NS_RGB(0x00, 0x00, 0x00); return result;
+    case eColorID_buttonface:        result = NS_RGB(0xF0, 0xF0, 0xF0); return result;
+    case eColorID_buttonhighlight:   result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
+    case eColorID_buttonshadow:      result = NS_RGB(0xA0, 0xA0, 0xA0); return result;
+    case eColorID_buttontext:        result = NS_RGB(0x00, 0x00, 0x00); return result;
+    case eColorID_captiontext:       result = NS_RGB(0x00, 0x00, 0x00); return result;
+    case eColorID_graytext:          result = NS_RGB(0x6D, 0x6D, 0x6D); return result;
+    case eColorID_highlight:         result = NS_RGB(0x33, 0x99, 0xFF); return result;
+    case eColorID_highlighttext:     result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
+    case eColorID_inactiveborder:    result = NS_RGB(0xF4, 0xF7, 0xFC); return result;
+    case eColorID_inactivecaption:   result = NS_RGB(0xBF, 0xCD, 0xDB); return result;
     case eColorID_inactivecaptiontext:
-      result = NS_RGB(0x43, 0x4E, 0x54); break;
-    case eColorID_infobackground:    result = NS_RGB(0xFF, 0xFF, 0xE1); break;
-    case eColorID_infotext:          result = NS_RGB(0x00, 0x00, 0x00); break;
-    case eColorID_menu:              result = NS_RGB(0xF0, 0xF0, 0xF0); break;
-    case eColorID_menutext:          result = NS_RGB(0x00, 0x00, 0x00); break;
-    case eColorID_scrollbar:         result = NS_RGB(0xC8, 0xC8, 0xC8); break;
-    case eColorID_threeddarkshadow:  result = NS_RGB(0x69, 0x69, 0x69); break;
-    case eColorID_threedface:        result = NS_RGB(0xF0, 0xF0, 0xF0); break;
-    case eColorID_threedhighlight:   result = NS_RGB(0xFF, 0xFF, 0xFF); break;
-    case eColorID_threedlightshadow: result = NS_RGB(0xE3, 0xE3, 0xE3); break;
-    case eColorID_threedshadow:      result = NS_RGB(0xA0, 0xA0, 0xA0); break;
-    case eColorID_window:            result = NS_RGB(0xFF, 0xFF, 0xFF); break;
-    case eColorID_windowframe:       result = NS_RGB(0x64, 0x64, 0x64); break;
-    case eColorID_windowtext:        result = NS_RGB(0x00, 0x00, 0x00); break;
+      result = NS_RGB(0x43, 0x4E, 0x54); return result;
+    case eColorID_infobackground:    result = NS_RGB(0xFF, 0xFF, 0xE1); return result;
+    case eColorID_infotext:          result = NS_RGB(0x00, 0x00, 0x00); return result;
+    case eColorID_menu:              result = NS_RGB(0xF0, 0xF0, 0xF0); return result;
+    case eColorID_menutext:          result = NS_RGB(0x00, 0x00, 0x00); return result;
+    case eColorID_scrollbar:         result = NS_RGB(0xC8, 0xC8, 0xC8); return result;
+    case eColorID_threeddarkshadow:  result = NS_RGB(0x69, 0x69, 0x69); return result;
+    case eColorID_threedface:        result = NS_RGB(0xF0, 0xF0, 0xF0); return result;
+    case eColorID_threedhighlight:   result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
+    case eColorID_threedlightshadow: result = NS_RGB(0xE3, 0xE3, 0xE3); return result;
+    case eColorID_threedshadow:      result = NS_RGB(0xA0, 0xA0, 0xA0); return result;
+    case eColorID_window:            result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
+    case eColorID_windowframe:       result = NS_RGB(0x64, 0x64, 0x64); return result;
+    case eColorID_windowtext:        result = NS_RGB(0x00, 0x00, 0x00); return result;
     case eColorID__moz_buttondefault:
-      result = NS_RGB(0x69, 0x69, 0x69); break;
-    case eColorID__moz_field:        result = NS_RGB(0xFF, 0xFF, 0xFF); break;
-    case eColorID__moz_fieldtext:    result = NS_RGB(0x00, 0x00, 0x00); break;
-    case eColorID__moz_dialog:       result = NS_RGB(0xF0, 0xF0, 0xF0); break;
-    case eColorID__moz_dialogtext:   result = NS_RGB(0x00, 0x00, 0x00); break;
+      result = NS_RGB(0x69, 0x69, 0x69); return result;
+    case eColorID__moz_field:        result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
+    case eColorID__moz_fieldtext:    result = NS_RGB(0x00, 0x00, 0x00); return result;
+    case eColorID__moz_dialog:       result = NS_RGB(0xF0, 0xF0, 0xF0); return result;
+    case eColorID__moz_dialogtext:   result = NS_RGB(0x00, 0x00, 0x00); return result;
     case eColorID__moz_dragtargetzone:
-      result = NS_RGB(0xFF, 0xFF, 0xFF); break;
+      result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
     case eColorID__moz_cellhighlight:
-      result = NS_RGB(0xF0, 0xF0, 0xF0); break;
+      result = NS_RGB(0xF0, 0xF0, 0xF0); return result;
     case eColorID__moz_cellhighlighttext:
-      result = NS_RGB(0x00, 0x00, 0x00); break;
+      result = NS_RGB(0x00, 0x00, 0x00); return result;
     case eColorID__moz_html_cellhighlight:
-      result = NS_RGB(0x33, 0x99, 0xFF); break;
+      result = NS_RGB(0x33, 0x99, 0xFF); return result;
     case eColorID__moz_html_cellhighlighttext:
-      result = NS_RGB(0xFF, 0xFF, 0xFF); break;
+      result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
     case eColorID__moz_buttonhoverface:
-      result = NS_RGB(0xF0, 0xF0, 0xF0); break;
+      result = NS_RGB(0xF0, 0xF0, 0xF0); return result;
     case eColorID__moz_buttonhovertext:
-      result = NS_RGB(0x00, 0x00, 0x00); break;
+      result = NS_RGB(0x00, 0x00, 0x00); return result;
     case eColorID__moz_menuhover:
-      result = NS_RGB(0x33, 0x99, 0xFF); break;
+      result = NS_RGB(0x33, 0x99, 0xFF); return result;
     case eColorID__moz_menuhovertext:
-      result = NS_RGB(0x00, 0x00, 0x00); break;
+      result = NS_RGB(0x00, 0x00, 0x00); return result;
     case eColorID__moz_menubartext:
-      result = NS_RGB(0x00, 0x00, 0x00); break;
+      result = NS_RGB(0x00, 0x00, 0x00); return result;
     case eColorID__moz_menubarhovertext:
-      result = NS_RGB(0x00, 0x00, 0x00); break;
+      result = NS_RGB(0x00, 0x00, 0x00); return result;
     case eColorID__moz_oddtreerow:
-      result = NS_RGB(0xFF, 0xFF, 0xFF); break;
+      result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
     case eColorID__moz_mac_chrome_active:
-      result = NS_RGB(0xB2, 0xB2, 0xB2); break;
+      result = NS_RGB(0xB2, 0xB2, 0xB2); return result;
     case eColorID__moz_mac_chrome_inactive:
-      result = NS_RGB(0xE1, 0xE1, 0xE1); break;
+      result = NS_RGB(0xE1, 0xE1, 0xE1); return result;
     case eColorID__moz_mac_focusring:
-      result = NS_RGB(0x60, 0x9D, 0xD7); break;
+      result = NS_RGB(0x60, 0x9D, 0xD7); return result;
     case eColorID__moz_mac_menuselect:
-      result = NS_RGB(0x38, 0x75, 0xD7); break;
+      result = NS_RGB(0x38, 0x75, 0xD7); return result;
     case eColorID__moz_mac_menushadow:
-      result = NS_RGB(0xA3, 0xA3, 0xA3); break;
+      result = NS_RGB(0xA3, 0xA3, 0xA3); return result;
     case eColorID__moz_mac_menutextdisable:
-      result = NS_RGB(0x88, 0x88, 0x88); break;
+      result = NS_RGB(0x88, 0x88, 0x88); return result;
     case eColorID__moz_mac_menutextselect:
-      result = NS_RGB(0xFF, 0xFF, 0xFF); break;
+      result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
     case eColorID__moz_mac_disabledtoolbartext:
-      result = NS_RGB(0x3F, 0x3F, 0x3F); break;
+      result = NS_RGB(0x3F, 0x3F, 0x3F); return result;
     case eColorID__moz_mac_secondaryhighlight:
-      result = NS_RGB(0xD4, 0xD4, 0xD4); break;
+      result = NS_RGB(0xD4, 0xD4, 0xD4); return result;
     case eColorID__moz_win_mediatext:
-      result = NS_RGB(0xFF, 0xFF, 0xFF); break;
+      result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
     case eColorID__moz_win_communicationstext:
-      result = NS_RGB(0xFF, 0xFF, 0xFF); break;
+      result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
     case eColorID__moz_nativehyperlinktext:
-      result = NS_RGB(0x00, 0x66, 0xCC); break;
+      result = NS_RGB(0x00, 0x66, 0xCC); return result;
     case eColorID__moz_comboboxtext:
-      result = NS_RGB(0x00, 0x00, 0x00); break;
+      result = NS_RGB(0x00, 0x00, 0x00); return result;
     case eColorID__moz_combobox:
-      result = NS_RGB(0xFF, 0xFF, 0xFF); break;
+      result = NS_RGB(0xFF, 0xFF, 0xFF); return result;
     default:
-      break;
+      return result;
   }
 
   return result;
@@ -689,35 +708,35 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, bool aUseStandinsForNativeColors,
       case eColorID_captiontext:
           // text in active window caption
         aResult = NS_RGB(0xff, 0x00, 0x00);
-        break;
+        return result;
 
       case eColorID_highlight:
           // background of selected item
       case eColorID_highlighttext:
           // text of selected item
         aResult = NS_RGB(0xff, 0xff, 0x00);
-        break;
+        return result;
 
       case eColorID_inactivecaption:
           // inactive window caption
       case eColorID_inactivecaptiontext:
           // text in inactive window caption
         aResult = NS_RGB(0x66, 0x66, 0x00);
-        break;
+        return result;
 
       case eColorID_infobackground:
           // tooltip background color
       case eColorID_infotext:
           // tooltip text color
         aResult = NS_RGB(0x00, 0xff, 0x00);
-        break;
+        return result;
 
       case eColorID_menu:
           // menu background
       case eColorID_menutext:
           // menu text
         aResult = NS_RGB(0x00, 0xff, 0xff);
-        break;
+        return result;
 
       case eColorID_threedface:
       case eColorID_buttonface:
@@ -725,12 +744,12 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, bool aUseStandinsForNativeColors,
       case eColorID_buttontext:
           // text on push buttons
         aResult = NS_RGB(0x00, 0x66, 0x66);
-        break;
+        return result;
 
       case eColorID_window:
       case eColorID_windowtext:
         aResult = NS_RGB(0x00, 0x00, 0xff);
-        break;
+        return result;
 
       // from the CSS3 working draft (not yet finalized)
       // http://www.w3.org/tr/2000/wd-css3-userint-20000216.html#color
@@ -738,12 +757,12 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, bool aUseStandinsForNativeColors,
       case eColorID__moz_field:
       case eColorID__moz_fieldtext:
         aResult = NS_RGB(0xff, 0x00, 0xff);
-        break;
+        return result;
 
       case eColorID__moz_dialog:
       case eColorID__moz_dialogtext:
         aResult = NS_RGB(0x66, 0x00, 0x66);
-        break;
+        return result;
 
       default:
         rv = NS_ERROR_NOT_AVAILABLE;
@@ -841,7 +860,7 @@ nsXPLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
        * The metrics above are hardcoded platform defaults. All the other
        * metrics are stored in sIntPrefs and can be changed at runtime.
        */
-    break;
+    if (MOZ_LIKELY(!sAnyIntPrefsSet)) return NS_ERROR_NOT_AVAILABLE; // else fall through
   }
 
   for (unsigned int i = 0; i < ArrayLength(sIntPrefs); ++i) {
@@ -859,6 +878,8 @@ nsXPLookAndFeel::GetFloatImpl(FloatID aID, float &aResult)
 {
   if (MOZ_UNLIKELY(!sInitialized))
     Init();
+  
+  if (MOZ_LIKELY(!sAnyFloatPrefsSet)) return NS_ERROR_NOT_AVAILABLE; // else fall through
 
   for (unsigned int i = 0; i < ArrayLength(sFloatPrefs); ++i) {
     if (MOZ_UNLIKELY(sFloatPrefs[i].isSet && sFloatPrefs[i].id == aID)) {
