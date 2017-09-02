@@ -4771,6 +4771,24 @@ nsEditor::InitializeSelection(nsIDOMEventTarget* aFocusEventTarget)
   return NS_OK;
 }
 
+class RepaintSelectionRunner final : public nsRunnable {
+public:
+  explicit RepaintSelectionRunner(nsISelectionController* aSelectionController)
+    : mSelectionController(aSelectionController)
+  {
+  }
+
+  NS_IMETHOD Run() override
+  {
+    mSelectionController->RepaintSelection(
+                            nsISelectionController::SELECTION_NORMAL);
+    return NS_OK;
+  }
+
+private:
+  nsCOMPtr<nsISelectionController> mSelectionController;
+};
+
 NS_IMETHODIMP
 nsEditor::FinalizeSelection()
 {
@@ -4819,7 +4837,10 @@ nsEditor::FinalizeSelection()
     selCon->SetDisplaySelection(nsISelectionController::SELECTION_DISABLED);
   }
 
-  selCon->RepaintSelection(nsISelectionController::SELECTION_NORMAL);
+  // FinalizeSelection might be called from ContentRemoved even if selection
+  // isn't updated.  So we need to call RepaintSelection after updated it.
+  nsContentUtils::AddScriptRunner(
+                    new RepaintSelectionRunner(selCon));
   return NS_OK;
 }
 

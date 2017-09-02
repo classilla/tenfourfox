@@ -230,7 +230,11 @@ if (!mIsDataUserFont || mIsLocalUserFont) {
         // (It is not likely to encounter these on 10.4 or 10.5.)
         if (mRequiresAAT && (FamilyName().EqualsLiteral("Songti SC") ||
                              FamilyName().EqualsLiteral("Songti TC") ||
-                             FamilyName().EqualsLiteral("STSong"))) {
+        // Bug 1390980: on 10.11, the Kaiti fonts are also affected.
+        // Again, this is mostly here if someone copied them from a later Mac.
+                             FamilyName().EqualsLiteral("Kaiti SC") ||
+                             FamilyName().EqualsLiteral("Kaiti TC") ||
+                             FamilyName().EqualsLiteral("STKaiti"))) {
             charmap->ClearRange(0x0f8c, 0x0f8f);
         }
     }
