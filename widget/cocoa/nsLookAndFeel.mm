@@ -443,7 +443,6 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
       return res;
     case eIntID_TabFocusModel:
     {
-fprintf(stderr, "TabFocusModel\n");
       // we should probably cache this
       CFPropertyListRef fullKeyboardAccessProperty;
       fullKeyboardAccessProperty = ::CFPreferencesCopyValue(CFSTR("AppleKeyboardUIMode"),
