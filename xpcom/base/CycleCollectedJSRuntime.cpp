@@ -60,7 +60,6 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Snprintf.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/DebuggerOnGCRunnable.h"
 #include "mozilla/dom/DOMJSClass.h"
 #include "mozilla/dom/Promise.h"
@@ -1241,7 +1240,6 @@ IncrementalFinalizeRunnable::Run()
   }
 
   uint32_t duration = (uint32_t)((TimeStamp::Now() - start).ToMilliseconds());
-  Telemetry::Accumulate(Telemetry::DEFERRED_FINALIZE_ASYNC, duration);
 
   return NS_OK;
 }

@@ -185,7 +185,6 @@
 #include "mozilla/AutoGlobalTimelineMarker.h"
 #include "mozilla/Likely.h"
 #include "mozilla/PoisonIOInterposer.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/ThreadLocal.h"
 
 using namespace mozilla;
@@ -527,15 +526,6 @@ public:
 #else
 #define CC_GRAPH_ASSERT(b)
 #endif
-
-#define CC_TELEMETRY(_name, _value)                                            \
-    PR_BEGIN_MACRO                                                             \
-    if (NS_IsMainThread()) {                                                   \
-      Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR##_name, _value);        \
-    } else {                                                                   \
-      Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_WORKER##_name, _value); \
-    }                                                                          \
-    PR_END_MACRO
 
 enum NodeColor { black, white, grey };
 
@@ -2951,7 +2941,6 @@ nsCycleCollector::ScanWeakMaps()
 
   if (failed) {
     MOZ_ASSERT(false, "Ran out of memory in ScanWeakMaps");
-    CC_TELEMETRY(_OOM, true);
   }
 }
 
@@ -3094,7 +3083,6 @@ nsCycleCollector::ScanIncrementalRoots()
 
   if (failed) {
     NS_ASSERTION(false, "Ran out of memory in ScanIncrementalRoots");
-    CC_TELEMETRY(_OOM, true);
   }
 }
 
@@ -3155,7 +3143,6 @@ nsCycleCollector::ScanBlackNodes()
 
   if (failed) {
     NS_ASSERTION(false, "Ran out of memory in ScanBlackNodes");
-    CC_TELEMETRY(_OOM, true);
   }
 }
 
@@ -3480,7 +3467,6 @@ nsCycleCollector::FixGrayBits(bool aForceGC, TimeLog& aTimeLog)
 
     bool needGC = !mJSRuntime->AreGCGrayBitsValid();
     // Only do a telemetry ping for non-shutdown CCs.
-    CC_TELEMETRY(_NEED_GC, needGC);
     if (!needGC) {
       return;
     }
@@ -3531,12 +3517,6 @@ nsCycleCollector::CleanupAfterCollection()
   }
   printf(".\ncc: \n");
 #endif
-
-  CC_TELEMETRY( , interval);
-  CC_TELEMETRY(_VISITED_REF_COUNTED, mResults.mVisitedRefCounted);
-  CC_TELEMETRY(_VISITED_GCED, mResults.mVisitedGCed);
-  CC_TELEMETRY(_COLLECTED, mWhiteNodeCount);
-  timeLog.Checkpoint("CleanupAfterCollection::telemetry");
 
   if (mJSRuntime) {
     mJSRuntime->FinalizeDeferredThings(mResults.mAnyManual

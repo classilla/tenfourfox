@@ -214,6 +214,9 @@ BackgroundHangManager::BackgroundHangManager()
   , mLock("BackgroundHangManager")
   , mIntervalNow(0)
 {
+#if(0)
+// The BackgroundHangMonitor is irrelevant in TenFourFox since we don't
+// have telemetry or anything useful to collect from it.
   // Lock so we don't race against the new monitor thread
   MonitorAutoLock autoLock(mLock);
   mHangMonitorThread = PR_CreateThread(
@@ -221,6 +224,7 @@ BackgroundHangManager::BackgroundHangManager()
     PR_PRIORITY_LOW, PR_GLOBAL_THREAD, PR_JOINABLE_THREAD, 0);
 
   MOZ_ASSERT(mHangMonitorThread, "Failed to create monitor thread");
+#endif
 }
 
 BackgroundHangManager::~BackgroundHangManager()

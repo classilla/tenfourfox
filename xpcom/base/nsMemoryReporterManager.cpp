@@ -26,7 +26,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Scoped.h"
 #include "mozilla/Services.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/PMemoryReportRequestParent.h" // for dom::MemoryReport
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/FileDescriptorUtils.h"
@@ -439,7 +438,6 @@ ResidentDistinguishedAmountHelper(int64_t* aN, bool aDoPurge)
 #ifdef HAVE_JEMALLOC_STATS
 #ifndef MOZ_JEMALLOC4
   if (aDoPurge) {
-    Telemetry::AutoTimer<Telemetry::MEMORY_FREE_PURGED_PAGES_MS> timer;
     jemalloc_purge_freed_pages();
   }
 #endif
