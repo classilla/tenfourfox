@@ -960,6 +960,8 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
     rv = threadRetargetableRequest->RetargetDeliveryTo(mThread);
   }
 
+// We never do anything with this, so there's no need to check it.
+#if(0)
   if (NS_FAILED(rv)) {
     // for now skip warning if we're on child process, since we don't support
     // off-main thread delivery there yet.  This will change with bug 1015466
@@ -967,6 +969,7 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
       NS_WARNING("Failed to retarget HTML data delivery to the parser thread.");
     }
   }
+#endif
 
   if (mCharsetSource == kCharsetFromParentFrame) {
     // Remember this in case chardet overwrites mCharsetSource

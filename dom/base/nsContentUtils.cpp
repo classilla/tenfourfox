@@ -7109,12 +7109,14 @@ nsContentUtils::IsForbiddenSystemRequestHeader(const nsACString& aHeader)
   static const char *kInvalidHeaders[] = {
     "accept-charset", "accept-encoding", "access-control-request-headers",
     "access-control-request-method", "connection", "content-length",
-    "cookie", "cookie2", "content-transfer-encoding", "date", "dnt",
-    "expect", "host", "keep-alive", "origin", "referer", "te", "trailer",
-    "transfer-encoding", "upgrade", "via"
+    "cookie", "cookie2", "date", "dnt", "expect", "host", "keep-alive",
+    "origin", "referer", "te", "trailer", "transfer-encoding", "upgrade", "via"
   };
   for (uint32_t i = 0; i < ArrayLength(kInvalidHeaders); ++i) {
     if (aHeader.LowerCaseEqualsASCII(kInvalidHeaders[i])) {
+#if DEBUG
+      fprintf(stderr, "offending header was %s\n", kInvalidHeaders[i]);
+#endif
       return true;
     }
   }
@@ -7125,8 +7127,17 @@ nsContentUtils::IsForbiddenSystemRequestHeader(const nsACString& aHeader)
 bool
 nsContentUtils::IsForbiddenResponseHeader(const nsACString& aHeader)
 {
+#if DEBUG
+  if     (aHeader.LowerCaseEqualsASCII("set-cookie") ||
+          aHeader.LowerCaseEqualsASCII("set-cookie2")) {
+    NS_WARNING("attempt to access set-cookie header");
+    return true;
+  }
+  return false;
+#else
   return (aHeader.LowerCaseEqualsASCII("set-cookie") ||
           aHeader.LowerCaseEqualsASCII("set-cookie2"));
+#endif
 }
 
 // static
