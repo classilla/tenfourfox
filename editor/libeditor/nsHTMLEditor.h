@@ -330,8 +330,6 @@ public:
 
   NS_IMETHOD SelectAll() override;
 
-  NS_IMETHOD GetRootElement(nsIDOMElement **aRootElement) override;
-
   /* ------------ nsICSSLoaderObserver -------------- */
   NS_IMETHOD StyleSheetLoaded(mozilla::CSSStyleSheet* aSheet,
                               bool aWasAlternate, nsresult aStatus) override;
@@ -414,7 +412,7 @@ protected:
   virtual void RemoveEventListeners() override;
 
   bool ShouldReplaceRootElement();
-  void ResetRootElementAndEventTarget();
+  void NotifyRootChanged();
   nsresult GetBodyElement(nsIDOMHTMLElement** aBody);
   // Get the focused node of this editor.
   // @return    If the editor has focus, this returns the focused node.
@@ -818,6 +816,8 @@ protected:
   bool IsInObservedSubtree(nsIDocument* aDocument,
                            nsIContent* aContainer,
                            nsIContent* aChild);
+
+  void UpdateRootElement();
 
   // resizing
   bool mIsObjectResizingEnabled;
