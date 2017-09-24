@@ -4109,14 +4109,16 @@ TitlebarDrawCallback(void* aInfo, CGContextRef aContext)
         break;
       default:
 #if DEBUG
-fprintf(stderr, "don't know this event type! sending to super\n");
+		    NSPoint y = nsCocoaUtils::ScreenLocationForEvent(anEvent);
+		    float l = nsCocoaUtils::FlippedScreenY(y.y);
+        fprintf(stderr, "don't know this event type (%i) (y=%f)! sending to super\n", type, l);
 #endif
         [super sendEvent:anEvent];
         break;
     }
   } else {
 #if DEBUG
-fprintf(stderr, "no target for this event! sending to super\n");
+fprintf(stderr, "no target for this event (%i)! sending to super\n", type);
 #endif
     [super sendEvent:anEvent];
   }
