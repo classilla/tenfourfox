@@ -4722,11 +4722,25 @@ js_strchr_limit(const CharT* s, char16_t c, const CharT* limit)
     return nullptr;
 }
 
-template const Latin1Char*
-js_strchr_limit(const Latin1Char* s, char16_t c, const Latin1Char* limit);
-
 template const char16_t*
 js_strchr_limit(const char16_t* s, char16_t c, const char16_t* limit);
+
+#ifdef TENFOURFOX_VMX
+#warning using VMX latin-1 js_strchr_limit
+
+template <> const Latin1Char *
+js_strchr_limit(const Latin1Char* s, char16_t c, const Latin1Char* limit)
+{
+    return (const Latin1Char *)VMX_MEMCHR((const void *)s, c,
+        (1 + (uint32_t)limit - (uint32_t)s));
+}
+
+#else
+#warning using template latin-1 js_strchr_limit
+template const Latin1Char*
+js_strchr_limit(const Latin1Char* s, char16_t c, const Latin1Char* limit);
+#endif
+
 
 char16_t*
 js::InflateString(ExclusiveContext* cx, const char* bytes, size_t* lengthp)

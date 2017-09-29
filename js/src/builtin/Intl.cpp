@@ -41,6 +41,9 @@
 
 #include "vm/NativeObject-inl.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 using namespace js;
 
 using mozilla::IsFinite;
@@ -452,7 +455,7 @@ intl_availableLocales(JSContext* cx, CountAvailable countAvailable,
         if (!lang)
             return false;
         char* p;
-        while ((p = strchr(lang, '_')))
+        while ((p = VMX_STRCHR(lang, '_')))
             *p = '-';
         RootedAtom a(cx, Atomize(cx, lang, strlen(lang)));
         if (!a)

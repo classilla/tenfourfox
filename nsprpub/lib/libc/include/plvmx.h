@@ -15,6 +15,7 @@ extern "C" {
 
 int   vmx_haschr(const void *b, int c, size_t len);
 void *vmx_memchr(const void *b, int c, size_t len);
+char *vmx_strchr(const char *p, int ch);
 
 #if defined (__cplusplus)
 }
@@ -22,6 +23,7 @@ void *vmx_memchr(const void *b, int c, size_t len);
 
 #define VMX_HASCHR vmx_haschr
 #define VMX_MEMCHR vmx_memchr
+#define VMX_STRCHR vmx_strchr
 #else
 #if defined (__cplusplus)
 #define VMX_HASCHR(a,b,c) (memchr(a,b,c) != nullptr)
@@ -29,6 +31,7 @@ void *vmx_memchr(const void *b, int c, size_t len);
 #define VMX_HASCHR(a,b,c) (!!memchr(a,b,c))
 #endif
 #define VMX_MEMCHR memchr
+#define VMX_STRCHR strchr
 #endif
 
 #endif

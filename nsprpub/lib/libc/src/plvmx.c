@@ -117,3 +117,58 @@ foundResult:
     fprintf(stderr, "failed vmx_memchr()\n");
     return NULL;
 }
+
+char *vmx_strchr(const char *p, int ch) {
+	unsigned char c = (unsigned char)ch;
+	unsigned int val;
+	if ((uint32_t)p & 15) {
+		for (;((uint32_t)p & 15);++p) {
+			if (*p == c)    return ((char *)p);
+			if (*p == '\0') return NULL;
+		}
+	}
+	
+	unsigned int mashedByte =	(c << 24) |
+					(c << 16) |
+					(c << 8)  | c;
+	const vector unsigned char searchVector = (vector unsigned int){
+		mashedByte, mashedByte, mashedByte, mashedByte};
+	const vector unsigned char nullVector = vec_splat_u8(0);
+
+	for(; ; p+=16) {
+		const vector unsigned char *w = (const vector unsigned char*)p;
+		if (vec_any_eq(*w, searchVector)) break;
+		if (vec_any_eq(*w, nullVector))   return NULL;
+	}
+
+	// Some byte has the result; look in groups of 4 to find which one.
+	// Unroll the loop.
+	val = *(unsigned int*)p;
+	if (((val >> 24) & 0xFF) == c) return (void *)p;
+	if (((val >> 16) & 0xFF) == c) return (void *)(1 + p);
+	if (((val >> 8) & 0xFF)  == c) return (void *)(2 + p);
+	if ((val & 0xFF)         == c) return (void *)(3 + p);
+	p += 4;
+	val = *(unsigned int*)p;
+	if (((val >> 24) & 0xFF) == c) return (void *)p;
+	if (((val >> 16) & 0xFF) == c) return (void *)(1 + p);
+	if (((val >> 8) & 0xFF)  == c) return (void *)(2 + p);
+	if ((val & 0xFF)         == c) return (void *)(3 + p);
+	p += 4;
+	val = *(unsigned int*)p;
+	if (((val >> 24) & 0xFF) == c) return (void *)p;
+	if (((val >> 16) & 0xFF) == c) return (void *)(1 + p);
+	if (((val >> 8) & 0xFF)  == c) return (void *)(2 + p);
+	if ((val & 0xFF)         == c) return (void *)(3 + p);
+	p += 4;
+	val = *(unsigned int*)p;
+	if (((val >> 24) & 0xFF) == c) return (void *)p;
+	if (((val >> 16) & 0xFF) == c) return (void *)(1 + p);
+	if (((val >> 8) & 0xFF)  == c) return (void *)(2 + p);
+	if ((val & 0xFF)         == c) return (void *)(3 + p);
+
+	// unreachable
+	fprintf(stderr, "failed vmx_strchr()\n");
+	return NULL;
+}
+
