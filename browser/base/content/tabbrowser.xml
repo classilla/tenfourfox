@@ -390,14 +390,15 @@
           // When not using remote browsers, we can take a fast path by getting
           // directly from the content window to the browser without looping
           // over all browsers.
-          if (!gMultiProcessBrowser) {
+          //if (!gMultiProcessBrowser) {
             let browser = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                                  .getInterface(Ci.nsIWebNavigation)
                                  .QueryInterface(Ci.nsIDocShell)
                                  .chromeEventHandler;
             return this.getTabForBrowser(browser);
-          }
+          //}
 
+/*
           for (let i = 0; i < this.browsers.length; i++) {
             // NB: We use contentWindowAsCPOW so that this code works both
             // for remote browsers as well. aWindow may be a CPOW.
@@ -405,6 +406,7 @@
               return this.tabs[i];
           }
           return null;
+*/
         ]]>
         </body>
       </method>
@@ -1007,6 +1009,7 @@
             if (this.mCurrentBrowser == newBrowser && !aForceUpdate)
               return;
 
+/*
             if (!aForceUpdate) {
               TelemetryStopwatch.start("FX_TAB_SWITCH_UPDATE_MS");
               if (!Services.appinfo.browserTabsRemoteAutostart) {
@@ -1016,6 +1019,7 @@
                                                                .beginTabSwitch();
               }
             }
+*/
 
             var oldTab = this.mCurrentTab;
 
@@ -1031,13 +1035,13 @@
 
             var oldBrowser = this.mCurrentBrowser;
 
-            if (!gMultiProcessBrowser) {
+            //if (!gMultiProcessBrowser) {
               oldBrowser.setAttribute("type", "content-targetable");
               oldBrowser.docShellIsActive = false;
               newBrowser.setAttribute("type", "content-primary");
               newBrowser.docShellIsActive =
                 (window.windowState != window.STATE_MINIMIZED);
-            }
+            //}
 
             var updateBlockedPopups = false;
             if ((oldBrowser.blockedPopups && !newBrowser.blockedPopups) ||
@@ -1185,13 +1189,13 @@
                 // We need to explicitly focus the new tab, because
                 // tabbox.xml does this only in some cases.
                 this.mCurrentTab.focus();
-              } else if (gMultiProcessBrowser && document.activeElement !== newBrowser) {
+              } /* else if (gMultiProcessBrowser && document.activeElement !== newBrowser) {
                 // Clear focus so that _adjustFocusAfterTabSwitch can detect if
                 // some element has been focused and respect that.
                 document.activeElement.blur();
-              }
+              } */
 
-              if (!gMultiProcessBrowser)
+              //if (!gMultiProcessBrowser)
                 this._adjustFocusAfterTabSwitch(this.mCurrentTab);
             }
 
@@ -1199,16 +1203,18 @@
 
             this.tabContainer._setPositionalAttributes();
 
-            if (!gMultiProcessBrowser) {
+            //if (!gMultiProcessBrowser) {
               let event = new CustomEvent("TabSwitchDone", {
                 bubbles: true,
                 cancelable: true
               });
               this.dispatchEvent(event);
-            }
+            //}
 
+/*
             if (!aForceUpdate)
               TelemetryStopwatch.finish("FX_TAB_SWITCH_UPDATE_MS");
+*/
           ]]>
         </body>
       </method>
@@ -1258,15 +1264,17 @@
 
         // Don't focus the content area if something has been focused after the
         // tab switch was initiated.
+/*
         if (gMultiProcessBrowser &&
             document.activeElement != document.documentElement)
           return;
+*/
 
         // We're now committed to focusing the content area.
         let fm = Services.focus;
         let focusFlags = fm.FLAG_NOSCROLL;
 
-        if (!gMultiProcessBrowser) {
+        //if (!gMultiProcessBrowser) {
           let newFocusedElement = fm.getFocusedElementForWindow(window.content, true, {});
 
           // for anchors, use FLAG_SHOWRING so that it is clear what link was
@@ -1275,7 +1283,7 @@
               (newFocusedElement instanceof HTMLAnchorElement ||
                newFocusedElement.getAttributeNS("http://www.w3.org/1999/xlink", "type") == "simple"))
             focusFlags |= fm.FLAG_SHOWRING;
-        }
+        //}
 
         fm.setFocus(newBrowser, focusFlags);
         ]]></body>
@@ -1560,9 +1568,10 @@
         <parameter name="aURL"/>
         <body>
           <![CDATA[
-            if (!gMultiProcessBrowser)
+            //if (!gMultiProcessBrowser)
               return this.updateBrowserRemoteness(aBrowser, false);
 
+/*
             let process = aBrowser.isRemoteBrowser ? Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT
                                                    : Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
 
@@ -1572,6 +1581,7 @@
               return this.updateBrowserRemoteness(aBrowser, !aBrowser.isRemoteBrowser);
 
             return false;
+*/
           ]]>
         </body>
       </method>
@@ -1629,20 +1639,25 @@
               return;
             }
 
+/*
             let remote = gMultiProcessBrowser &&
                          E10SUtils.canLoadURIInProcess(BROWSER_NEW_TAB_URL, Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT);
+*/
+let remote = false;
             let browser = this._createBrowser({isPreloadBrowser: true, remote: remote});
             this._preloadedBrowser = browser;
 
             let notificationbox = this.getNotificationBox(browser);
             this.mPanelContainer.appendChild(notificationbox);
 
+/*
             if (remote) {
               // For remote browsers, we need to make sure that the webProgress is
               // instantiated, otherwise the parent won't get informed about the state
               // of the preloaded browser until it gets attached to a tab.
               browser.webProgress;
             }
+*/
 
             browser.loadURI(BROWSER_NEW_TAB_URL);
             browser.docShellIsActive = false;
@@ -1656,7 +1671,7 @@
           <![CDATA[
             const NS_XUL = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
-            let remote = aParams && aParams.remote;
+            let remote = aParams && aParams.remote; // XXX: always false
             let uriIsAboutBlank = aParams && aParams.uriIsAboutBlank;
             let isPreloadBrowser = aParams && aParams.isPreloadBrowser;
             let userContextId = aParams && aParams.userContextId;
@@ -1672,8 +1687,10 @@
             if (userContextId)
               b.setAttribute("usercontextid", userContextId);
 
+/*
             if (remote)
               b.setAttribute("remote", "true");
+*/
 
             if (window.gShowPageResizers && window.windowState == window.STATE_NORMAL) {
               b.setAttribute("showresizer", "true");
@@ -1777,9 +1794,12 @@
 
             // The new browser should be remote if this is an e10s window and
             // the uri to load can be loaded remotely.
+/*
             let remote = gMultiProcessBrowser &&
                          !aForceNotRemote &&
                          E10SUtils.canLoadURIInProcess(aURI, Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT);
+*/
+let remote = false;
 
             this.tabContainer._unlockTabSizing();
 
@@ -1924,7 +1944,7 @@
             // Note: Only do this of we still have a docShell. The TabOpen
             // event was dispatched above and a gBrowser.removeTab() call from
             // one of its listeners could cause us to fail here.
-            if (!remote && b.docShell) {
+            if (/* !remote && */ b.docShell) {
               this._outerWindowIDBrowserMap.set(b.outerWindowID, b);
             }
 
@@ -2225,7 +2245,7 @@
             evt.initUIEvent("TabClose", true, false, window, aTabWillBeMoved ? 1 : 0);
             aTab.dispatchEvent(evt);
 
-            if (!aTabWillBeMoved && !gMultiProcessBrowser) {
+            if (!aTabWillBeMoved) { // && !gMultiProcessBrowser) {
               // Prevent this tab from showing further dialogs, since we're closing it
               var windowUtils = browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).
                                 getInterface(Ci.nsIDOMWindowUtils);
@@ -3501,9 +3521,11 @@
              */
 
             startTabSwitch: function () {
+/*
               TelemetryStopwatch.cancel("FX_TAB_SWITCH_TOTAL_E10S_MS", window);
               TelemetryStopwatch.start("FX_TAB_SWITCH_TOTAL_E10S_MS", window);
               this.addMarker("AsyncTabSwitch:Start");
+*/
             },
 
             finishTabSwitch: function () {
@@ -3515,28 +3537,34 @@
                   cancelable: true
                 });
                 this.tabbrowser.dispatchEvent(event);
+/*
                 let time = TelemetryStopwatch.timeElapsed("FX_TAB_SWITCH_TOTAL_E10S_MS", window);
                 if (time != -1) {
                   TelemetryStopwatch.finish("FX_TAB_SWITCH_TOTAL_E10S_MS", window);
                   this.log("DEBUG: tab switch time = " + time);
                   this.addMarker("AsyncTabSwitch:Finish");
                 }
+*/
               }
             },
 
             spinnerDisplayed: function () {
               this.assert(!this.spinnerTab);
+/*
               TelemetryStopwatch.start("FX_TAB_SWITCH_SPINNER_VISIBLE_MS", window);
               this.addMarker("AsyncTabSwitch:SpinnerShown");
+*/
             },
 
             spinnerHidden: function () {
               this.assert(this.spinnerTab);
+/*
               this.log("DEBUG: spinner time = " +
                        TelemetryStopwatch.timeElapsed("FX_TAB_SWITCH_SPINNER_VISIBLE_MS", window));
               TelemetryStopwatch.finish("FX_TAB_SWITCH_SPINNER_VISIBLE_MS", window);
               this.addMarker("AsyncTabSwitch:SpinnerHidden");
               // we do not get a onPaint after displaying the spinner
+*/
               this.finishTabSwitch();
             },
 
@@ -4242,6 +4270,7 @@
           }
           window.removeEventListener("sizemodechange", this, false);
 
+/*
           if (gMultiProcessBrowser) {
             messageManager.removeMessageListener("DOMTitleChanged", this);
             messageManager.removeMessageListener("contextmenu", this);
@@ -4250,6 +4279,7 @@
               this._switcher.destroy();
             }
           }
+*/
         ]]>
       </destructor>
 
@@ -5448,6 +5478,7 @@
         canvas.height = 90 * scale;
         let toDrag;
         let dragImageOffset = -16;
+/*
         if (gMultiProcessBrowser) {
           var context = canvas.getContext('2d');
           context.fillStyle = "white";
@@ -5473,13 +5504,14 @@
           PageThumbs.captureToCanvas(browser, canvas);
           toDrag = this._dndPanel;
         } else {
+*/
           // For the non e10s case we can just use PageThumbs
           // sync. No need for xul magic, the native dnd will
           // be fine, so let's use the canvas for setDragImage.
           PageThumbs.captureToCanvas(browser, canvas);
           toDrag = canvas;
           dragImageOffset = dragImageOffset * scale;
-        }
+//        }
         dt.setDragImage(toDrag, dragImageOffset, dragImageOffset);
 
         // _dragData.offsetX/Y give the coordinates that the mouse should be
@@ -5898,9 +5930,9 @@
           this._logicallySelected = val;
 
           // If we're non-e10s we should update the visual selection as well at the same time
-          if (!gMultiProcessBrowser) {
+          //if (!gMultiProcessBrowser) {
             this._visuallySelected = val;
-          }
+          //}
 
           return val;
         ]]>
