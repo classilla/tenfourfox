@@ -569,17 +569,19 @@ HasObjectValueOf(JSObject* obj, JSContext* cx)
     return IsNativeFunction(v, obj_valueOf);
 }
 
+extern bool
+ToPropertyKeySlow(JSContext* cx, Value argument, MutableHandleId result);
+
 /* ES6 draft rev 28 (2014 Oct 14) 7.1.14 */
-inline bool
+MOZ_ALWAYS_INLINE bool
 ToPropertyKey(JSContext* cx, Value argument, MutableHandleId result)
 {
-    // Steps 1-2.
-    RootedValue key(cx, argument);
-    if (!ToPrimitive(cx, JSTYPE_STRING, &key))
-        return false;
-
-    // Steps 3-4.
-    return ValueToId<CanGC>(cx, key, result);
+    if (MOZ_LIKELY(argument.isPrimitive())) {
+        RootedValue key(cx, argument);
+        return ValueToId<CanGC>(cx, key, result);
+    }
+ 
+    return ToPropertyKeySlow(cx, argument, result);
 }
 
 /*
