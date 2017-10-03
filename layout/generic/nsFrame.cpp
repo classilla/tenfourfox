@@ -397,6 +397,7 @@ nsFrame::nsFrame(nsStyleContext* aContext)
 
   mState = NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY;
   mMayHaveRoundedCorners = false;
+  mReflowRequestedForCharDataChange = false;
   mStyleContext = aContext;
   mStyleContext->AddRef();
 #ifdef DEBUG
