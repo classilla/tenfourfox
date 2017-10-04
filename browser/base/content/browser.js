@@ -106,9 +106,14 @@ var gAppInfo = Cc["@mozilla.org/xre/app-info;1"]
                   .getService(Ci.nsIXULAppInfo)
                   .QueryInterface(Ci.nsIXULRuntime);
 
+// See bug 1356587. If you want to revert this change, which essentially
+// makes TenFourFox Mac only, then look for everything with the string
+// "macosx" (include the quotes).
+/*
 if (AppConstants.platform != "macosx") {
   var gEditUIVisible = true;
 }
+*/
 
 [
   ["gBrowser",            "content"],
@@ -1316,12 +1321,15 @@ var gBrowserInit = {
     // unless there are downloads to be displayed.
     DownloadsButton.initializeIndicator();
 
+// See bug 1356587. This is never called on TenFourFox.
+/*
     if (AppConstants.platform != "macosx") {
       updateEditUIVisibility();
       let placesContext = document.getElementById("placesContext");
       placesContext.addEventListener("popupshowing", updateEditUIVisibility, false);
       placesContext.addEventListener("popuphiding", updateEditUIVisibility, false);
     }
+*/
 
     LightWeightThemeWebInstaller.init();
 
@@ -1610,7 +1618,7 @@ var gBrowserInit = {
   },
 };
 
-if (AppConstants.platform == "macosx") {
+//if (AppConstants.platform == "macosx") {
   // nonBrowserWindowStartup(), nonBrowserWindowDelayedStartup(), and
   // nonBrowserWindowShutdown() are used for non-browser windows in
   // macBrowserOverlay
@@ -1684,9 +1692,11 @@ if (AppConstants.platform == "macosx") {
     // initialize the sync UI
     gSyncUI.init();
 
+/*
     if (AppConstants.E10S_TESTING_ONLY) {
       gRemoteTabsUI.init();
     }
+*/
   };
 
   gBrowserInit.nonBrowserWindowShutdown = function() {
@@ -1699,18 +1709,18 @@ if (AppConstants.platform == "macosx") {
 
     BrowserOffline.uninit();
   };
-}
+//}
 
 
 /* Legacy global init functions */
 var BrowserStartup        = gBrowserInit.onLoad.bind(gBrowserInit);
 var BrowserShutdown       = gBrowserInit.onUnload.bind(gBrowserInit);
 
-if (AppConstants.platform == "macosx") {
+//if (AppConstants.platform == "macosx") {
   var nonBrowserWindowStartup        = gBrowserInit.nonBrowserWindowStartup.bind(gBrowserInit);
   var nonBrowserWindowDelayedStartup = gBrowserInit.nonBrowserWindowDelayedStartup.bind(gBrowserInit);
   var nonBrowserWindowShutdown       = gBrowserInit.nonBrowserWindowShutdown.bind(gBrowserInit);
-}
+//}
 
 function HandleAppCommandEvent(evt) {
   switch (evt.command) {
@@ -1853,9 +1863,9 @@ function BrowserStop() {
 }
 
 function BrowserReloadOrDuplicate(aEvent) {
-  let metaKeyPressed = AppConstants.platform == "macosx"
+  let metaKeyPressed = aEvent.metaKey; /* AppConstants.platform == "macosx"
                        ? aEvent.metaKey
-                       : aEvent.ctrlKey;
+                       : aEvent.ctrlKey; */
   var backgroundTabModifier = aEvent.button == 1 || metaKeyPressed;
 
   if (aEvent.shiftKey && !backgroundTabModifier) {
@@ -4137,6 +4147,8 @@ function BrowserCustomizeToolbar() {
  */
 function updateEditUIVisibility()
 {
+// Does not execute on TenFourFox (see bug 1356587 and issue 388).
+/*
   if (AppConstants.platform == "macosx")
     return;
 
@@ -4173,6 +4185,7 @@ function updateEditUIVisibility()
     goSetCommandEnabled("cmd_delete", true);
     goSetCommandEnabled("cmd_switchTextDirection", true);
   }
+*/
 }
 
 /**
@@ -5401,10 +5414,10 @@ const nodeToShortcutMap = {
   "downloads-button": "key_openDownloads"
 };
 
-if (AppConstants.platform == "macosx") {
+//if (AppConstants.platform == "macosx") {
   nodeToTooltipMap["print-button"] = "printButton.tooltip";
   nodeToShortcutMap["print-button"] = "printKb";
-}
+//}
 
 const gDynamicTooltipCache = new Map();
 function UpdateDynamicShortcutTooltipText(aTooltip) {
@@ -7560,6 +7573,8 @@ var gPrivateBrowsingUI = {
 
 var gRemoteTabsUI = {
   init: function() {
+// Not supported on TenFourFox (issue 441).
+/*
     if (window.location.href != getBrowserURL() &&
         // Also check hidden window for the Mac no-window case
         window.location.href != "chrome://browser/content/hiddenWindow.xul") {
@@ -7576,6 +7591,7 @@ var gRemoteTabsUI = {
     let newNonRemoteWindow = document.getElementById("menu_newNonRemoteWindow");
     let autostart = Services.appinfo.browserTabsRemoteAutostart;
     newNonRemoteWindow.hidden = !autostart;
+*/
   }
 };
 
@@ -8043,7 +8059,7 @@ var ToolbarIconColor = {
     }
 
     let toolbarSelector = "#navigator-toolbox > toolbar:not([collapsed=true]):not(#addon-bar)";
-    if (AppConstants.platform == "macosx")
+    //if (AppConstants.platform == "macosx")
       toolbarSelector += ":not([type=menubar])";
 
     // The getComputedStyle calls and setting the brighttext are separated in
