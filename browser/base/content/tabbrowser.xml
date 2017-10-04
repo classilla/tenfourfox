@@ -1008,6 +1008,8 @@
             var newBrowser = this.getBrowserAtIndex(this.tabContainer.selectedIndex);
             if (this.mCurrentBrowser == newBrowser && !aForceUpdate)
               return;
+            if (!aForceUpdate)
+              document.commandDispatcher.lock();
 
 /*
             if (!aForceUpdate) {
@@ -1204,6 +1206,8 @@
             this.tabContainer._setPositionalAttributes();
 
             //if (!gMultiProcessBrowser) {
+              document.commandDispatcher.unlock();
+
               let event = new CustomEvent("TabSwitchDone", {
                 bubbles: true,
                 cancelable: true
@@ -3202,6 +3206,8 @@ let remote = false;
               if (fromBrowser) {
                 fromBrowser.setAttribute("type", "content-targetable");
               }
+
+              document.commandDispatcher.unlock();
 
               let event = new CustomEvent("TabSwitchDone", {
                 bubbles: true,
