@@ -57,16 +57,16 @@ public:
     : mTotalOut(0)
     , mStatus(NS_OK)
   {
-    BrotliStateInit(&mState);
+    BrotliDecoderStateInit(&mState);
   }
   ~BrotliWrapper()
   {
-    BrotliStateCleanup(&mState);
+    BrotliDecoderStateCleanup(&mState);
   }
 
-  BrotliState mState;
-  size_t       mTotalOut;
-  nsresult     mStatus;
+  BrotliDecoderState mState;
+  size_t             mTotalOut;
+  nsresult           mStatus;
 
   nsIRequest  *mRequest;
   nsISupports *mContext;

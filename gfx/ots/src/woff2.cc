@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <vector>
 
-#include "decode.h"
+#include "brotli/decode.h"
 
 #include "opentype-sanitiser.h"
 #include "ots-memory-stream.h"
@@ -1019,8 +1019,8 @@ bool ConvertWOFF2ToSFNT(ots::Font *font,
   size_t uncompressed_size = static_cast<size_t>(total_size);
   uncompressed_buf.resize(uncompressed_size);
   const uint8_t* compressed_buf = data + compressed_offset;
-  if (!BrotliDecompressBuffer(compressed_length, compressed_buf,
-                              &uncompressed_size, &uncompressed_buf[0])) {
+  if (!BrotliDecoderDecompress(compressed_length, compressed_buf,
+                               &uncompressed_size, &uncompressed_buf[0])) {
     return OTS_FAILURE_MSG("Failed to uncompress font data");
   }
   if (uncompressed_size != static_cast<size_t>(total_size)) {
