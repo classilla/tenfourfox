@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The Chromium Authors. All rights reserved.
+// Copyright (c) 2011-2017 The OTS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -94,10 +94,12 @@ bool ParseScriptTable(const ots::Font *font,
   }
 
   // The spec requires a script table for 'DFLT' tag must contain non-NULL
-  // |offset_default_lang_sys| and |lang_sys_count| == 0
-  if (tag == kScriptTableTagDflt &&
-      (offset_default_lang_sys == 0 || lang_sys_count != 0)) {
-    return OTS_FAILURE_MSG("DFLT table doesn't satisfy the spec. for script tag %c%c%c%c", OTS_UNTAG(tag));
+  // |offset_default_lang_sys|.
+  // https://www.microsoft.com/typography/otspec/chapter2.htm
+  if (tag == kScriptTableTagDflt) {
+    if (offset_default_lang_sys == 0) {
+      return OTS_FAILURE_MSG("DFLT script doesn't satisfy the spec. DefaultLangSys is NULL");
+    }
   }
 
   const unsigned lang_sys_record_end =
@@ -192,19 +194,27 @@ bool ParseLookupTable(ots::Font *font, const uint8_t *data,
     return OTS_FAILURE_MSG("Bad lookup type %d", lookup_type);
   }
 
+  ots::OpenTypeGDEF *gdef = static_cast<ots::OpenTypeGDEF*>(
+      font->GetTypedTable(OTS_TAG_GDEF));
+
   // Check lookup flags.
   if ((lookup_flag & kGdefRequiredFlags) &&
-      (!font->gdef || !font->gdef->has_glyph_class_def)) {
-    return OTS_FAILURE_MSG("Bad lookup flags %d", lookup_flag);
+      (!gdef || !gdef->has_glyph_class_def)) {
+    return OTS_FAILURE_MSG("Lookup flags require GDEF table, "
+                           "but none was found: %d", lookup_flag);
   }
   if ((lookup_flag & kMarkAttachmentTypeMask) &&
-      (!font->gdef || !font->gdef->has_mark_attachment_class_def)) {
-    return OTS_FAILURE_MSG("lookup flag asks for mark attachment that is bad %d", lookup_flag);
+      (!gdef || !gdef->has_mark_attachment_class_def)) {
+    return OTS_FAILURE_MSG("Lookup flags ask for mark attachment, "
+                           "but there is no GDEF table or it has no "
+                           "mark attachment classes: %d", lookup_flag);
   }
   bool use_mark_filtering_set = false;
   if (lookup_flag & kUseMarkFilteringSetBit) {
-    if (!font->gdef || !font->gdef->has_mark_glyph_sets_def) {
-      return OTS_FAILURE_MSG("lookup flag asks for mark filtering that is bad %d", lookup_flag);
+    if (!gdef || !gdef->has_mark_glyph_sets_def) {
+      return OTS_FAILURE_MSG("Lookup flags ask for mark filtering, "
+                             "but there is no GDEF table or it has no "
+                             "mark filtering sets: %d", lookup_flag);
     }
     use_mark_filtering_set = true;
   }
@@ -238,8 +248,8 @@ bool ParseLookupTable(ots::Font *font, const uint8_t *data,
     if (!subtable.ReadU16(&mark_filtering_set)) {
       return OTS_FAILURE_MSG("Failed to read mark filtering set");
     }
-    if (font->gdef->num_mark_glyph_sets == 0 ||
-        mark_filtering_set >= font->gdef->num_mark_glyph_sets) {
+    if (gdef->num_mark_glyph_sets == 0 ||
+        mark_filtering_set >= gdef->num_mark_glyph_sets) {
       return OTS_FAILURE_MSG("Bad mark filtering set %d", mark_filtering_set);
     }
   }
@@ -301,15 +311,15 @@ bool ParseClassDefFormat2(const ots::Font *font,
 
   // Skip format field.
   if (!subtable.Skip(2)) {
-    return OTS_FAILURE_MSG("Failed to skip format of class defintion header");
+    return OTS_FAILURE_MSG("Failed to read class definition format");
   }
 
   uint16_t range_count = 0;
   if (!subtable.ReadU16(&range_count)) {
-    return OTS_FAILURE_MSG("Failed to read range count in class definition");
+    return OTS_FAILURE_MSG("Failed to read classRangeCount");
   }
   if (range_count > num_glyphs) {
-    return OTS_FAILURE_MSG("bad range count: %u", range_count);
+    return OTS_FAILURE_MSG("classRangeCount > glyph count: %u > %u", range_count, num_glyphs);
   }
 
   uint16_t last_end = 0;
@@ -320,13 +330,16 @@ bool ParseClassDefFormat2(const ots::Font *font,
     if (!subtable.ReadU16(&start) ||
         !subtable.ReadU16(&end) ||
         !subtable.ReadU16(&class_value)) {
-      return OTS_FAILURE_MSG("Failed to read class definition reange %d", i);
+      return OTS_FAILURE_MSG("Failed to read ClassRangeRecord %d", i);
     }
-    if (start > end || (last_end && start <= last_end)) {
-      return OTS_FAILURE_MSG("glyph range is overlapping.in range %d", i);
+    if (start > end) {
+      return OTS_FAILURE_MSG("ClassRangeRecord %d, start > end: %u > %u", i, start, end);
+    }
+    if (last_end && start <= last_end) {
+      return OTS_FAILURE_MSG("ClassRangeRecord %d start overlaps with end of the previous one: %u <= %u", i, start, last_end);
     }
     if (class_value > num_classes) {
-      return OTS_FAILURE_MSG("bad class value: %u", class_value);
+      return OTS_FAILURE_MSG("ClassRangeRecord %d class > number of classes: %u > %u", i, class_value, num_classes);
     }
     last_end = end;
   }
