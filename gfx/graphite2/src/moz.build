@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +23,6 @@ else:
 
 # This should contain all of the _SOURCES from files.mk, except *_machine.cpp
 UNIFIED_SOURCES += [
-    'Bidi.cpp',
     'CachedFace.cpp',
     'CmapCache.cpp',
     'Code.cpp',
@@ -45,7 +44,6 @@ UNIFIED_SOURCES += [
     'Intervals.cpp',
     'json.cpp',
     'Justifier.cpp',
-    'NameTable.cpp',
     'Pass.cpp',
     'Position.cpp',
     'SegCache.cpp',
@@ -57,6 +55,12 @@ UNIFIED_SOURCES += [
     'Sparse.cpp',
     'TtfUtil.cpp',
     'UtfCodec.cpp',
+]
+
+# Excluded from UNIFIED_SOURCES because <cmath> from other files breaks it,
+# see bug 1272647.
+SOURCES += [
+    'NameTable.cpp',
 ]
 
 # tell graphite2 not to export symbols, we'll be linking it directly with
