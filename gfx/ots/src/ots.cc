@@ -960,6 +960,7 @@ bool Table::ShouldSerialize() {
 void Table::Message(int level, const char *format, va_list va) {
   char msg[206] = { OTS_UNTAG(m_tag), ':', ' ' };
   std::vsnprintf(msg + 6, 200, format, va);
+// fprintf(stderr, format, va); // font debugging, see TenFourFox issue 317
   m_font->file->context->Message(level, msg);
 }
 

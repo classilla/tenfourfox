@@ -790,6 +790,13 @@ gfxFontEntry::GrGetTable(const void *aAppFaceHandle, unsigned int aName,
         unsigned int blobLength;
         const void *tableData = hb_blob_get_data(blob, &blobLength);
         fontEntry->mGrTableMap->Put(tableData, blob);
+
+/* TenFourFox issue 317: round up the reported length to the nearest 32-bit
+   word to work around various alignment issues with the structs Graphite2
+   uses internally. */
+        if (blobLength & 1) blobLength += 1;
+        if (blobLength & 2) blobLength += 2;
+
         *aLen = blobLength;
         return tableData;
     }
