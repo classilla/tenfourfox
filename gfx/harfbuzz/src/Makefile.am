@@ -1,6 +1,5 @@
 # Process this file with automake to produce Makefile.in
 
-NULL =
 SUBDIRS =
 DIST_SUBDIRS =
 BUILT_SOURCES =
@@ -19,120 +18,25 @@ fuzzing: $(BUILT_SOURCES) libharfbuzz-fuzzing.la
 
 lib_LTLIBRARIES = libharfbuzz.la
 
+include Makefile.sources
+
 HBCFLAGS =
 HBLIBS =
 HBNONPCLIBS =
 HBDEPS =
-HBSOURCES =  \
-	hb-atomic-private.hh \
-	hb-blob.cc \
-	hb-buffer-deserialize-json.hh \
-	hb-buffer-deserialize-text.hh \
-	hb-buffer-private.hh \
-	hb-buffer-serialize.cc \
-	hb-buffer.cc \
-	hb-cache-private.hh \
-	hb-common.cc \
-	hb-face-private.hh \
-	hb-face.cc \
-	hb-font-private.hh \
-	hb-font.cc \
-	hb-mutex-private.hh \
-	hb-object-private.hh \
-	hb-open-file-private.hh \
-	hb-open-type-private.hh \
-	hb-ot-cmap-table.hh \
-	hb-ot-glyf-table.hh \
-	hb-ot-head-table.hh \
-	hb-ot-hhea-table.hh \
-	hb-ot-hmtx-table.hh \
-	hb-ot-maxp-table.hh \
-	hb-ot-name-table.hh \
-	hb-ot-tag.cc \
-	hb-private.hh \
-	hb-set-private.hh \
-	hb-set.cc \
-	hb-shape.cc \
-	hb-shape-plan-private.hh \
-	hb-shape-plan.cc \
-	hb-shaper-list.hh \
-	hb-shaper-impl-private.hh \
-	hb-shaper-private.hh \
-	hb-shaper.cc \
-	hb-unicode-private.hh \
-	hb-unicode.cc \
-	hb-utf-private.hh \
-	hb-warning.cc \
-	$(NULL)
-HBHEADERS = \
-	hb.h \
-	hb-blob.h \
-	hb-buffer.h \
-	hb-common.h \
-	hb-deprecated.h \
-	hb-face.h \
-	hb-font.h \
-	hb-set.h \
-	hb-shape.h \
-	hb-shape-plan.h \
-	hb-unicode.h \
-	$(NULL)
-HBNODISTHEADERS = \
-	hb-version.h \
-	$(NULL)
+HBSOURCES =  $(HB_BASE_sources)
+HBSOURCES += $(HB_BASE_RAGEL_GENERATED_sources)
+HBHEADERS = $(HB_BASE_headers)
+HBNODISTHEADERS = $(HB_NODIST_headers)
 
 if HAVE_OT
-HBSOURCES += \
-	hb-ot-font.cc \
-	hb-ot-layout.cc \
-	hb-ot-layout-common-private.hh \
-	hb-ot-layout-gdef-table.hh \
-	hb-ot-layout-gpos-table.hh \
-	hb-ot-layout-gsubgpos-private.hh \
-	hb-ot-layout-gsub-table.hh \
-	hb-ot-layout-jstf-table.hh \
-	hb-ot-layout-private.hh \
-	hb-ot-map.cc \
-	hb-ot-map-private.hh \
-	hb-ot-shape.cc \
-	hb-ot-shape-complex-arabic.cc \
-	hb-ot-shape-complex-arabic-fallback.hh \
-	hb-ot-shape-complex-arabic-private.hh \
-	hb-ot-shape-complex-arabic-table.hh \
-	hb-ot-shape-complex-arabic-win1256.hh \
-	hb-ot-shape-complex-default.cc \
-	hb-ot-shape-complex-hangul.cc \
-	hb-ot-shape-complex-hebrew.cc \
-	hb-ot-shape-complex-indic.cc \
-	hb-ot-shape-complex-indic-machine.hh \
-	hb-ot-shape-complex-indic-private.hh \
-	hb-ot-shape-complex-indic-table.cc \
-	hb-ot-shape-complex-myanmar.cc \
-	hb-ot-shape-complex-myanmar-machine.hh \
-	hb-ot-shape-complex-thai.cc \
-	hb-ot-shape-complex-tibetan.cc \
-	hb-ot-shape-complex-use.cc \
-	hb-ot-shape-complex-use-machine.hh \
-	hb-ot-shape-complex-use-private.hh \
-	hb-ot-shape-complex-use-table.cc \
-	hb-ot-shape-complex-private.hh \
-	hb-ot-shape-normalize-private.hh \
-	hb-ot-shape-normalize.cc \
-	hb-ot-shape-fallback-private.hh \
-	hb-ot-shape-fallback.cc \
-	hb-ot-shape-private.hh \
-	$(NULL)
-HBHEADERS += \
-	hb-ot.h \
-	hb-ot-font.h \
-	hb-ot-layout.h \
-	hb-ot-shape.h \
-	hb-ot-tag.h \
-	$(NULL)
+HBSOURCES += $(HB_OT_sources)
+HBSOURCES += $(HB_OT_RAGEL_GENERATED_sources)
+HBHEADERS += $(HB_OT_headers)
 endif
 
 if HAVE_FALLBACK
-HBSOURCES += hb-fallback-shape.cc
+HBSOURCES += $(HB_FALLBACK_sources)
 endif
 
 if HAVE_PTHREAD
@@ -144,8 +48,8 @@ if HAVE_GLIB
 HBCFLAGS += $(GLIB_CFLAGS)
 HBLIBS   += $(GLIB_LIBS)
 HBDEPS   += $(GLIB_DEPS)
-HBSOURCES += hb-glib.cc
-HBHEADERS += hb-glib.h
+HBSOURCES += $(HB_GLIB_sources)
+HBHEADERS += $(HB_GLIB_headers)
 endif
 
 if HAVE_FREETYPE
@@ -157,37 +61,44 @@ HBLIBS   += $(FREETYPE_LIBS)
 # fine but pkg-config 0.26 as shipped in Ubuntu 14.04 crashes.  Remove
 # in a year or two, or otherwise work around it...
 #HBDEPS   += $(FREETYPE_DEPS)
-HBSOURCES += hb-ft.cc
-HBHEADERS += hb-ft.h
+HBSOURCES += $(HB_FT_sources)
+HBHEADERS += $(HB_FT_headers)
 endif
 
 if HAVE_GRAPHITE2
 HBCFLAGS += $(GRAPHITE2_CFLAGS)
 HBLIBS   += $(GRAPHITE2_LIBS)
 HBDEPS   += $(GRAPHITE2_DEPS)
-HBSOURCES += hb-graphite2.cc
-HBHEADERS += hb-graphite2.h
+HBSOURCES += $(HB_GRAPHITE2_sources)
+HBHEADERS += $(HB_GRAPHITE2_headers)
 endif
 
 if HAVE_UNISCRIBE
 HBCFLAGS += $(UNISCRIBE_CFLAGS)
 HBNONPCLIBS += $(UNISCRIBE_LIBS)
-HBSOURCES += hb-uniscribe.cc
-HBHEADERS += hb-uniscribe.h
+HBSOURCES += $(HB_UNISCRIBE_sources)
+HBHEADERS += $(HB_UNISCRIBE_headers)
+endif
+
+if HAVE_DIRECTWRITE
+HBCFLAGS += $(DIRECTWRITE_CXXFLAGS)
+HBNONPCLIBS += $(DIRECTWRITE_LIBS)
+HBSOURCES += $(HB_DIRECTWRITE_sources)
+HBHEADERS += $(HB_DIRECTWRITE_headers)
 endif
 
 if HAVE_CORETEXT
 HBCFLAGS += $(CORETEXT_CFLAGS)
 HBNONPCLIBS += $(CORETEXT_LIBS)
-HBSOURCES += hb-coretext.cc
-HBHEADERS += hb-coretext.h
+HBSOURCES += $(HB_CORETEXT_sources)
+HBHEADERS += $(HB_CORETEXT_headers)
 endif
 
 if HAVE_UCDN
 SUBDIRS += hb-ucdn
 HBCFLAGS += -I$(srcdir)/hb-ucdn
 HBLIBS   += hb-ucdn/libhb-ucdn.la
-HBSOURCES += hb-ucdn.cc
+HBSOURCES += $(HB_UCDN_sources)
 endif
 DIST_SUBDIRS += hb-ucdn
 
@@ -221,6 +132,7 @@ pkgconfig_DATA = harfbuzz.pc
 EXTRA_DIST += harfbuzz.pc.in
 
 FUZZING_CPPFLAGS= \
+	-DHB_NDEBUG \
 	-DHB_MAX_NESTING_LEVEL=3 \
 	-DHB_SANITIZE_MAX_EDITS=3 \
 	-DHB_BUFFER_MAX_EXPANSION_FACTOR=3 \
@@ -237,34 +149,41 @@ EXTRA_libharfbuzz_fuzzing_la_DEPENDENCIES = $(EXTRA_libharfbuzz_la_DEPENDENCIES)
 CLEANFILES += libharfbuzz-fuzzing.la
 
 if HAVE_ICU
+if HAVE_ICU_BUILTIN
+HBCFLAGS += $(ICU_CFLAGS)
+HBLIBS += $(ICU_LIBS)
+HBSOURCES += $(HB_ICU_sources)
+HBHEADERS += $(HB_ICU_headers)
+else
 lib_LTLIBRARIES += libharfbuzz-icu.la
-libharfbuzz_icu_la_SOURCES = hb-icu.cc
+libharfbuzz_icu_la_SOURCES = $(HB_ICU_sources)
 libharfbuzz_icu_la_CPPFLAGS = $(ICU_CFLAGS)
 libharfbuzz_icu_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(HB_LIBTOOL_VERSION_INFO) -no-undefined
 libharfbuzz_icu_la_LIBADD = $(ICU_LIBS) libharfbuzz.la
-pkginclude_HEADERS += hb-icu.h
+pkginclude_HEADERS += $(HB_ICU_headers)
 pkgconfig_DATA += harfbuzz-icu.pc
+endif
 endif
 EXTRA_DIST += harfbuzz-icu.pc.in
 
 if HAVE_GOBJECT
 lib_LTLIBRARIES += libharfbuzz-gobject.la
-libharfbuzz_gobject_la_SOURCES = hb-gobject-structs.cc
-nodist_libharfbuzz_gobject_la_SOURCES = hb-gobject-enums.cc
+libharfbuzz_gobject_la_SOURCES = $(HB_GOBJECT_sources)
+nodist_libharfbuzz_gobject_la_SOURCES = $(HB_GOBJECT_ENUM_sources)
 libharfbuzz_gobject_la_CPPFLAGS = $(GOBJECT_CFLAGS)
 libharfbuzz_gobject_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(HB_LIBTOOL_VERSION_INFO) -no-undefined
 libharfbuzz_gobject_la_LIBADD = $(GOBJECT_LIBS) libharfbuzz.la
-pkginclude_HEADERS += hb-gobject.h hb-gobject-structs.h
-nodist_pkginclude_HEADERS += hb-gobject-enums.h
+pkginclude_HEADERS += $(HB_GOBJECT_headers)
+nodist_pkginclude_HEADERS += $(HB_GOBJECT_ENUM_headers)
 pkgconfig_DATA += harfbuzz-gobject.pc
 
 BUILT_SOURCES += \
-	hb-gobject-enums.cc \
-	hb-gobject-enums.h \
+	$(HB_GOBJECT_ENUM_sources) \
+	$(HB_GOBJECT_ENUM_headers) \
 	$(NULL)
 DISTCLEANFILES += \
-	hb-gobject-enums.cc \
-	hb-gobject-enums.h \
+	$(HB_GOBJECT_ENUM_sources) \
+	$(HB_GOBJECT_ENUM_headers) \
 	$(NULL)
 hb-gobject-enums.%: hb-gobject-enums.%.tmpl $(HBHEADERS)
 	$(AM_V_GEN) $(GLIB_MKENUMS) \
@@ -301,7 +220,7 @@ harfbuzz.def: $(HBHEADERS) $(HBNODISTHEADERS)
 	(cat $^ || echo 'hb_ERROR ()' ) | \
 	$(EGREP) '^hb_.* \(' | \
 	sed -e 's/ (.*//' | \
-	LANG=C sort; \
+	LC_ALL=C sort; \
 	echo LIBRARY libharfbuzz-0.dll; \
 	) >"$@"
 	@ ! grep -q hb_ERROR "$@" \
@@ -334,19 +253,13 @@ built-sources: $(BUILT_SOURCES)
 .PHONY: unicode-tables arabic-table indic-table use-table built-sources
 
 RAGEL_GENERATED = \
-	$(srcdir)/hb-buffer-deserialize-json.hh \
-	$(srcdir)/hb-buffer-deserialize-text.hh \
-	$(srcdir)/hb-ot-shape-complex-indic-machine.hh \
-	$(srcdir)/hb-ot-shape-complex-myanmar-machine.hh \
-	$(srcdir)/hb-ot-shape-complex-use-machine.hh \
+	$(patsubst %,$(srcdir)/%,$(HB_BASE_RAGEL_GENERATED_sources)) \
+	$(patsubst %,$(srcdir)/%,$(HB_OT_RAGEL_GENERATED_sources)) \
 	$(NULL)
 BUILT_SOURCES += $(RAGEL_GENERATED)
 EXTRA_DIST += \
-	hb-buffer-deserialize-json.rl \
-	hb-buffer-deserialize-text.rl \
-	hb-ot-shape-complex-indic-machine.rl \
-	hb-ot-shape-complex-myanmar-machine.rl \
-	hb-ot-shape-complex-use-machine.rl \
+	$(HB_BASE_RAGEL_sources) \
+	$(HB_OT_RAGEL_sources) \
 	$(NULL)
 MAINTAINERCLEANFILES += $(RAGEL_GENERATED)
 $(srcdir)/%.hh: $(srcdir)/%.rl
@@ -382,6 +295,8 @@ test_buffer_serialize_SOURCES = test-buffer-serialize.cc
 test_buffer_serialize_CPPFLAGS = $(HBCFLAGS)
 test_buffer_serialize_LDADD = libharfbuzz.la $(HBLIBS)
 
+check: harfbuzz.def # For check-defs.sh
+
 dist_check_SCRIPTS = \
 	check-c-linkage-decls.sh \
 	check-defs.sh \
@@ -392,7 +307,14 @@ dist_check_SCRIPTS = \
 	check-symbols.sh \
 	$(NULL)
 
-TESTS = $(dist_check_SCRIPTS)
+check_PROGRAMS = \
+	test-ot-tag \
+	$(NULL)
+test_ot_tag_SOURCES = hb-ot-tag.cc
+test_ot_tag_CPPFLAGS = $(HBCFLAGS) -DMAIN
+test_ot_tag_LDADD = libharfbuzz.la $(HBLIBS)
+
+TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
 TESTS_ENVIRONMENT = \
 	srcdir="$(srcdir)" \
 	MAKE="$(MAKE) $(AM_MAKEFLAGS)" \
@@ -419,6 +341,7 @@ HarfBuzz_0_0_gir_CFLAGS = \
 	-DHB_OT_H_IN \
 	-DHB_GOBJECT_H \
 	-DHB_GOBJECT_H_IN \
+	-DHB_EXTERN= \
 	$(NULL)
 HarfBuzz_0_0_gir_LIBS = \
 	libharfbuzz.la \
@@ -428,10 +351,10 @@ HarfBuzz_0_0_gir_FILES = \
 	$(HBHEADERS) \
 	$(HBNODISTHEADERS) \
 	$(HBSOURCES) \
-	hb-gobject-enums.cc \
-	hb-gobject-enums.h \
-	hb-gobject-structs.cc \
-	hb-gobject-structs.h \
+	$(HB_GOBJECT_ENUM_sources) \
+	$(HB_GOBJECT_ENUM_headers) \
+	$(HB_GOBJECT_sources) \
+	$(HB_GOBJECT_STRUCTS_headers) \
 	$(NULL)
 
 girdir = $(datadir)/gir-1.0

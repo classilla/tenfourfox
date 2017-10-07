@@ -53,9 +53,6 @@
 #include <errno.h>
 #include <stdarg.h>
 
-#ifdef _MSC_VER
-#include <windows.h> /* ensure DEFINE_ENUM_FLAG_OPERATORS is defined */
-#endif
 
 /* Compile-time custom allocator support. */
 
@@ -77,16 +74,15 @@ extern "C" void  hb_free_impl(void *ptr);
 /* Compiler attributes */
 
 
-#if defined(__GNUC__) && (__GNUC__ > 2) && defined(__OPTIMIZE__)
-#define _HB_BOOLEAN_EXPR(expr) ((expr) ? 1 : 0)
-#define likely(expr) (__builtin_expect (_HB_BOOLEAN_EXPR(expr), 1))
-#define unlikely(expr) (__builtin_expect (_HB_BOOLEAN_EXPR(expr), 0))
+#if (defined(__GNUC__) || defined(__clang__)) && defined(__OPTIMIZE__)
+#define likely(expr) (__builtin_expect (!!(expr), 1))
+#define unlikely(expr) (__builtin_expect (!!(expr), 0))
 #else
 #define likely(expr) (expr)
 #define unlikely(expr) (expr)
 #endif
 
-#ifndef __GNUC__
+#if !defined(__GNUC__) && !defined(__clang__)
 #undef __attribute__
 #define __attribute__(x)
 #endif
@@ -171,7 +167,7 @@ extern "C" void  hb_free_impl(void *ptr);
 
 #  if defined(_WIN32_WCE)
      /* Some things not defined on Windows CE. */
-#    define strdup _strdup
+#    define vsnprintf _vsnprintf
 #    define getenv(Name) NULL
 #    if _WIN32_WCE < 0x800
 #      define setlocale(Category, Locale) "C"
@@ -611,6 +607,15 @@ static inline unsigned char TOLOWER (unsigned char c)
 /* Debug */
 
 
+/* HB_NDEBUG disables some sanity checks that are very safe to disable and
+ * should be disabled in production systems.  If NDEBUG is defined, enable
+ * HB_NDEBUG; but if it's desirable that normal assert()s (which are very
+ * light-weight) to be enabled, then HB_DEBUG can be defined to disable
+ * the costlier checks. */
+#ifdef NDEBUG
+#define HB_NDEBUG
+#endif
+
 #ifndef HB_DEBUG
 #define HB_DEBUG 0
 #endif
@@ -679,17 +684,20 @@ _hb_debug_msg_va (const char *what,
     fprintf (stderr, " %*s  ", (unsigned int) (2 * sizeof (void *)), "");
 
   if (indented) {
-/* One may want to add ASCII version of these.  See:
- * https://bugs.freedesktop.org/show_bug.cgi?id=50970 */
 #define VBAR	"\342\224\202"	/* U+2502 BOX DRAWINGS LIGHT VERTICAL */
 #define VRBAR	"\342\224\234"	/* U+251C BOX DRAWINGS LIGHT VERTICAL AND RIGHT */
 #define DLBAR	"\342\225\256"	/* U+256E BOX DRAWINGS LIGHT ARC DOWN AND LEFT */
 #define ULBAR	"\342\225\257"	/* U+256F BOX DRAWINGS LIGHT ARC UP AND LEFT */
 #define LBAR	"\342\225\264"	/* U+2574 BOX DRAWINGS LIGHT LEFT */
-    static const char bars[] = VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR;
+    static const char bars[] =
+      VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR
+      VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR
+      VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR
+      VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR
+      VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR VBAR;
     fprintf (stderr, "%2u %s" VRBAR "%s",
 	     level,
-	     bars + sizeof (bars) - 1 - MIN ((unsigned int) sizeof (bars), (unsigned int) (sizeof (VBAR) - 1) * level),
+	     bars + sizeof (bars) - 1 - MIN ((unsigned int) sizeof (bars) - 1, (unsigned int) (sizeof (VBAR) - 1) * level),
 	     level_dir ? (level_dir > 0 ? DLBAR : ULBAR) : LBAR);
   } else
     fprintf (stderr, "   " VRBAR LBAR);
@@ -899,27 +907,22 @@ hb_in_ranges (T u, T lo1, T hi1, T lo2, T hi2, T lo3, T hi3)
  * one enum to another...  So this doesn't provide the type-checking that I
  * originally had in mind... :(.
  *
- * On MSVC use DEFINE_ENUM_FLAG_OPERATORS.  See:
- * https://github.com/behdad/harfbuzz/pull/163
+ * For MSVC warnings, see: https://github.com/behdad/harfbuzz/pull/163
  */
 #ifdef _MSC_VER
 # pragma warning(disable:4200)
 # pragma warning(disable:4800)
-# define HB_MARK_AS_FLAG_T(flags_t)	DEFINE_ENUM_FLAG_OPERATORS (##flags_t##);
-#else
-# define HB_MARK_AS_FLAG_T(flags_t)	template <> class hb_mark_as_flags_t<flags_t> {};
-template <class T> class hb_mark_as_flags_t;
-template <class T> static inline T operator | (T l, T r)
-{ hb_mark_as_flags_t<T> unused HB_UNUSED; return T ((unsigned int) l | (unsigned int) r); }
-template <class T> static inline T operator & (T l, T r)
-{ hb_mark_as_flags_t<T> unused HB_UNUSED; return T ((unsigned int) l & (unsigned int) r); }
-template <class T> static inline T operator ~ (T r)
-{ hb_mark_as_flags_t<T> unused HB_UNUSED; return T (~(unsigned int) r); }
-template <class T> static inline T& operator |= (T &l, T r)
-{ hb_mark_as_flags_t<T> unused HB_UNUSED; l = l | r; return l; }
-template <class T> static inline T& operator &= (T& l, T r)
-{ hb_mark_as_flags_t<T> unused HB_UNUSED; l = l & r; return l; }
 #endif
+#define HB_MARK_AS_FLAG_T(T) \
+	extern "C++" { \
+	  static inline T operator | (T l, T r) { return T ((unsigned) l | (unsigned) r); } \
+	  static inline T operator & (T l, T r) { return T ((unsigned) l & (unsigned) r); } \
+	  static inline T operator ^ (T l, T r) { return T ((unsigned) l ^ (unsigned) r); } \
+	  static inline T operator ~ (T r) { return T (~(unsigned int) r); } \
+	  static inline T& operator |= (T &l, T r) { l = l | r; return l; } \
+	  static inline T& operator &= (T& l, T r) { l = l & r; return l; } \
+	  static inline T& operator ^= (T& l, T r) { l = l ^ r; return l; } \
+	}
 
 
 /* Useful for set-operations on small enums.

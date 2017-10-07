@@ -104,7 +104,6 @@ hb_blob_create (const char        *data,
 
   if (!length ||
       length >= 1u << 31 ||
-      data + length < data /* overflows */ ||
       !(blob = hb_object_create<hb_blob_t> ())) {
     if (destroy)
       destroy (user_data);
@@ -328,7 +327,7 @@ hb_blob_is_immutable (hb_blob_t *blob)
 unsigned int
 hb_blob_get_length (hb_blob_t *blob)
 {
-if (!blob) return 0; // wallpaper TenFourFox issue 309
+  if(unlikely(!blob)) return 0; // wallpaper TenFourFox issue 309
   return blob->length;
 }
 

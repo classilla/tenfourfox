@@ -52,7 +52,7 @@ get_consonant_type (hb_codepoint_t u)
     return RC;
   if (u == 0x0E0Eu || u == 0x0E0Fu)
     return DC;
-  if (hb_in_range (u, 0x0E01u, 0x0E2Eu))
+  if (hb_in_range<hb_codepoint_t> (u, 0x0E01u, 0x0E2Eu))
     return NC;
   return NOT_CONSONANT;
 }
@@ -70,12 +70,12 @@ enum thai_mark_type_t
 static thai_mark_type_t
 get_mark_type (hb_codepoint_t u)
 {
-  if (u == 0x0E31u || hb_in_range (u, 0x0E34u, 0x0E37u) ||
-      u == 0x0E47u || hb_in_range (u, 0x0E4Du, 0x0E4Eu))
+  if (u == 0x0E31u || hb_in_range<hb_codepoint_t> (u, 0x0E34u, 0x0E37u) ||
+      u == 0x0E47u || hb_in_range<hb_codepoint_t> (u, 0x0E4Du, 0x0E4Eu))
     return AV;
-  if (hb_in_range (u, 0x0E38u, 0x0E3Au))
+  if (hb_in_range<hb_codepoint_t> (u, 0x0E38u, 0x0E3Au))
     return BV;
-  if (hb_in_range (u, 0x0E48u, 0x0E4Cu))
+  if (hb_in_range<hb_codepoint_t> (u, 0x0E48u, 0x0E4Cu))
     return T;
   return NOT_MARK;
 }
@@ -139,7 +139,6 @@ thai_pua_shape (hb_codepoint_t u, thai_action_t action, hb_font_t *font)
   };
 
   switch (action) {
-    default: assert (false); HB_FALLTHROUGH;
     case NOP: return u;
     case SD:  pua_mappings = SD_mappings; break;
     case SDL: pua_mappings = SDL_mappings; break;
@@ -245,6 +244,7 @@ do_thai_pua_shaping (const hb_ot_shape_plan_t *plan HB_UNUSED,
     /* At least one of the above/below actions is NOP. */
     thai_action_t action = above_edge.action != NOP ? above_edge.action : below_edge.action;
 
+    buffer->unsafe_to_break (base, i);
     if (action == RD)
       info[base].codepoint = thai_pua_shape (info[base].codepoint, action, font);
     else
@@ -311,7 +311,7 @@ preprocess_text_thai (const hb_ot_shape_plan_t *plan,
 #define IS_SARA_AM(x) (((x) & ~0x0080u) == 0x0E33u)
 #define NIKHAHIT_FROM_SARA_AM(x) ((x) - 0x0E33u + 0x0E4Du)
 #define SARA_AA_FROM_SARA_AM(x) ((x) - 1)
-#define IS_TONE_MARK(x) (hb_in_ranges ((x) & ~0x0080u, 0x0E34u, 0x0E37u, 0x0E47u, 0x0E4Eu, 0x0E31u, 0x0E31u))
+#define IS_TONE_MARK(x) (hb_in_ranges<hb_codepoint_t> ((x) & ~0x0080u, 0x0E34u, 0x0E37u, 0x0E47u, 0x0E4Eu, 0x0E31u, 0x0E31u))
 
   buffer->clear_output ();
   unsigned int count = buffer->len;
@@ -377,6 +377,7 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_thai =
   NULL, /* decompose */
   NULL, /* compose */
   NULL, /* setup_masks */
-  HB_OT_SHAPE_ZERO_WIDTH_MARKS_DEFAULT,
+  NULL, /* disable_otl */
+  HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_LATE,
   false,/* fallback_position */
 };

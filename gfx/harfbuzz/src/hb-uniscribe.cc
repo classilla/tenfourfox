@@ -293,8 +293,8 @@ struct range_record_t {
   unsigned int index_last;  /* == end - 1 */
 };
 
-HB_SHAPER_DATA_ENSURE_DECLARE(uniscribe, face)
-HB_SHAPER_DATA_ENSURE_DECLARE(uniscribe, font)
+HB_SHAPER_DATA_ENSURE_DEFINE(uniscribe, face)
+HB_SHAPER_DATA_ENSURE_DEFINE(uniscribe, font)
 
 
 /*
@@ -587,7 +587,9 @@ struct hb_uniscribe_shaper_shape_plan_data_t {};
 hb_uniscribe_shaper_shape_plan_data_t *
 _hb_uniscribe_shaper_shape_plan_data_create (hb_shape_plan_t    *shape_plan HB_UNUSED,
 					     const hb_feature_t *user_features HB_UNUSED,
-					     unsigned int        num_user_features HB_UNUSED)
+					     unsigned int        num_user_features HB_UNUSED,
+					     const int          *coords HB_UNUSED,
+					     unsigned int        num_coords HB_UNUSED)
 {
   return (hb_uniscribe_shaper_shape_plan_data_t *) HB_SHAPER_DATA_SUCCEEDED;
 }
@@ -771,7 +773,7 @@ retry:
       pchars[chars_len++] = 0xFFFDu;
     else {
       pchars[chars_len++] = 0xD800u + ((c - 0x10000u) >> 10);
-      pchars[chars_len++] = 0xDC00u + ((c - 0x10000u) & ((1 << 10) - 1));
+      pchars[chars_len++] = 0xDC00u + ((c - 0x10000u) & ((1u << 10) - 1));
     }
   }
 
@@ -827,7 +829,7 @@ retry:
 
   /* MinGW32 doesn't define fMergeNeutralItems, so we bruteforce */
   //bidi_control.fMergeNeutralItems = true;
-  *(uint32_t*)&bidi_control |= 1<<24;
+  *(uint32_t*)&bidi_control |= 1u<<24;
 
   bidi_state.uBidiLevel = HB_DIRECTION_IS_FORWARD (buffer->props.direction) ? 0 : 1;
   bidi_state.fOverrideDirection = 1;
@@ -919,7 +921,7 @@ retry:
 
     if (unlikely (items[i].a.fNoGlyphIndex))
       FAIL ("ScriptShapeOpenType() set fNoGlyphIndex");
-    if (unlikely (hr == E_OUTOFMEMORY))
+    if (unlikely (hr == E_OUTOFMEMORY || hr == E_NOT_SUFFICIENT_BUFFER))
     {
       if (unlikely (!buffer->ensure (buffer->allocated * 2)))
 	FAIL ("Buffer resize failed");
@@ -1019,9 +1021,11 @@ retry:
     hb_glyph_position_t *pos = &buffer->pos[i];
 
     /* TODO vertical */
-    pos->x_advance = x_mult * info->mask;
+    pos->x_advance = x_mult * (int32_t) info->mask;
     pos->x_offset = x_mult * (backward ? -info->var1.i32 : info->var1.i32);
     pos->y_offset = y_mult * info->var2.i32;
+
+    info->mask = HB_GLYPH_FLAG_UNSAFE_TO_BREAK;
   }
 
   if (backward)

@@ -175,7 +175,7 @@ set_myanmar_properties (hb_glyph_info_t &info)
   /* Myanmar
    * http://www.microsoft.com/typography/OpenTypeDev/myanmar/intro.htm#analyze
    */
-  if (unlikely (hb_in_range (u, 0xFE00u, 0xFE0Fu)))
+  if (unlikely (hb_in_range<hb_codepoint_t> (u, 0xFE00u, 0xFE0Fu)))
     cat = (indic_category_t) OT_VS;
 
   switch (u)
@@ -197,6 +197,10 @@ set_myanmar_properties (hb_glyph_info_t &info)
 
     case 0x1032u: case 0x1036u:
       cat = (indic_category_t) OT_A;
+      break;
+
+    case 0x1039u:
+      cat = (indic_category_t) OT_H;
       break;
 
     case 0x103Au:
@@ -245,6 +249,11 @@ set_myanmar_properties (hb_glyph_info_t &info)
     case 0x104Au: case 0x104Bu:
       cat = (indic_category_t) OT_P;
       break;
+
+    case 0xAA74u: case 0xAA75u: case 0xAA76u:
+      /* https://github.com/roozbehp/unicode-data/issues/3 */
+      cat = (indic_category_t) OT_C;
+      break;
   }
 
   if (cat == OT_M)
@@ -288,6 +297,8 @@ setup_syllables (const hb_ot_shape_plan_t *plan HB_UNUSED,
 		 hb_buffer_t *buffer)
 {
   find_syllables (buffer);
+  foreach_syllable (buffer, start, end)
+    buffer->unsafe_to_break (start, end);
 }
 
 static int
@@ -435,7 +446,7 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
 
 
   hb_codepoint_t dottedcircle_glyph;
-  if (!font->get_glyph (0x25CCu, 0, &dottedcircle_glyph))
+  if (!font->get_nominal_glyph (0x25CCu, &dottedcircle_glyph))
     return;
 
   hb_glyph_info_t dottedcircle = {0};
@@ -447,7 +458,7 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
 
   buffer->idx = 0;
   unsigned int last_syllable = 0;
-  while (buffer->idx < buffer->len)
+  while (buffer->idx < buffer->len && !buffer->in_error)
   {
     unsigned int syllable = buffer->cur().syllable();
     syllable_type_t syllable_type = (syllable_type_t) (syllable & 0x0F);
@@ -512,6 +523,7 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_myanmar_old =
   NULL, /* decompose */
   NULL, /* compose */
   NULL, /* setup_masks */
+  NULL, /* disable_otl */
   HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_LATE,
   true, /* fallback_position */
 };
@@ -529,6 +541,7 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_myanmar =
   NULL, /* decompose */
   NULL, /* compose */
   setup_masks_myanmar,
+  NULL, /* disable_otl */
   HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_EARLY,
   false, /* fallback_position */
 };

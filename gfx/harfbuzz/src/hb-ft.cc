@@ -33,7 +33,10 @@
 
 #include "hb-font-private.hh"
 
+#include "hb-cache-private.hh" // Maybe use in the future?
+
 #include FT_ADVANCES_H
+#include FT_MULTIPLE_MASTERS_H
 #include FT_TRUETYPE_TABLES_H
 
 
@@ -70,11 +73,12 @@ struct hb_ft_font_t
 {
   FT_Face ft_face;
   int load_flags;
+  bool symbol; /* Whether selected cmap is symbol cmap. */
   bool unref; /* Whether to destroy ft_face when done. */
 };
 
 static hb_ft_font_t *
-_hb_ft_font_create (FT_Face ft_face, bool unref)
+_hb_ft_font_create (FT_Face ft_face, bool symbol, bool unref)
 {
   hb_ft_font_t *ft_font = (hb_ft_font_t *) calloc (1, sizeof (hb_ft_font_t));
 
@@ -82,6 +86,7 @@ _hb_ft_font_create (FT_Face ft_face, bool unref)
     return NULL;
 
   ft_font->ft_face = ft_face;
+  ft_font->symbol = symbol;
   ft_font->unref = unref;
 
   ft_font->load_flags = FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING;
@@ -90,10 +95,16 @@ _hb_ft_font_create (FT_Face ft_face, bool unref)
 }
 
 static void
+_hb_ft_face_destroy (FT_Face ft_face)
+{
+  FT_Done_Face (ft_face);
+}
+
+static void
 _hb_ft_font_destroy (hb_ft_font_t *ft_font)
 {
   if (ft_font->unref)
-    FT_Done_Face (ft_font->ft_face);
+    _hb_ft_face_destroy (ft_font->ft_face);
 
   free (ft_font);
 }
@@ -155,21 +166,46 @@ hb_ft_font_get_face (hb_font_t *font)
 
 
 static hb_bool_t
-hb_ft_get_glyph (hb_font_t *font HB_UNUSED,
-		 void *font_data,
-		 hb_codepoint_t unicode,
-		 hb_codepoint_t variation_selector,
-		 hb_codepoint_t *glyph,
-		 void *user_data HB_UNUSED)
-
+hb_ft_get_nominal_glyph (hb_font_t *font HB_UNUSED,
+			 void *font_data,
+			 hb_codepoint_t unicode,
+			 hb_codepoint_t *glyph,
+			 void *user_data HB_UNUSED)
 {
   const hb_ft_font_t *ft_font = (const hb_ft_font_t *) font_data;
-  unsigned int g;
+  unsigned int g = FT_Get_Char_Index (ft_font->ft_face, unicode);
 
-  if (likely (!variation_selector))
-    g = FT_Get_Char_Index (ft_font->ft_face, unicode);
-  else
-    g = FT_Face_GetCharVariantIndex (ft_font->ft_face, unicode, variation_selector);
+  if (unlikely (!g))
+  {
+    if (unlikely (ft_font->symbol) && unicode <= 0x00FFu)
+    {
+      /* For symbol-encoded OpenType fonts, we duplicate the
+       * U+F000..F0FF range at U+0000..U+00FF.  That's what
+       * Windows seems to do, and that's hinted about at:
+       * http://www.microsoft.com/typography/otspec/recom.htm
+       * under "Non-Standard (Symbol) Fonts". */
+      g = FT_Get_Char_Index (ft_font->ft_face, 0xF000u + unicode);
+      if (!g)
+	return false;
+    }
+    else
+      return false;
+  }
+
+  *glyph = g;
+  return true;
+}
+
+static hb_bool_t
+hb_ft_get_variation_glyph (hb_font_t *font HB_UNUSED,
+			   void *font_data,
+			   hb_codepoint_t unicode,
+			   hb_codepoint_t variation_selector,
+			   hb_codepoint_t *glyph,
+			   void *user_data HB_UNUSED)
+{
+  const hb_ft_font_t *ft_font = (const hb_ft_font_t *) font_data;
+  unsigned int g = FT_Face_GetCharVariantIndex (ft_font->ft_face, unicode, variation_selector);
 
   if (unlikely (!g))
     return false;
@@ -366,6 +402,25 @@ hb_ft_get_glyph_from_name (hb_font_t *font HB_UNUSED,
   return *glyph != 0;
 }
 
+static hb_bool_t
+hb_ft_get_font_h_extents (hb_font_t *font HB_UNUSED,
+			  void *font_data,
+			  hb_font_extents_t *metrics,
+			  void *user_data HB_UNUSED)
+{
+  const hb_ft_font_t *ft_font = (const hb_ft_font_t *) font_data;
+  FT_Face ft_face = ft_font->ft_face;
+  metrics->ascender = ft_face->size->metrics.ascender;
+  metrics->descender = ft_face->size->metrics.descender;
+  metrics->line_gap = ft_face->size->metrics.height - (ft_face->size->metrics.ascender - ft_face->size->metrics.descender);
+  if (font->y_scale < 0)
+  {
+    metrics->ascender = -metrics->ascender;
+    metrics->descender = -metrics->descender;
+    metrics->line_gap = -metrics->line_gap;
+  }
+  return true;
+}
 
 static hb_font_funcs_t *static_ft_funcs = NULL;
 
@@ -387,7 +442,10 @@ retry:
   {
     funcs = hb_font_funcs_create ();
 
-    hb_font_funcs_set_glyph_func (funcs, hb_ft_get_glyph, NULL, NULL);
+    hb_font_funcs_set_font_h_extents_func (funcs, hb_ft_get_font_h_extents, NULL, NULL);
+    //hb_font_funcs_set_font_v_extents_func (funcs, hb_ft_get_font_v_extents, NULL, NULL);
+    hb_font_funcs_set_nominal_glyph_func (funcs, hb_ft_get_nominal_glyph, NULL, NULL);
+    hb_font_funcs_set_variation_glyph_func (funcs, hb_ft_get_variation_glyph, NULL, NULL);
     hb_font_funcs_set_glyph_h_advance_func (funcs, hb_ft_get_glyph_h_advance, NULL, NULL);
     hb_font_funcs_set_glyph_v_advance_func (funcs, hb_ft_get_glyph_v_advance, NULL, NULL);
     //hb_font_funcs_set_glyph_h_origin_func (funcs, hb_ft_get_glyph_h_origin, NULL, NULL);
@@ -411,9 +469,11 @@ retry:
 #endif
   };
 
+  bool symbol = ft_face->charmap && ft_face->charmap->encoding == FT_ENCODING_MS_SYMBOL;
+
   hb_font_set_funcs (font,
 		     funcs,
-		     _hb_ft_font_create (ft_face, unref),
+		     _hb_ft_font_create (ft_face, symbol, unref),
 		     (hb_destroy_func_t) _hb_ft_font_destroy);
 }
 
@@ -433,7 +493,7 @@ reference_table  (hb_face_t *face HB_UNUSED, hb_tag_t tag, void *user_data)
     return NULL;
 
   buffer = (FT_Byte *) malloc (length);
-  if (buffer == NULL)
+  if (!buffer)
     return NULL;
 
   error = FT_Load_Sfnt_Table (ft_face, tag, 0, buffer, &length);
@@ -461,7 +521,7 @@ hb_ft_face_create (FT_Face           ft_face,
 {
   hb_face_t *face;
 
-  if (ft_face->stream->read == NULL) {
+  if (!ft_face->stream->read) {
     hb_blob_t *blob;
 
     blob = hb_blob_create ((const char *) ft_face->stream->base,
@@ -493,7 +553,7 @@ hb_face_t *
 hb_ft_face_create_referenced (FT_Face ft_face)
 {
   FT_Reference_Face (ft_face);
-  return hb_ft_face_create (ft_face, (hb_destroy_func_t) FT_Done_Face);
+  return hb_ft_face_create (ft_face, (hb_destroy_func_t) _hb_ft_face_destroy);
 }
 
 static void
@@ -549,12 +609,34 @@ hb_ft_font_create (FT_Face           ft_face,
   hb_face_destroy (face);
   _hb_ft_font_set_funcs (font, ft_face, false);
   hb_font_set_scale (font,
-		     (int) (((uint64_t) ft_face->size->metrics.x_scale * (uint64_t) ft_face->units_per_EM + (1<<15)) >> 16),
-		     (int) (((uint64_t) ft_face->size->metrics.y_scale * (uint64_t) ft_face->units_per_EM + (1<<15)) >> 16));
+		     (int) (((uint64_t) ft_face->size->metrics.x_scale * (uint64_t) ft_face->units_per_EM + (1u<<15)) >> 16),
+		     (int) (((uint64_t) ft_face->size->metrics.y_scale * (uint64_t) ft_face->units_per_EM + (1u<<15)) >> 16));
 #if 0 /* hb-ft works in no-hinting model */
   hb_font_set_ppem (font,
 		    ft_face->size->metrics.x_ppem,
 		    ft_face->size->metrics.y_ppem);
+#endif
+
+#ifdef HAVE_FT_GET_VAR_BLEND_COORDINATES
+  FT_MM_Var *mm_var = NULL;
+  if (!FT_Get_MM_Var (ft_face, &mm_var))
+  {
+    FT_Fixed *ft_coords = (FT_Fixed *) calloc (mm_var->num_axis, sizeof (FT_Fixed));
+    int *coords = (int *) calloc (mm_var->num_axis, sizeof (int));
+    if (coords && ft_coords)
+    {
+      if (!FT_Get_Var_Blend_Coordinates (ft_face, mm_var->num_axis, ft_coords))
+      {
+	for (unsigned int i = 0; i < mm_var->num_axis; ++i)
+	  coords[i] = ft_coords[i] >>= 2;
+
+	hb_font_set_var_coords_normalized (font, coords, mm_var->num_axis);
+      }
+    }
+    free (coords);
+    free (ft_coords);
+    free (mm_var);
+  }
 #endif
 
   return font;
@@ -573,7 +655,7 @@ hb_font_t *
 hb_ft_font_create_referenced (FT_Face ft_face)
 {
   FT_Reference_Face (ft_face);
-  return hb_ft_font_create (ft_face, (hb_destroy_func_t) FT_Done_Face);
+  return hb_ft_font_create (ft_face, (hb_destroy_func_t) _hb_ft_face_destroy);
 }
 
 
@@ -642,7 +724,8 @@ hb_ft_font_set_funcs (hb_font_t *font)
     return;
   }
 
-  FT_Select_Charmap (ft_face, FT_ENCODING_UNICODE);
+  if (FT_Select_Charmap (ft_face, FT_ENCODING_UNICODE))
+    FT_Select_Charmap (ft_face, FT_ENCODING_MS_SYMBOL);
 
   FT_Set_Char_Size (ft_face,
 		    abs (font->x_scale), abs (font->y_scale),
@@ -656,6 +739,20 @@ hb_ft_font_set_funcs (hb_font_t *font)
     FT_Matrix matrix = { font->x_scale < 0 ? -1 : +1, 0,
 			  0, font->y_scale < 0 ? -1 : +1};
     FT_Set_Transform (ft_face, &matrix, NULL);
+  }
+
+  unsigned int num_coords;
+  const int *coords = hb_font_get_var_coords_normalized (font, &num_coords);
+  if (num_coords)
+  {
+    FT_Fixed *ft_coords = (FT_Fixed *) calloc (num_coords, sizeof (FT_Fixed));
+    if (ft_coords)
+    {
+      for (unsigned int i = 0; i < num_coords; i++)
+	ft_coords[i] = coords[i] << 2;
+      FT_Set_Var_Blend_Coordinates (ft_face, num_coords, ft_coords);
+      free (ft_coords);
+    }
   }
 
   ft_face->generic.data = blob;

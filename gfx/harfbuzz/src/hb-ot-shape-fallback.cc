@@ -307,6 +307,9 @@ position_around_base (const hb_ot_shape_plan_t *plan,
 		      unsigned int end)
 {
   hb_direction_t horiz_dir = HB_DIRECTION_INVALID;
+
+  buffer->unsafe_to_break (base, end);
+
   hb_glyph_extents_t base_extents;
   if (!font->get_glyph_extents (buffer->info[base].codepoint,
 				&base_extents))
@@ -526,7 +529,7 @@ _hb_ot_shape_fallback_spaces (const hb_ot_shape_plan_t *plan,
 
 	case t::SPACE_FIGURE:
 	  for (char u = '0'; u <= '9'; u++)
-	    if (font->get_glyph (u, 0, &glyph))
+	    if (font->get_nominal_glyph (u, &glyph))
 	    {
 	      pos[i].x_advance = font->get_glyph_h_advance (glyph);
 	      break;
@@ -534,9 +537,9 @@ _hb_ot_shape_fallback_spaces (const hb_ot_shape_plan_t *plan,
 	  break;
 
 	case t::SPACE_PUNCTUATION:
-	  if (font->get_glyph ('.', 0, &glyph))
+	  if (font->get_nominal_glyph ('.', &glyph))
 	    pos[i].x_advance = font->get_glyph_h_advance (glyph);
-	  else if (font->get_glyph (',', 0, &glyph))
+	  else if (font->get_nominal_glyph (',', &glyph))
 	    pos[i].x_advance = font->get_glyph_h_advance (glyph);
 	  break;
 
