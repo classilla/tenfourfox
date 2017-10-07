@@ -6,6 +6,8 @@ function closeWindow(aClose, aPromptFunction)
 {
   let { AppConstants } = Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
+// See TenFourFox issue 441.
+/*
   // Closing the last window doesn't quit the application on OS X.
   if (AppConstants.platform != "macosx") {
     var windowCount = 0;
@@ -27,7 +29,7 @@ function closeWindow(aClose, aPromptFunction)
       return false;
     if (windowCount != 1 && typeof(aPromptFunction) == "function" && !aPromptFunction())
       return false;
-  } else if (typeof(aPromptFunction) == "function" && !aPromptFunction()) {
+  } else */ if (typeof(aPromptFunction) == "function" && !aPromptFunction()) {
     return false;
   }
 

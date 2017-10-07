@@ -3924,6 +3924,8 @@ let remote = false;
             }
           }
 
+// Look for "macosx" if you are porting TenFourFox to another platform.
+/*
           if (this.AppConstants.platform != "macosx") {
             if (aEvent.ctrlKey && !aEvent.shiftKey && !aEvent.metaKey &&
                 aEvent.keyCode == KeyEvent.DOM_VK_F4 &&
@@ -3932,6 +3934,7 @@ let remote = false;
               aEvent.preventDefault();
             }
           }
+*/
         ]]></body>
       </method>
 
@@ -3946,7 +3949,7 @@ let remote = false;
           if (aEvent.altKey)
             return;
 
-          if (this.AppConstants.platform == "macosx") {
+          //if (this.AppConstants.platform == "macosx") {
             if (!aEvent.metaKey)
               return;
 
@@ -3960,7 +3963,7 @@ let remote = false;
                 this.tabContainer.advanceSelectedTab(offset, true);
                 aEvent.preventDefault();
             }
-          }
+          //}
         ]]></body>
       </method>
 
@@ -4171,9 +4174,9 @@ let remote = false;
           let els = Components.classes["@mozilla.org/eventlistenerservice;1"]
                               .getService(nsIEventListenerService);
           els.addSystemEventListener(document, "keydown", this, false);
-          if (this.AppConstants.platform == "macosx") {
+          //if (this.AppConstants.platform == "macosx") {
             els.addSystemEventListener(document, "keypress", this, false);
-          }
+          //}
           window.addEventListener("sizemodechange", this, false);
 
           var uniqueId = this._generateUniquePanelID();
@@ -4271,9 +4274,9 @@ let remote = false;
           let els = Components.classes["@mozilla.org/eventlistenerservice;1"]
                               .getService(nsIEventListenerService);
           els.removeSystemEventListener(document, "keydown", this, false);
-          if (this.AppConstants.platform == "macosx") {
+          //if (this.AppConstants.platform == "macosx") {
             els.removeSystemEventListener(document, "keypress", this, false);
-          }
+          //}
           window.removeEventListener("sizemodechange", this, false);
 
 /*
@@ -5417,11 +5420,13 @@ let remote = false;
           return;
 
         let wrongModifiers;
-        if (this.tabbrowser.AppConstants.platform == "macosx") {
+        //if (this.tabbrowser.AppConstants.platform == "macosx") {
           wrongModifiers = !event.metaKey;
+	/*
         } else {
           wrongModifiers = !event.ctrlKey || event.metaKey;
         }
+	*/
 
         if (wrongModifiers)
           return;
