@@ -1239,7 +1239,9 @@ IncrementalFinalizeRunnable::Run()
     }
   }
 
+#if(0)
   uint32_t duration = (uint32_t)((TimeStamp::Now() - start).ToMilliseconds());
+#endif
 
   return NS_OK;
 }

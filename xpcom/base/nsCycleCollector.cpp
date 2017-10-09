@@ -3502,6 +3502,7 @@ nsCycleCollector::CleanupAfterCollection()
   mGraph.Clear();
   timeLog.Checkpoint("CleanupAfterCollection::mGraph.Clear()");
 
+#if(0)
   uint32_t interval =
     (uint32_t)((TimeStamp::Now() - mCollectionStart).ToMilliseconds());
 #ifdef COLLECT_TIME_DEBUG
@@ -3516,6 +3517,7 @@ nsCycleCollector::CleanupAfterCollection()
     printf(" (%d%%)", 100 * numFreed / numVisited);
   }
   printf(".\ncc: \n");
+#endif
 #endif
 
   if (mJSRuntime) {
