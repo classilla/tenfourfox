@@ -1214,6 +1214,9 @@ private:
   // True if audio is offloading.
   // Playback will not start when audio is offloading.
   bool mAudioOffloading;
+  
+  // Number of maximum tries to stall and buffer based on system load.
+  size_t mSystemLoadRetries;
 
 #ifdef MOZ_EME
   void OnCDMProxyReady(RefPtr<CDMProxy> aProxy);

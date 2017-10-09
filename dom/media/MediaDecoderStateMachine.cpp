@@ -48,6 +48,10 @@
 #include "VideoSegment.h"
 #include "VideoUtils.h"
 
+#include <mach/mach.h>
+#include <mach/mach_error.h>
+#include <mach/bootstrap.h>
+
 namespace mozilla {
 
 using namespace mozilla::dom;
@@ -85,7 +89,7 @@ namespace detail {
 // trying to decode the video, we'll skip decoding video up to the next
 // keyframe. We may increase this value for an individual decoder if we
 // encounter video frames which take a long time to decode.
-static const uint32_t LOW_AUDIO_USECS = 1000000;
+static const uint32_t LOW_AUDIO_USECS = 300000;
 
 // If more than this many usecs of decoded audio is queued, we'll hold off
 // decoding more audio. If we increase the low audio threshold (see
@@ -105,7 +109,7 @@ const int64_t NO_VIDEO_AMPLE_AUDIO_DIVISOR = 8;
 // If we have fewer than LOW_VIDEO_FRAMES decoded frames, and
 // we're not "prerolling video", we'll skip the video up to the next keyframe
 // which is at or after the current playback position.
-static const uint32_t LOW_VIDEO_FRAMES = 8; 
+static const uint32_t LOW_VIDEO_FRAMES = 8;
 
 // Threshold in usecs that used to check if we are low on decoded video.
 // If the last video frame's end time |mDecodedVideoEndTime| is more than
@@ -128,7 +132,7 @@ namespace detail {
 // ourselves to be running low on undecoded data. We determine how much
 // undecoded data we have remaining using the reader's GetBuffered()
 // implementation.
-static const int64_t LOW_DATA_THRESHOLD_USECS = 20000000;
+static const int64_t LOW_DATA_THRESHOLD_USECS = 5000000;
 
 // LOW_DATA_THRESHOLD_USECS needs to be greater than AMPLE_AUDIO_USECS, otherwise
 // the skip-to-keyframe logic can activate when we're running low on data.
@@ -174,9 +178,9 @@ static int64_t DurationToUsecs(TimeDuration aDuration) {
   return static_cast<int64_t>(aDuration.ToSeconds() * USECS_PER_S);
 }
 
-static const uint32_t MIN_VIDEO_QUEUE_SIZE = 30;
-static const uint32_t MAX_VIDEO_QUEUE_SIZE = 30;
-static const uint32_t VIDEO_QUEUE_SEND_TO_COMPOSITOR_SIZE = 9999;
+static const uint32_t MIN_VIDEO_QUEUE_SIZE = 500;
+static const uint32_t MAX_VIDEO_QUEUE_SIZE = 500;
+static const uint32_t VIDEO_QUEUE_SEND_TO_COMPOSITOR_SIZE = 45;
 
 static uint32_t sVideoQueueDefaultSize = MAX_VIDEO_QUEUE_SIZE;
 static uint32_t sVideoQueueHWAccelSize = MIN_VIDEO_QUEUE_SIZE;
@@ -185,9 +189,25 @@ static uint32_t sVideoQueueSendToCompositorSize = VIDEO_QUEUE_SEND_TO_COMPOSITOR
 // TenFourFox issue 434
 // Seconds to stall the video decoder on initial startup to allow sufficient
 // buildup in memory and other items onscreen to render.
-// Currently disabled by default.
+// Currently disabled by default since it has odd behaviour with short
+// videos and ads.
 static const uint32_t DEFAULT_VIDEO_DECODE_STARTUP_DELAY = 0;
 static uint32_t sVideoDecodeStartupDelay = DEFAULT_VIDEO_DECODE_STARTUP_DELAY;
+// Settings for Mach factor cap controller.
+// Originally this was load-average based, hence the variable names.
+// Currently disabled by default pending additional testing.
+static const uint32_t LOAD_AVERAGE_MAX = 450;
+static const uint32_t LOAD_AVERAGE_DELAY = 5;
+static const uint32_t MAX_LOAD_AVERAGE_DELAYS = 0;
+static uint32_t sLoadAverageMax = LOAD_AVERAGE_MAX;
+static uint32_t sLoadAverageDelay = LOAD_AVERAGE_DELAY;
+static uint32_t sMaxLoadAverageDelays = MAX_LOAD_AVERAGE_DELAYS;
+// Caches for Mach factor monitoring.
+// These can be singletons since they're shared over the entire machine.
+static processor_set_name_port_t sMachDefaultPset;
+static struct processor_set_load_info sMachLoadInfo;
+static host_name_port_t sMachHost;
+static kern_return_t sMachLastKernelReturn;
 
 static void InitVideoQueuePrefs() {
   MOZ_ASSERT(NS_IsMainThread());
@@ -200,8 +220,29 @@ static void InitVideoQueuePrefs() {
       "media.video-queue.hw-accel-size", MIN_VIDEO_QUEUE_SIZE);
     sVideoQueueSendToCompositorSize = Preferences::GetUint(
       "media.video-queue.send-to-compositor-size", VIDEO_QUEUE_SEND_TO_COMPOSITOR_SIZE);
+
+    // TenFourFox-specific state machine settings.
+    // If decode delay == 0, do not introduce a decoding delay before playback.
     sVideoDecodeStartupDelay = Preferences::GetUint(
       "tenfourfox.media.decode_delay", DEFAULT_VIDEO_DECODE_STARTUP_DELAY);
+    sLoadAverageMax = Preferences::GetUint(
+      "tenfourfox.media.mach_factor_min", LOAD_AVERAGE_MAX);
+    // If Mach factor delay == 0, then instead of a pause, check buffering.
+    sLoadAverageDelay = Preferences::GetUint(
+      "tenfourfox.media.mach_factor_delay", LOAD_AVERAGE_DELAY);
+    // If number of tries == 0, don't do Mach factor monitoring.
+    sMaxLoadAverageDelays = Preferences::GetUint(
+      "tenfourfox.media.mach_factor_max_tries", MAX_LOAD_AVERAGE_DELAYS);
+
+    // Precompute variables for Mach factor/load monitoring.
+    // These can be singletons since they're shared over the entire machine.
+    // If this fails, warn, and then disable load average throttling.
+    sMachHost = mach_host_self();
+    kern_return_t ret = processor_set_default(sMachHost, &sMachDefaultPset);
+    if (ret != KERN_SUCCESS) {
+      fprintf(stderr, "Unable to initialize Mach video load monitoring: %i\n", (uint32_t)ret);
+      sMaxLoadAverageDelays = 0;
+    }
   }
 }
 
@@ -297,6 +338,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mTaskQueue->Dispatch(r.forget());
 
   InitVideoQueuePrefs();
+  mSystemLoadRetries = sMaxLoadAverageDelays;
 
   mBufferingWait = IsRealTime() ? 0 : 15;
   mLowDataThresholdUsecs = IsRealTime() ? 0 : detail::LOW_DATA_THRESHOLD_USECS;
@@ -468,15 +510,24 @@ void MediaDecoderStateMachine::DiscardStreamData()
 
   // TenFourFox. Don't try to push video frames that are already past.
   // This just wastes time in the compositor.
-  while(true) {
-  	const MediaData* v = VideoQueue().PeekFront();
+  // Only bother doing this for the compositor queue size, because we'll only
+  // ever push that much to it anyway (otherwise this uses more CPU time than
+  // it saves).
+  size_t stopat = sVideoQueueSendToCompositorSize;
+  size_t framesDropped = 0;
+  while(stopat) {
+    stopat--;
+    const MediaData* v = VideoQueue().PeekFront();
+    if (v && v->mTime < clockTime) {
+      RefPtr<MediaData> releaseMe = VideoQueue().PopFront();
+      framesDropped++;
+      continue;
+    }
+    break;
+  }
+  if (framesDropped) {
     FrameStatistics& frameStats = *mFrameStats;
-  	if (v && v->mTime < clockTime) {
-  	  RefPtr<MediaData> releaseMe = VideoQueue().PopFront();
-      frameStats.NotifyDecodedFrames(0, 0, 1); // Frame dropped
-  	  continue;
-  	}
-  	break;
+    frameStats.NotifyDecodedFrames(0, 0, framesDropped);
   }
 }
 
@@ -497,6 +548,9 @@ bool MediaDecoderStateMachine::HaveEnoughDecodedAudio(int64_t aAmpleAudioUSecs)
 bool MediaDecoderStateMachine::HaveEnoughDecodedVideo()
 {
   MOZ_ASSERT(OnTaskQueue());
+  
+  if (mState == DECODER_STATE_COMPLETED)
+    return true;
 
   if (VideoQueue().GetSize() == 0) {
     return false;
@@ -1176,6 +1230,37 @@ MediaDecoderStateMachine::MaybeStartBuffering()
       shouldBuffer = (OutOfDecodedAudio() && mAudioWaitRequest.Exists()) ||
                      (OutOfDecodedVideo() && mVideoWaitRequest.Exists());
     }
+    
+    // TenFourFox issue 434
+    if (MOZ_LIKELY(!shouldBuffer && sMachLastKernelReturn == KERN_SUCCESS) &&
+        HasVideo() && 
+        mSystemLoadRetries &&
+        IsPlaying()) {     
+      if (sMachLoadInfo.mach_factor < sLoadAverageMax) {
+fprintf(stderr, "TenFourFox: Video throttled due to low Mach factor: %d (cap: %d / retries: %d)\n", sMachLoadInfo.mach_factor, sLoadAverageMax, mSystemLoadRetries);
+                
+        // Halt playback; too much is going on to play video well. 
+        mDelayedScheduler.Reset(); // Must happen on state machine task queue.
+        mDispatchedStateMachine = false;
+
+        if (IsPlaying()) StopPlayback(); // paranoia
+
+        if (sLoadAverageDelay) {
+          // Switch to decode delay, even if we don't use it initially.
+          // When the state returns to decode delay,
+          // we will decrement the load retries count. This means
+          // any number of threads can get quieted.
+          SetState(DECODER_STATE_STARTUP_DELAY);
+          ScheduleStateMachineIn(sLoadAverageDelay * USECS_PER_S);
+          return;
+        }
+        
+        // else, try to buffer instead
+        shouldBuffer = true;
+        mSystemLoadRetries--;
+      }
+    }
+   
     if (shouldBuffer) {
       StartBuffering();
       // Don't go straight back to the state machine loop since that might
@@ -1807,6 +1892,7 @@ MediaDecoderStateMachine::RequestVideoData()
 
   bool skipToNextKeyFrame = mSentFirstFrameLoadedEvent &&
     NeedToSkipToNextKeyframe();
+    
   int64_t currentTime =
     mState == DECODER_STATE_SEEKING || !mSentFirstFrameLoadedEvent
       ? 0 : GetMediaTime() + StartTime();
@@ -2052,9 +2138,6 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
   // TenFourFox issue 434
   SetState(DECODER_STATE_STARTUP_DELAY);
   if (HasVideo() && MOZ_LIKELY(sVideoDecodeStartupDelay > 0)) {
-    FrameStatistics& frameStats = *mFrameStats;
-    // Fake out MSE by saying we've already dropped a crapload of frames.
-    frameStats.NotifyDecodedFrames(0, 0, 4000);
     // Stall a bit to let everything load.
     ScheduleStateMachineIn(USECS_PER_S * sVideoDecodeStartupDelay);
     return;
@@ -2309,6 +2392,14 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
 
   MediaResource* resource = mResource;
   NS_ENSURE_TRUE(resource, NS_ERROR_NULL_POINTER);
+  
+  // TenFourFox issue 434
+  if (mSystemLoadRetries) {
+    size_t count = PROCESSOR_SET_LOAD_INFO_COUNT;
+    sMachLastKernelReturn = processor_set_statistics(sMachDefaultPset,
+            PROCESSOR_SET_LOAD_INFO,
+            (processor_set_info_t)&sMachLoadInfo, &count);
+  }
 
   switch (mState) {
     case DECODER_STATE_ERROR:
@@ -2340,15 +2431,12 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
 
     // TenFourFox issue 434
     case DECODER_STATE_STARTUP_DELAY: {
+      // Only update this here, as a hal-fassed mutex.
+      if (mSystemLoadRetries) mSystemLoadRetries--;
+
       // We have to implement this as a separate phase, because we don't
       // know if we haz video until after metadata is read.
       StartDecoding();
-
-      if (HasVideo() && MOZ_LIKELY(sVideoDecodeStartupDelay > 0)) {
-        FrameStatistics& frameStats = *mFrameStats;
-        // Fake out MSE by saying we've dropped a crapload more of frames.
-        frameStats.NotifyDecodedFrames(0, 0, 4000);
-      }
 
       ScheduleStateMachine();
       return NS_OK;
