@@ -10,6 +10,7 @@
 #include "mozilla/EventForwards.h"
 #include "mozilla/gfx/2D.h"
 #include "nsFrame.h"
+#include "nsGenericDOMDataNode.h"
 #include "nsSplittableFrame.h"
 #include "nsLineBox.h"
 #include "gfxSkipChars.h"
@@ -92,7 +93,10 @@ public:
       aNextContinuation->RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
     // Setting a non-fluid continuation might affect our flow length (they're
     // quite rare so we assume it always does) so we delete our cached value:
-    GetContent()->DeleteProperty(nsGkAtoms::flowlength);
+    if (GetContent()->HasFlag(NS_HAS_FLOWLENGTH_PROPERTY)) {
+      GetContent()->DeleteProperty(nsGkAtoms::flowlength);
+      GetContent()->UnsetFlags(NS_HAS_FLOWLENGTH_PROPERTY);
+    }
   }
   virtual nsIFrame* GetNextInFlowVirtual() const override { return GetNextInFlow(); }
   nsIFrame* GetNextInFlow() const {
@@ -109,7 +113,10 @@ public:
         !mNextContinuation->HasAnyStateBits(NS_FRAME_IS_FLUID_CONTINUATION)) {
       // Changing from non-fluid to fluid continuation might affect our flow
       // length, so we delete our cached value:
-      GetContent()->DeleteProperty(nsGkAtoms::flowlength);
+      if (GetContent()->HasFlag(NS_HAS_FLOWLENGTH_PROPERTY)) {
+        GetContent()->DeleteProperty(nsGkAtoms::flowlength);
+        GetContent()->UnsetFlags(NS_HAS_FLOWLENGTH_PROPERTY);
+      }
     }
     if (aNextInFlow) {
       aNextInFlow->AddStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
