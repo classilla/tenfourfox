@@ -37,8 +37,6 @@ public:
   // nsIContent
   virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) override;
 
-  virtual EventStates IntrinsicState() const override;
- 
   virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const override;
 
   virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
@@ -47,7 +45,7 @@ public:
   virtual nsIDOMNode* AsDOMNode() override { return this; }
 
   virtual bool IsDisabled() const override {
-    return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
+    return State().HasState(NS_EVENT_STATE_DISABLED);
   }
 
   bool Disabled() const

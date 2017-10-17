@@ -64,8 +64,6 @@ public:
   NS_IMETHOD Reset() override;
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission) override;
 
-  virtual bool IsDisabled() const override { return false; }
-
   // nsIContent
   virtual nsresult PostHandleEvent(
                      EventChainPostVisitor& aVisitor) override;
