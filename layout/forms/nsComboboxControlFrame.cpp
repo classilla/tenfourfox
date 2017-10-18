@@ -47,6 +47,7 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/unused.h"
 #include "gfx2DGlue.h"
+#include "nsIContentInlines.h"
 
 #ifdef XP_WIN
 #define COMBOBOX_ROLLUP_CONSUME_EVENT 0

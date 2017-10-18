@@ -40,6 +40,7 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
 #include "nsSubDocumentFrame.h"
+#include "nsIContentInlines.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;

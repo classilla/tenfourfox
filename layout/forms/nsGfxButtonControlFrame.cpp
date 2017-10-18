@@ -14,6 +14,7 @@
 
 #include "nsIDOMHTMLInputElement.h"
 #include "nsTextNode.h"
+#include "nsIContentInlines.h"
 
 using namespace mozilla;
 

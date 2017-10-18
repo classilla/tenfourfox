@@ -1417,6 +1417,13 @@ public:
   }
 
   /**
+   * Return true if this frame is the primary frame for mContent.
+   */
+  bool IsPrimaryFrame() const { return mIsPrimaryFrame; }
+
+  void SetIsPrimaryFrame(bool aIsPrimary) { mIsPrimaryFrame = aIsPrimary; }
+
+  /**
    * This call is invoked on the primary frame for a character data content
    * node, when it is changed in the content tree.
    */
@@ -3170,6 +3177,14 @@ protected:
    * that range of frame-specific bits by 1).
    */
   bool mReflowRequestedForCharDataChange : 1;
+
+private:
+  /**
+   * True if this is the primary frame for mContent.
+   */
+  bool mIsPrimaryFrame : 1;
+
+protected:
 
   // Helpers
   /**

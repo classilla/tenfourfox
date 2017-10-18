@@ -22,6 +22,7 @@
 #include "nsIStringBundle.h"
 #include "nsContentUtils.h"
 #include "ImageLayers.h"
+#include "nsIContentInlines.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"

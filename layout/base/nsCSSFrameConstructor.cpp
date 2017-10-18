@@ -109,6 +109,7 @@
 #include "nsRuleProcessorData.h"
 #include "nsTextNode.h"
 #include "ActiveLayerTracker.h"
+#include "nsIContentInlines.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
