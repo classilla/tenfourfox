@@ -221,6 +221,7 @@ richlistitem:not([selected]) * {
 
 #header-search {
   width: 22em;
+  display: none;
 }
 
 #header-utils-btn {

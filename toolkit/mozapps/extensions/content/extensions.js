@@ -217,6 +217,8 @@ function isCorrectlySigned(aAddon) {
 }
 
 function isDiscoverEnabled() {
+return false; // issue 363
+/*
   if (Services.prefs.getPrefType(PREF_DISCOVERURL) == Services.prefs.PREF_INVALID)
     return false;
 
@@ -231,6 +233,7 @@ function isDiscoverEnabled() {
   } catch (e) {}
 
   return true;
+*/
 }
 
 function getExperimentEndDate(aAddon) {
@@ -1745,6 +1748,7 @@ var gCategories = {
   initialize: function() {
     this.node = document.getElementById("categories");
     this._search = this.get("addons://search/");
+    this._search.disabled = true;
 
     var types = AddonManager.addonTypes;
     for (var type in types)
@@ -1969,6 +1973,7 @@ var gHeader = {
 
   initialize: function() {
     this._search = document.getElementById("header-search");
+    this._search.disabled = true;
 
     this._search.addEventListener("command", function(aEvent) {
       var query = aEvent.target.value;
@@ -1993,7 +1998,7 @@ var gHeader = {
   },
 
   focusSearchBox: function() {
-    this._search.focus();
+    //this._search.focus();
   },
 
   onKeyPress: function(aEvent) {
