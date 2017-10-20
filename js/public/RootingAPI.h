@@ -215,7 +215,7 @@ AssertGCThingIsNotAnObjectSubclass(js::gc::Cell* cell) {}
  * Type T must be one of: JS::Value, jsid, JSObject*, JSString*, JSScript*
  */
 template <typename T>
-class Heap : public js::HeapBase<T>
+class MOZ_NON_MEMMOVABLE Heap : public js::HeapBase<T>
 {
   public:
     Heap() {
@@ -1118,6 +1118,14 @@ class JS_PUBLIC_API(ObjectPtr)
     ObjectPtr() : value(nullptr) {}
 
     explicit ObjectPtr(JSObject* obj) : value(obj) {}
+
+    ObjectPtr(const ObjectPtr& other) : value(other.value) {}
+
+    ObjectPtr(ObjectPtr&& other)
+      : value(other.value)
+    {
+        other.value = nullptr;
+    }
 
     /* Always call finalize before the destructor. */
     ~ObjectPtr() { MOZ_ASSERT(!value); }

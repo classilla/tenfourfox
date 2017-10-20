@@ -33,6 +33,7 @@
 namespace JS {
 template<class T>
 class Heap;
+class ObjectPtr;
 } /* namespace JS */
 
 class nsRegion;
@@ -659,7 +660,7 @@ struct nsTArray_CopyWithConstructors
 template<class E>
 struct MOZ_NEEDS_MEMMOVABLE_TYPE nsTArray_CopyChooser
 {
-  typedef nsTArray_CopyWithMemutils Type;
+  using Type = nsTArray_CopyWithMemutils;
 };
 
 //
@@ -669,25 +670,31 @@ struct MOZ_NEEDS_MEMMOVABLE_TYPE nsTArray_CopyChooser
 template<class E>
 struct nsTArray_CopyChooser<JS::Heap<E>>
 {
-  typedef nsTArray_CopyWithConstructors<JS::Heap<E>> Type;
+  using Type = nsTArray_CopyWithConstructors<JS::Heap<E>>;
+};
+
+template<>
+struct nsTArray_CopyChooser<JS::ObjectPtr>
+{
+  using Type = nsTArray_CopyWithConstructors<JS::ObjectPtr>;
 };
 
 template<>
 struct nsTArray_CopyChooser<nsRegion>
 {
-  typedef nsTArray_CopyWithConstructors<nsRegion> Type;
+  using Type = nsTArray_CopyWithConstructors<nsRegion>;
 };
 
 template<>
 struct nsTArray_CopyChooser<nsIntRegion>
 {
-  typedef nsTArray_CopyWithConstructors<nsIntRegion> Type;
+  using Type = nsTArray_CopyWithConstructors<nsIntRegion>;
 };
 
 template<>
 struct nsTArray_CopyChooser<mozilla::layers::TileClient>
 {
-  typedef nsTArray_CopyWithConstructors<mozilla::layers::TileClient> Type;
+  using Type = nsTArray_CopyWithConstructors<mozilla::layers::TileClient>;
 };
 
 
