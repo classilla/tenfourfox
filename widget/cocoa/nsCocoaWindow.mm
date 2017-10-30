@@ -3988,6 +3988,61 @@ TitlebarDrawCallback(void* aInfo, CGContextRef aContext)
 
 @implementation PopupWindow
 
+// Both TenFourFox issue 72 and TenFourFox issue 248 have different
+// root causes but the same net effect, i.e., that menu bar events don't
+// get delivered there. Issue 72 is compounded by a 10.5 specific bug
+// that makes the CGEvent underlying the mousedown have wildly inaccurate
+// Y values, probably why the event got misdelivered in the first place.
+// However, [NSEvent mouseLocation] is correct, so we can use that.
+// To make this as fast as possible, we use two different entry points
+// specific to the OS in use.
+//
+// It's not clear if this bug affects Intel versions.
+
+static inline bool CheckForMisplacedMenuEventCommon(NSPoint y, NSEvent *anEvent) {
+  float l = nsCocoaUtils::FlippedScreenY(y.y);
+  if (l < 23.0f) {
+    // Menu event was dropped!
+    // There is no way we could have gotten this event
+    // ordinarily, so the OS must have glitched.
+    //
+    // The simplest solution is just to plug the errant
+    // event right back into the operating system, but
+    // the menubar has no sendEvent: selector, so we can't
+    // do this with Cocoa. Carbon can do it, however,
+    // using the named, undocumented internal entry point
+    // _NSHandleCarbonMenuEvent which is in both 10.4
+    // and 10.5. See issue 248 for analysis. To do so,
+    // we use another undocumented Objective-C method
+    // present in both 10.4 and 10.5 to get the underlying
+    // Carbon EventRef, which we can then pass in.
+    EventRef sekrit = [anEvent _eventRef];
+
+#if DEBUG
+    // Disassembly of ConvertEventRefToEventRecord shows
+    // the kind is EventRef+16, at least on PowerPC.
+    uint32_t *skind = (uint32_t *)((uint32_t)sekrit + 16);
+    uint32_t rkind = *skind;
+    fprintf(stderr, "Menu event dropped by OS! (y=%f, type=%i)\n", l, rkind);
+#endif
+
+    // Repost the event.
+    (void)_NSHandleCarbonMenuEvent(sekrit);
+    return true;
+  }
+  return false;
+}
+
+static inline bool CheckForMisplacedMenuEventTiger(NSEvent *anEvent) {
+  NSPoint y = nsCocoaUtils::ScreenLocationForEvent(anEvent);
+  return CheckForMisplacedMenuEventCommon(y, anEvent);
+}
+
+static inline bool CheckForMisplacedMenuEventLeopard(NSEvent *anEvent) {
+  NSPoint y = [NSEvent mouseLocation];
+  return CheckForMisplacedMenuEventCommon(y, anEvent);
+}
+
 // Restored by backout of bug 675208 (10.4Fx).
 // The OS treats our custom popup windows very strangely -- many mouse events
 // sent to them never reach their target NSView objects.  (That these windows
@@ -4031,50 +4086,18 @@ TitlebarDrawCallback(void* aInfo, CGContextRef aContext)
 #ifdef DEBUG
     fprintf(stderr, "trying to deliver this event too (%i)\n", (uint32_t)type);
 #endif
-
-	// TenFourFox issue 248
-	// We should never get mousedowns over the menu bar delivered here.
-	// If we do, we've gone wrong (read on).
-	if (type == NSLeftMouseDown || type == NSRightMouseDown) {
-		NSPoint y = nsCocoaUtils::ScreenLocationForEvent(anEvent);
-		float l = nsCocoaUtils::FlippedScreenY(y.y);
-		if (l < 23.0f) {
-#if DEBUG
-			fprintf(stderr, "Menu event was dropped by OS!\n");
-#endif
 #ifdef __ppc__
-			// Time for some deep magic. Apparently some OS bug
-			// that was never fixed in OS X/ppc can cause the
-			// OS to misdeliver mousedowns on the menubar and
-			// they wind up here; we know the event is misplaced
-			// because the click is not in the content area. 
-			// Other events like mouseup are delivered correctly.
-			// The simplest solution is simply to plug the
-			// errant mousedown back into the operating system
-			// using the named, undocumented internal entry point
-			// _NSHandleCarbonMenuEvent, which is in both 10.4
-			// and 10.5. See issue 248 for analysis.
+    // Actual fix for TenFourFox issue 248.
+    // This fix works on both 10.4 and 10.5, so we use it both places.
+    // It only seems to happen on mousedowns; other events are unaffected.
+    if (type == NSLeftMouseDown || type == NSRightMouseDown) {
+      if (CheckForMisplacedMenuEventTiger(anEvent))
+        return;
+    }
 
-			// Use a secret method to get the underlying EventRef.
-			// This works on 10.4 and 10.5 also.
-			EventRef sekrit = [anEvent _eventRef];
-#if DEBUG
-			// Disassembly of ConvertEventRefToEventRecord shows
-			// the kind is EventRef+16, at least on PowerPC.
-			uint32_t *skind = (uint32_t *)((uint32_t)sekrit + 16);
-			uint32_t rkind = *skind;
-			fprintf(stderr, "Kind is %i\n", rkind);
+    // Fall through for other mousedowns or mousedowns in the
+    // content area proper.
 #endif
-			// Repost the event. The menubar has no sendEvent:,
-			// so we have to do this through Carbon.
-			(void)_NSHandleCarbonMenuEvent(sekrit);
-#endif
-			return;
-		}
-
-	// Fall through for other mousedowns or mousedowns in the
-	// content area proper.
-	}
 
     switch (type) {
       case NSScrollWheel:
@@ -4108,24 +4131,30 @@ TitlebarDrawCallback(void* aInfo, CGContextRef aContext)
         [target otherMouseDragged:anEvent];
         break;
       default:
+#ifdef __ppc__
+        // Actual fix for TenFourFox issue 72.
+        // All event types seem to be affected.
+        // This bug is Leopard-specific.
+        if (nsCocoaFeatures::OnLeopardOrLater()) {
+          if (CheckForMisplacedMenuEventLeopard(anEvent))
+            return;
+        }
+#endif
 #if DEBUG
-		    NSPoint y = nsCocoaUtils::ScreenLocationForEvent(anEvent);
-		    float l = nsCocoaUtils::FlippedScreenY(y.y);
-        fprintf(stderr, "don't know this event type (%i) (y=%f)! sending to super\n", type, l);
+        fprintf(stderr, "don't know this event type (%i)! sending to super\n", type);
 #endif
         [super sendEvent:anEvent];
         break;
     }
   } else {
 #if DEBUG
-fprintf(stderr, "no target for this event (%i)! sending to super\n", type);
+    fprintf(stderr, "no target for this event (%i)! sending to super\n", type);
 #endif
     [super sendEvent:anEvent];
   }
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
-
 
 - (id)initWithContentRect:(NSRect)contentRect styleMask:(NSUInteger)styleMask
       backing:(NSBackingStoreType)bufferingType defer:(BOOL)deferCreation
