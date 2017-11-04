@@ -41,6 +41,7 @@ if CONFIG['VPX_VMX_ASM']:
 		'vp8/common/ppc/recon_altivec.s',
 		'vp9/common/ppc/vp9_convolve_vmx.c',
 		'vp9/common/ppc/vp9_idct_intrin_vmx.c',
+		'vp9/common/ppc/vp9_intrapred_vmx.c',
 	]
 
 arm_asm_files = []
