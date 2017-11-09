@@ -1756,9 +1756,9 @@ MArgumentsLength::computeRange(TempAllocator& alloc)
 {
     // This is is a conservative upper bound on what |TooManyActualArguments|
     // checks.  If exceeded, Ion will not be entered in the first place.
-    MOZ_ASSERT(JitOptions.maxStackArgs <= UINT32_MAX,
-               "NewUInt32Range requires a uint32 value");
-    setRange(Range::NewUInt32Range(alloc, 0, JitOptions.maxStackArgs));
+    static_assert(ARGS_LENGTH_MAX <= UINT32_MAX,
+                  "NewUInt32Range requires a uint32 value");
+    setRange(Range::NewUInt32Range(alloc, 0, ARGS_LENGTH_MAX));
 }
 
 void
