@@ -5066,6 +5066,9 @@ else
     MOZ_SYNTH_PICO=
 fi
 
+dnl Force concealment off; it's bulk and unnecessary. TenFourFox issue 445
+MOZ_VPX_ERROR_CONCEALMENT=
+
 dnl ========================================================
 dnl = Force hardware AEC, disable webrtc.org AEC
 dnl ========================================================
