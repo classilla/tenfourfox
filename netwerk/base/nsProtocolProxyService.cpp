@@ -34,6 +34,9 @@
 #include "nsINetworkLinkService.h"
 #include "nsIHttpChannelInternal.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 //----------------------------------------------------------------------------
 
 namespace mozilla {
@@ -916,7 +919,7 @@ nsProtocolProxyService::ExtractProxyInfo(const char *start,
             // www.example.com:8080
             if (start < end) {
                 host = start;
-                hostEnd = strchr(host, ':');
+                hostEnd = VMX_STRCHR(host, ':');
                 if (!hostEnd || hostEnd > end) {
                     hostEnd = end;
                     // no port, so assume default

@@ -71,6 +71,9 @@
 #include "nsCocoaFeatures.h"
 #endif
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 //-----------------------------------------------------------------------------
 #include "mozilla/net/HttpChannelChild.h"
 #include "OptimizedFor.h" // 10.4Fx
@@ -1687,9 +1690,9 @@ CanonicalizeLanguageTag(char *languageTag)
     bool isFirst = true;
     bool seenSingleton = false;
     while (*s != '\0') {
-        char *subTagEnd = strchr(s, '-');
+        char *subTagEnd = VMX_STRCHR(s, '-');
         if (subTagEnd == nullptr) {
-            subTagEnd = strchr(s, '\0');
+            subTagEnd = VMX_STRCHR(s, '\0');
         }
 
         if (isFirst) {

@@ -40,6 +40,9 @@
 #include "nsDirectoryServiceDefs.h"
 #endif
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 #define NS_MOZICON_SCHEME           "moz-icon:"
 
 static const char kFileProtocol[]         = "file://";
@@ -54,7 +57,7 @@ FileSystemDataSource::isFileURI(nsIRDFResource *r)
     if ((uri) && (!strncmp(uri, kFileProtocol, sizeof(kFileProtocol) - 1)))
     {
         // XXX HACK HACK HACK
-        if (!strchr(uri, '#'))
+        if (!VMX_STRCHR(uri, '#'))
         {
             isFileURIFlag = true;
         }

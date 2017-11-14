@@ -14,6 +14,9 @@
 #include "nsURLHelper.h"
 #include <algorithm>
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 namespace mozilla {
 namespace net {
 
@@ -299,7 +302,7 @@ nsHttpResponseHead::ParseStatusLine(const char *line)
     // HTTP-Version
     ParseVersion(line);
 
-    if ((mVersion == NS_HTTP_VERSION_0_9) || !(line = PL_strchr(line, ' '))) {
+    if ((mVersion == NS_HTTP_VERSION_0_9) || !(line = VMX_STRCHR(line, ' '))) {
         mStatus = 200;
         AssignDefaultStatusText();
     }
@@ -312,7 +315,7 @@ nsHttpResponseHead::ParseStatusLine(const char *line)
         }
 
         // Reason-Phrase is whatever is remaining of the line
-        if (!(line = PL_strchr(line, ' '))) {
+        if (!(line = VMX_STRCHR(line, ' '))) {
             AssignDefaultStatusText();
         }
         else
@@ -770,7 +773,7 @@ nsHttpResponseHead::ParseVersion(const char *str)
         return;
     }
 
-    char *p = PL_strchr(str, '.');
+    char *p = VMX_STRCHR(str, '.');
     if (p == nullptr) {
         LOG(("mal-formed server version; assuming HTTP/1.0\n"));
         mVersion = NS_HTTP_VERSION_1_0;

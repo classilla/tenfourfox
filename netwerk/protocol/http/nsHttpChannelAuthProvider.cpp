@@ -29,6 +29,9 @@
 #include "nsIURL.h"
 #include "mozilla/Telemetry.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 namespace mozilla {
 namespace net {
 
@@ -498,7 +501,7 @@ nsHttpChannelAuthProvider::GetCredentials(const char     *challenges,
         const char *p = eol + 1;
 
         // get the challenge string (LF separated -- see nsHttpHeaderArray)
-        if ((eol = strchr(p, '\n')) != nullptr)
+        if ((eol = VMX_STRCHR(p, '\n')) != nullptr)
             challenge.Assign(p, eol - p);
         else
             challenge.Assign(p);
@@ -878,7 +881,7 @@ GetAuthType(const char *challenge, nsCString &authType)
     const char *p;
 
     // get the challenge type
-    if ((p = strchr(challenge, ' ')) != nullptr)
+    if ((p = VMX_STRCHR(challenge, ' ')) != nullptr)
         authType.Assign(challenge, p - challenge);
     else
         authType.Assign(challenge);
@@ -975,7 +978,7 @@ nsHttpChannelAuthProvider::ParseRealm(const char *challenge,
         }
         else {
             // realm given without quotes
-            end = strchr(p, ' ');
+            end = VMX_STRCHR(p, ' ');
             if (end)
                 realm.Assign(p, end - p);
             else

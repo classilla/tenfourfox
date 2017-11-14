@@ -11,6 +11,9 @@
 #include "nsURLHelper.h"
 #include "nsIHttpHeaderVisitor.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 namespace mozilla {
 namespace net {
 
@@ -173,7 +176,7 @@ nsHttpHeaderArray::ParseHeaderLine(const char *line,
     // We skip over mal-formed headers in the hope that we'll still be able to
     // do something useful with the response.
 
-    char *p = (char *) strchr(line, ':');
+    char *p = (char *) VMX_STRCHR(line, ':');
     if (!p) {
         LOG(("malformed header [%s]: no colon\n", line));
         return NS_OK;
@@ -217,7 +220,7 @@ nsHttpHeaderArray::ParseHeaderSet(char *buffer)
     nsHttpAtom hdr;
     char *val;
     while (buffer) {
-        char *eof = strchr(buffer, '\r');
+        char *eof = VMX_STRCHR(buffer, '\r');
         if (!eof) {
             break;
         }

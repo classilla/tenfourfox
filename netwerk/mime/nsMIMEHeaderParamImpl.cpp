@@ -24,6 +24,9 @@
 #include "nsIUnicodeDecoder.h"
 #include "mozilla/dom/EncodingUtils.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 using mozilla::dom::EncodingUtils;
 
 // static functions declared below are moved from mailnews/mime/src/comi18n.cpp
@@ -558,8 +561,8 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
       // in quotes (quotes required even if lang is blank)
       if (caseB || (caseCStart && acceptContinuations)) {
         // look for single quotation mark(')
-        const char *sQuote1 = PL_strchr(valueStart, 0x27);
-        const char *sQuote2 = sQuote1 ? PL_strchr(sQuote1 + 1, 0x27) : nullptr;
+        const char *sQuote1 = VMX_STRCHR(valueStart, 0x27);
+        const char *sQuote2 = sQuote1 ? VMX_STRCHR(sQuote1 + 1, 0x27) : nullptr;
 
         // Two single quotation marks must be present even in
         // absence of charset and lang. 
@@ -750,7 +753,7 @@ internalDecodeRFC2047Header(const char* aHeaderVal, const char* aDefaultCharset,
       Is7bitNonAsciiString(aHeaderVal, strlen(aHeaderVal))))) {
     DecodeRFC2047Str(aHeaderVal, aDefaultCharset, aOverrideCharset, aResult);
   } else if (aEatContinuations && 
-             (PL_strchr(aHeaderVal, '\n') || PL_strchr(aHeaderVal, '\r'))) {
+             (VMX_STRCHR(aHeaderVal, '\n') || VMX_STRCHR(aHeaderVal, '\r'))) {
     aResult = aHeaderVal;
   } else {
     aEatContinuations = false;
@@ -1191,7 +1194,7 @@ nsresult DecodeRFC2047Str(const char *aHeader, const char *aDefaultCharset,
     if (isLastEncodedWord) {
       // See if it's all whitespace.
       for (q = begin; q < p; ++q) {
-        if (!PL_strchr(" \t\r\n", *q)) break;
+        if (!VMX_STRCHR(" \t\r\n", *q)) break;
       }
     }
 
@@ -1217,7 +1220,7 @@ nsresult DecodeRFC2047Str(const char *aHeader, const char *aDefaultCharset,
     charsetStart = p;
     charsetEnd = 0;
     for (q = p; *q != '?'; q++) {
-      if (*q <= ' ' || PL_strchr(especials, *q)) {
+      if (*q <= ' ' || VMX_STRCHR(especials, *q)) {
         goto badsyntax;
       }
 

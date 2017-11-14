@@ -71,7 +71,7 @@ LogHeaders(const char *lineStart)
         buf.Assign(lineStart, endOfLine - lineStart);
         if (PL_strcasestr(buf.get(), "authorization: ") ||
             PL_strcasestr(buf.get(), "proxy-authorization: ")) {
-            char *p = PL_strchr(PL_strchr(buf.get(), ' ') + 1, ' ');
+            char *p = VMX_STRCHR(VMX_STRCHR(buf.get(), ' ') + 1, ' ');
             while (p && *++p)
                 *p = '*';
         }

@@ -902,12 +902,12 @@ nsMultiMixedConv::OnStartRequest(nsIRequest *request, nsISupports *ctxt) {
         return NS_ERROR_FAILURE;
     }
 
-    bndry = strchr(bndry, '=');
+    bndry = VMX_STRCHR(bndry, '=');
     if (!bndry) return NS_ERROR_FAILURE;
 
     bndry++; // move past the equals sign
 
-    char *attrib = (char *) strchr(bndry, ';');
+    char *attrib = (char *) VMX_STRCHR(bndry, ';');
     if (attrib) *attrib = '\0';
 
     nsAutoCString boundaryString(bndry);
@@ -1219,7 +1219,7 @@ nsMultiMixedConv::ParseHeaders(nsIChannel *aChannel, char *&aPtr,
             mResponseHead->ParseHeaderLine(tmpHeader.get());
         }
 
-        char *colon = (char *) strchr(cursor, ':');
+        char *colon = (char *) VMX_STRCHR(cursor, ':');
         if (colon) {
             *colon = '\0';
             nsAutoCString headerStr(cursor);
@@ -1258,12 +1258,12 @@ nsMultiMixedConv::ParseHeaders(nsIChannel *aChannel, char *&aPtr,
                 // something like: Content-range: bytes 7000-7999/8000
                 char* tmpPtr;
 
-                tmpPtr = (char *) strchr(colon + 1, '/');
+                tmpPtr = (char *) VMX_STRCHR(colon + 1, '/');
                 if (tmpPtr) 
                     *tmpPtr = '\0';
 
                 // pass the bytes-unit and the SP
-                char *range = (char *) strchr(colon + 2, ' ');
+                char *range = (char *) VMX_STRCHR(colon + 2, ' ');
                 if (!range)
                     return NS_ERROR_FAILURE;
 
@@ -1275,7 +1275,7 @@ nsMultiMixedConv::ParseHeaders(nsIChannel *aChannel, char *&aPtr,
                     mByteRangeStart = mByteRangeEnd = 0;
                 }
                 else {
-                    tmpPtr = (char *) strchr(range, '-');
+                    tmpPtr = (char *) VMX_STRCHR(range, '-');
                     if (!tmpPtr)
                         return NS_ERROR_FAILURE;
                     

@@ -10,6 +10,9 @@
 #include "DataChannelChild.h"
 #include "plstr.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 static NS_DEFINE_CID(kSimpleURICID, NS_SIMPLEURI_CID);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -168,8 +171,8 @@ nsDataHandler::ParseURI(nsCString& spec,
     buffer += 5;
 
     // First, find the start of the data
-    char *comma = strchr(buffer, ',');
-    char *hash = strchr(buffer, '#');
+    char *comma = VMX_STRCHR(buffer, ',');
+    char *hash = VMX_STRCHR(buffer, '#');
     if (!comma || (hash && hash < comma))
         return NS_ERROR_MALFORMED_URI;
 
@@ -195,7 +198,7 @@ nsDataHandler::ParseURI(nsCString& spec,
         contentCharset.AssignLiteral("US-ASCII");
     } else {
         // everything else is content type
-        char *semiColon = (char *) strchr(buffer, ';');
+        char *semiColon = (char *) VMX_STRCHR(buffer, ';');
         if (semiColon)
             *semiColon = '\0';
         

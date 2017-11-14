@@ -25,6 +25,9 @@
 #include "mozilla/dom/EncodingUtils.h"
 #include "nsContentUtils.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 using mozilla::dom::EncodingUtils;
 using namespace mozilla::ipc;
 
@@ -1695,7 +1698,7 @@ nsStandardURL::SetHost(const nsACString &input)
 
     // For consistency with SetSpec/nsURLParsers, don't allow spaces
     // in the hostname.
-    if (strchr(host, ' '))
+    if (VMX_STRCHR(host, ' '))
         return NS_ERROR_MALFORMED_URI;
 
     InvalidateCache();
@@ -2194,7 +2197,7 @@ nsStandardURL::Resolve(const nsACString &in, nsACString &out)
         // locate result path
         resultPath = PL_strstr(result, "://");
         if (resultPath) {
-            resultPath = PL_strchr(resultPath + 3, '/');
+            resultPath = VMX_STRCHR(resultPath + 3, '/');
             if (resultPath)
                 net_CoalesceDirs(coalesceFlag,resultPath);
         }

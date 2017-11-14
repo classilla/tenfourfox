@@ -132,7 +132,7 @@ nsHttpChunkedDecoder::ParseChunkRemaining(char *buf,
             unsigned long parsedval; // could be 64 bit, could be 32
 
             // ignore any chunk-extensions
-            if ((p = PL_strchr(buf, ';')) != nullptr)
+            if ((p = VMX_STRCHR(buf, ';')) != nullptr)
                 *p = 0;
 
             // mChunkRemaining is an uint32_t!

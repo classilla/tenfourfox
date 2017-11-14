@@ -49,6 +49,9 @@
 static const int32_t ANDROID_23_VERSION = 10;
 #endif
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 using namespace mozilla;
 
 namespace mozilla {
@@ -1683,7 +1686,7 @@ Predictor::ParseMetaDataEntry(const char *key, const char *value, nsIURI **uri,
   PREDICTOR_LOG(("Predictor::ParseMetaDataEntry key=%s value=%s",
                  key ? key : "", value));
 
-  const char *comma = strchr(value, ',');
+  const char *comma = VMX_STRCHR(value, ',');
   if (!comma) {
     PREDICTOR_LOG(("    could not find first comma"));
     return false;
@@ -1699,7 +1702,7 @@ Predictor::ParseMetaDataEntry(const char *key, const char *value, nsIURI **uri,
   }
 
   value = comma + 1;
-  comma = strchr(value, ',');
+  comma = VMX_STRCHR(value, ',');
   if (!comma) {
     PREDICTOR_LOG(("    could not find second comma"));
     return false;
@@ -1709,7 +1712,7 @@ Predictor::ParseMetaDataEntry(const char *key, const char *value, nsIURI **uri,
   PREDICTOR_LOG(("    hitCount -> %u", hitCount));
 
   value = comma + 1;
-  comma = strchr(value, ',');
+  comma = VMX_STRCHR(value, ',');
   if (!comma) {
     PREDICTOR_LOG(("    could not find third comma"));
     return false;

@@ -665,7 +665,7 @@ nsStdURLParser::ParseAfterScheme(const char *spec, int32_t specLen,
     const char *end = spec + specLen;
     const char *p;
     for (p = spec + nslash; p < end; ++p) {
-        if (strchr("/?#;", *p))
+        if (VMX_STRCHR("/?#;", *p))
             break;
     }
     switch (nslash) {

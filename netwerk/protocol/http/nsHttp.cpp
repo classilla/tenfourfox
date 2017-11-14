@@ -13,6 +13,9 @@
 #include "mozilla/HashFunctions.h"
 #include "nsCRT.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 namespace mozilla {
 namespace net {
 
@@ -281,9 +284,9 @@ nsHttp::FindToken(const char *input, const char *token, const char *seps)
     const char *inputEnd = input + inputLen - tokenLen;
     for (; input <= inputEnd; ++input) {
         if (PL_strncasecmp(input, token, tokenLen) == 0) {
-            if (input > inputTop && !strchr(seps, *(input - 1)))
+            if (input > inputTop && !VMX_STRCHR(seps, *(input - 1)))
                 continue;
-            if (input < inputEnd && !strchr(seps, *(input + tokenLen)))
+            if (input < inputEnd && !VMX_STRCHR(seps, *(input + tokenLen)))
                 continue;
             return input;
         }

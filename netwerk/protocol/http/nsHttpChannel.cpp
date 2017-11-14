@@ -92,6 +92,9 @@
 #include "nsICompressConvStats.h"
 #include "mozilla/unused.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 namespace mozilla { namespace net {
 
 namespace {
@@ -3804,7 +3807,7 @@ nsHttpChannel::AssembleCacheKey(const char *spec, uint32_t postID,
     }
 
     // Strip any trailing #ref from the URL before using it as the key
-    const char *p = strchr(spec, '#');
+    const char *p = VMX_STRCHR(spec, '#');
     if (p)
         cacheKey.Append(spec, p - spec);
     else
@@ -4450,7 +4453,7 @@ GetAuthType(const char *challenge, nsCString &authType)
     const char *p;
 
     // get the challenge type
-    if ((p = strchr(challenge, ' ')) != nullptr)
+    if ((p = VMX_STRCHR(challenge, ' ')) != nullptr)
         authType.Assign(challenge, p - challenge);
     else
         authType.Assign(challenge);

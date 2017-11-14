@@ -66,6 +66,9 @@
 
 #include <limits>
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 nsresult /*NS_NewChannelWithNodeAndTriggeringPrincipal */
 NS_NewChannelWithTriggeringPrincipal(nsIChannel           **outChannel,
                                      nsIURI                *aUri,
@@ -2133,7 +2136,7 @@ nsresult
 NS_GenerateHostPort(const nsCString& host, int32_t port,
                     nsACString &hostLine)
 {
-    if (strchr(host.get(), ':')) {
+    if (VMX_STRCHR(host.get(), ':')) {
         // host is an IPv6 address literal and must be encapsulated in []'s
         hostLine.Assign('[');
         // scope id is not needed for Host header.
