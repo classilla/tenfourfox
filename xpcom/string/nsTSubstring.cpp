@@ -8,6 +8,9 @@
 #include "mozilla/double-conversion.h"
 #include "mozilla/MemoryReporting.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 using double_conversion::DoubleToStringConverter;
 
 #ifdef XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE
@@ -938,7 +941,7 @@ FormatWithoutTrailingZeros(char (&aBuf)[40], double aDouble,
   }
 
   char* end = formattedDouble + length;
-  char* decimalPoint = strchr(aBuf, '.');
+  char* decimalPoint = VMX_STRCHR(aBuf, '.');
   // No trailing zeros to remove.
   if (!decimalPoint) {
     return length;

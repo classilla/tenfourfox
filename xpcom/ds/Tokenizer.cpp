@@ -8,6 +8,9 @@
 
 #include "nsUnicharUtils.h"
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 namespace mozilla {
 
 static const char sWhitespaces[] = " \t";
@@ -264,7 +267,7 @@ Tokenizer::Parse(Token& aToken) const
     state = PARSE_CRLF;
   } else if (*next == '\n') {
     state = PARSE_LF;
-  } else if (strchr(mWhitespaces, *next)) { // not UTF-8 friendly?
+  } else if (VMX_STRCHR(mWhitespaces, *next)) { // not UTF-8 friendly?
     state = PARSE_WS;
   } else {
     state = PARSE_CHAR;
@@ -339,7 +342,7 @@ Tokenizer::IsWordFirst(const char aInput) const
   return (ToLowerCase(static_cast<uint32_t>(aInput)) !=
           ToUpperCase(static_cast<uint32_t>(aInput))) ||
           '_' == aInput ||
-          (mAdditionalWordChars ? !!strchr(mAdditionalWordChars, aInput) : false);
+          (mAdditionalWordChars ? !!VMX_STRCHR(mAdditionalWordChars, aInput) : false);
 }
 
 bool

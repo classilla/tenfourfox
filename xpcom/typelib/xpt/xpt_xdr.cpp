@@ -10,6 +10,9 @@
 #include "nscore.h"
 #include <string.h>             /* strchr */
 
+#include "mozilla-config.h"
+#include "plvmx.h"
+
 static PRBool
 CheckForRepeat(XPTCursor *cursor, void **addrp, XPTPool pool, uint32_t len,
                    XPTCursor *new_cursor, PRBool *already);
@@ -407,7 +410,7 @@ XPT_DoCString(XPTArena *arena, XPTCursor *cursor, char **identp)
         my_cursor.state = cursor->state;
         start = &CURS_POINT(&my_cursor);
 
-        end = strchr(start, 0); /* find the end of the string */
+        end = VMX_STRCHR(start, 0); /* find the end of the string */
         if (!end) {
             fprintf(stderr, "didn't find end of string on decode!\n");
             return PR_FALSE;
