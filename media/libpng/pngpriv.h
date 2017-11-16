@@ -200,6 +200,14 @@
 #  endif
 #endif
 
+#ifndef PNG_POWERPC_VMX_OPT
+#  if defined(__ALTIVEC__)
+#     define PNG_POWERPC_VMX_OPT 2
+#  else
+#     define PNG_POWERPC_VMX_OPT 0
+#  endif
+#endif
+
 #ifndef PNG_INTEL_SSE_OPT
 #   ifdef PNG_INTEL_SSE
       /* Only check for SSE if the build configuration has been modified to
@@ -261,6 +269,10 @@
 #  define PNG_POWERPC_VSX_IMPLEMENTATION 1
 #endif
 
+#if PNG_POWERPC_VMX_OPT > 0
+#  define PNG_FILTER_OPTIMIZATIONS png_init_filter_functions_vmx
+#  define PNG_POWERPC_VMX_IMPLEMENTATION 1
+#endif
 
 /* Is this a build of a DLL where compilation of the object modules requires
  * different preprocessor settings to those required for a simple library?  If
@@ -1353,6 +1365,24 @@ PNG_INTERNAL_FUNCTION(void,png_read_filter_row_paeth3_vsx,(png_row_infop
 PNG_INTERNAL_FUNCTION(void,png_read_filter_row_paeth4_vsx,(png_row_infop
     row_info, png_bytep row, png_const_bytep prev_row),PNG_EMPTY);
 #endif
+
+#if PNG_POWERPC_VMX_OPT > 0
+PNG_INTERNAL_FUNCTION(void,png_read_filter_row_up_vmx,(png_row_infop row_info,
+    png_bytep row, png_const_bytep prev_row),PNG_EMPTY);
+PNG_INTERNAL_FUNCTION(void,png_read_filter_row_sub3_vmx,(png_row_infop
+    row_info, png_bytep row, png_const_bytep prev_row),PNG_EMPTY);
+PNG_INTERNAL_FUNCTION(void,png_read_filter_row_sub4_vmx,(png_row_infop
+    row_info, png_bytep row, png_const_bytep prev_row),PNG_EMPTY);
+PNG_INTERNAL_FUNCTION(void,png_read_filter_row_avg3_vmx,(png_row_infop
+    row_info, png_bytep row, png_const_bytep prev_row),PNG_EMPTY);
+PNG_INTERNAL_FUNCTION(void,png_read_filter_row_avg4_vmx,(png_row_infop
+    row_info, png_bytep row, png_const_bytep prev_row),PNG_EMPTY);
+PNG_INTERNAL_FUNCTION(void,png_read_filter_row_paeth3_vmx,(png_row_infop
+    row_info, png_bytep row, png_const_bytep prev_row),PNG_EMPTY);
+PNG_INTERNAL_FUNCTION(void,png_read_filter_row_paeth4_vmx,(png_row_infop
+    row_info, png_bytep row, png_const_bytep prev_row),PNG_EMPTY);
+#endif
+
 
 #if PNG_INTEL_SSE_IMPLEMENTATION > 0
 PNG_INTERNAL_FUNCTION(void,png_read_filter_row_sub3_sse2,(png_row_infop

@@ -69,10 +69,10 @@
 #  define PNG_INTEL_SSE_OPT 0
 #endif
 
-#ifdef MOZ_PNG_USE_POWERPC
-#  undef PNG_POWERPC_VSX_OPT /* Let libpng decide */
+#ifdef MOZ_PNG_USE_ALTIVEC
+#  undef PNG_POWERPC_VMX_OPT /* Let libpng decide */
 #else
-#  define PNG_POWERPC_VSX_OPT 0 /* Do not use VSX optimization */
+#  define PNG_POWERPC_VMX_OPT 0 /* Do not use VSX optimization */
 #endif
 
 #define PNG_READ_SUPPORTED

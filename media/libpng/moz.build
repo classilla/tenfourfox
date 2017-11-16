@@ -48,11 +48,11 @@ if CONFIG['INTEL_ARCHITECTURE']:
         'intel/intel_init.c'
     ]
 
-if CONFIG['HAVE_ALTIVEC_NOT_ENABLED_YET']:
-    DEFINES['MOZ_PNG_USE_POWERPC'] = True
+if CONFIG['TENFOURFOX_VMX']:
+    DEFINES['MOZ_PNG_USE_ALTIVEC'] = True
     UNIFIED_SOURCES += [
-        'powerpc/filter_vsx_intrinsics.c',
-        'powerpc/powerpc_init.c'
+        'powerpc/filter_vmx_intrinsics.c',
+        'powerpc/powerpc_vmx_init.c'
     ]
 
 if CONFIG['MOZ_TREE_FREETYPE']:
