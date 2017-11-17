@@ -118,6 +118,8 @@ foundResult:
     return NULL;
 }
 
+/* The below is (C)2017 Cameron Kaiser. All rights reserved. */
+
 char *vmx_strchr(const char *p, int ch) {
 	unsigned char c = (unsigned char)ch;
 	unsigned int val;
@@ -135,13 +137,26 @@ char *vmx_strchr(const char *p, int ch) {
 		mashedByte, mashedByte, mashedByte, mashedByte};
 	const vector unsigned char nullVector = vec_splat_u8(0);
 
+	// We can get away with this because OS X guarantees to always
+	// malloc at least 16 bytes on AltiVec-capable systems, and stack
+	// allocations will never end up in unmapped memory.
+	const vector unsigned char *w;
 	for(; ; p+=16) {
-		const vector unsigned char *w = (const vector unsigned char*)p;
+ 		w = (const vector unsigned char*)p;
 		if (vec_any_eq(*w, searchVector)) break;
 		if (vec_any_eq(*w, nullVector))   return NULL;
 	}
 
 	// Some byte has the result; look in groups of 4 to find which one.
+	// It is possible if we're looking at a batch of 16 bytes near
+	// the end of the string that there is both the search byte and
+	// the null, but the null precedes it (i.e., the search byte is in
+	// some block of garbage memory at the end). AltiVec can't tell us
+	// where the bytes are, but if there's no null at all, we don't need
+	// to check further for one.
+	if (vec_any_eq(*w, nullVector)) goto thereisanull;
+
+	// No null is present.
 	// Unroll the loop.
 	val = *(unsigned int*)p;
 	if (((val >> 24) & 0xFF) == c) return (void *)p;
@@ -166,6 +181,55 @@ char *vmx_strchr(const char *p, int ch) {
 	if (((val >> 16) & 0xFF) == c) return (void *)(1 + p);
 	if (((val >> 8) & 0xFF)  == c) return (void *)(2 + p);
 	if ((val & 0xFF)         == c) return (void *)(3 + p);
+	goto wtf;
+
+thereisanull:
+	;
+
+	// A null is present. Check string termination at each
+	// character position. Unroll the loop.
+	val = *(unsigned int*)p;
+	if (((val >> 24) & 0xFF) == c) return (void *)p;
+	if (((val >> 24) & 0xFF) == 0) return NULL;
+	if (((val >> 16) & 0xFF) == c) return (void *)(1 + p);
+	if (((val >> 16) & 0xFF) == 0) return NULL;
+	if (((val >> 8) & 0xFF)  == c) return (void *)(2 + p);
+	if (((val >> 8) & 0xFF)  == 0) return NULL;
+	if ((val & 0xFF)         == c) return (void *)(3 + p);
+	if ((val & 0xFF)         == 0) return NULL;
+	p += 4;
+	val = *(unsigned int*)p;
+	if (((val >> 24) & 0xFF) == c) return (void *)p;
+	if (((val >> 24) & 0xFF) == 0) return NULL;
+	if (((val >> 16) & 0xFF) == c) return (void *)(1 + p);
+	if (((val >> 16) & 0xFF) == 0) return NULL;
+	if (((val >> 8) & 0xFF)  == c) return (void *)(2 + p);
+	if (((val >> 8) & 0xFF)  == 0) return NULL;
+	if ((val & 0xFF)         == c) return (void *)(3 + p);
+	if ((val & 0xFF)         == 0) return NULL;
+	p += 4;
+	val = *(unsigned int*)p;
+	if (((val >> 24) & 0xFF) == c) return (void *)p;
+	if (((val >> 24) & 0xFF) == 0) return NULL;
+	if (((val >> 16) & 0xFF) == c) return (void *)(1 + p);
+	if (((val >> 16) & 0xFF) == 0) return NULL;
+	if (((val >> 8) & 0xFF)  == c) return (void *)(2 + p);
+	if (((val >> 8) & 0xFF)  == 0) return NULL;
+	if ((val & 0xFF)         == c) return (void *)(3 + p);
+	if ((val & 0xFF)         == 0) return NULL;
+	p += 4;
+	val = *(unsigned int*)p;
+	if (((val >> 24) & 0xFF) == c) return (void *)p;
+	if (((val >> 24) & 0xFF) == 0) return NULL;
+	if (((val >> 16) & 0xFF) == c) return (void *)(1 + p);
+	if (((val >> 16) & 0xFF) == 0) return NULL;
+	if (((val >> 8) & 0xFF)  == c) return (void *)(2 + p);
+	if (((val >> 8) & 0xFF)  == 0) return NULL;
+	if ((val & 0xFF)         == c) return (void *)(3 + p);
+	if ((val & 0xFF)         == 0) return NULL;
+
+wtf:
+	;
 
 	// unreachable
 	fprintf(stderr, "failed vmx_strchr()\n");
