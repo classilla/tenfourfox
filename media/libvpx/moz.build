@@ -39,6 +39,7 @@ if CONFIG['VPX_VMX_ASM']:
 		'vp8/common/ppc/loopfilter_filters_altivec.s',
 		# This might not be needed anymore.
 		'vp8/common/ppc/recon_altivec.s',
+		'vp8/common/ppc/vp8_intrinsics_vmx.c',
 		'vp9/common/ppc/vp9_convolve_vmx.c',
 		'vp9/common/ppc/vp9_idct_intrin_vmx.c',
 		'vp9/common/ppc/vp9_intrapred_vmx.c',
