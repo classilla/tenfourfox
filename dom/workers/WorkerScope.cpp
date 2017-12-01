@@ -379,7 +379,8 @@ WorkerGlobalScope::GetIndexedDB(ErrorResult& aErrorResult)
                                   owningObject,
                                   principalInfo,
                                   mWorkerPrivate->WindowID(),
-                                  getter_AddRefs(indexedDB));
+                                  getter_AddRefs(indexedDB),
+                                  mWorkerPrivate->IsInPrivateBrowsing());
     if (NS_WARN_IF(NS_FAILED(rv))) {
       aErrorResult = rv;
       return nullptr;

@@ -199,7 +199,10 @@ IDBFactory::CreateForMainThreadJS(JSContext* aCx,
     return rv;
   }
 
-  rv = CreateForMainThreadJSInternal(aCx, aOwningObject, principalInfo, aFactory);
+  rv = CreateForMainThreadJSInternal(aCx, aOwningObject, principalInfo, aFactory,
+                                     /* Only IndexedDatabaseManager::DefineIndexedDB
+                                        can call this, which is always chrome, thus ... */
+                                     /* aIsPrivateBrowsing */ false);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -224,7 +227,9 @@ IDBFactory::CreateForDatastore(JSContext* aCx,
     new PrincipalInfo(SystemPrincipalInfo()));
 
   nsresult rv =
-    CreateForMainThreadJSInternal(aCx, aOwningObject, principalInfo, aFactory);
+    CreateForMainThreadJSInternal(aCx, aOwningObject, principalInfo, aFactory, 
+                                  /* Only chrome can get here, therefore ... */
+                                  /* aIsPrivateBrowsing */ false);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -240,7 +245,8 @@ IDBFactory::CreateForWorker(JSContext* aCx,
                             JS::Handle<JSObject*> aOwningObject,
                             const PrincipalInfo& aPrincipalInfo,
                             uint64_t aInnerWindowID,
-                            IDBFactory** aFactory)
+                            IDBFactory** aFactory,
+                            bool aIsPrivateBrowsing)
 {
   MOZ_ASSERT(!NS_IsMainThread());
   MOZ_ASSERT(aPrincipalInfo.type() != PrincipalInfo::T__None);
@@ -252,7 +258,8 @@ IDBFactory::CreateForWorker(JSContext* aCx,
                         aOwningObject,
                         principalInfo,
                         aInnerWindowID,
-                        aFactory);
+                        aFactory,
+                        aIsPrivateBrowsing);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -268,7 +275,8 @@ IDBFactory::CreateForMainThreadJSInternal(
                                        JSContext* aCx,
                                        JS::Handle<JSObject*> aOwningObject,
                                        nsAutoPtr<PrincipalInfo>& aPrincipalInfo,
-                                       IDBFactory** aFactory)
+                                       IDBFactory** aFactory,
+                                       bool aIsPrivateBrowsing)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipalInfo);
@@ -290,7 +298,8 @@ IDBFactory::CreateForMainThreadJSInternal(
                         aOwningObject,
                         aPrincipalInfo,
                         /* aInnerWindowID */ 0,
-                        aFactory);
+                        aFactory,
+                        aIsPrivateBrowsing);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -304,7 +313,8 @@ IDBFactory::CreateForJSInternal(JSContext* aCx,
                                 JS::Handle<JSObject*> aOwningObject,
                                 nsAutoPtr<PrincipalInfo>& aPrincipalInfo,
                                 uint64_t aInnerWindowID,
-                                IDBFactory** aFactory)
+                                IDBFactory** aFactory,
+                                bool aIsPrivateBrowsing)
 {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aOwningObject);
@@ -327,6 +337,7 @@ IDBFactory::CreateForJSInternal(JSContext* aCx,
   factory->mOwningObject = aOwningObject;
   mozilla::HoldJSObjects(factory.get());
   factory->mInnerWindowID = aInnerWindowID;
+  factory->mPrivateBrowsingMode = aIsPrivateBrowsing;
 
   factory.forget(aFactory);
   return NS_OK;

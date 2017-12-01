@@ -70,7 +70,7 @@ class IDBFactory final
   nsTArray<nsAutoPtr<PendingRequestInfo>> mPendingRequests;
 
   BackgroundFactoryChild* mBackgroundActor;
-
+  
 #ifdef DEBUG
   PRThread* mOwningThread;
 #endif
@@ -100,7 +100,8 @@ public:
                   JS::Handle<JSObject*> aOwningObject,
                   const PrincipalInfo& aPrincipalInfo,
                   uint64_t aInnerWindowID,
-                  IDBFactory** aFactory);
+                  IDBFactory** aFactory,
+                  bool aIsPrivateBrowsing);
 
   static bool
   AllowedForWindow(nsPIDOMWindow* aWindow);
@@ -217,14 +218,16 @@ private:
   CreateForMainThreadJSInternal(JSContext* aCx,
                                 JS::Handle<JSObject*> aOwningObject,
                                 nsAutoPtr<PrincipalInfo>& aPrincipalInfo,
-                                IDBFactory** aFactory);
+                                IDBFactory** aFactory,
+                                bool aIsPrivateBrowsing);
 
   static nsresult
   CreateForJSInternal(JSContext* aCx,
                       JS::Handle<JSObject*> aOwningObject,
                       nsAutoPtr<PrincipalInfo>& aPrincipalInfo,
                       uint64_t aInnerWindowID,
-                      IDBFactory** aFactory);
+                      IDBFactory** aFactory,
+                      bool aIsPrivateBrowsing);
 
   static nsresult
   AllowedForWindowInternal(nsPIDOMWindow* aWindow,
