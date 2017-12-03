@@ -187,7 +187,7 @@ GetRevocationBehaviorFromPrefs(/*out*/ CertVerifier::OcspDownloadConfig* odc,
   // 0 = disabled
   // 1 = enabled for everything (default)
   // 2 = enabled for EV certificates only
-  int32_t ocspLevel = Preferences::GetInt("security.OCSP.enabled", 1);
+  int32_t ocspLevel = Preferences::GetInt("security.OCSP.enabled", 2);
   switch (ocspLevel) {
     case 0: *odc = CertVerifier::ocspOff; break;
     case 2: *odc = CertVerifier::ocspEVOnly; break;
@@ -714,7 +714,7 @@ nsNSSComponent::FillTLSVersionRange(SSLVersionRange& rangeOut,
   rangeOut.max = (uint16_t) maxFromPrefs;
 }
 
-static const int32_t OCSP_ENABLED_DEFAULT = 1;
+static const int32_t OCSP_ENABLED_DEFAULT = 2;
 static const bool REQUIRE_SAFE_NEGOTIATION_DEFAULT = false;
 static const bool FALSE_START_ENABLED_DEFAULT = true;
 static const bool NPN_ENABLED_DEFAULT = true;

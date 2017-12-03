@@ -37,7 +37,11 @@ pref("security.remember_cert_checkbox_default_setting", true);
 pref("security.ask_for_password",        0);
 pref("security.password_lifetime",       30);
 
-pref("security.OCSP.enabled", 1);
+// The supported values of this pref are:
+// 0: do not fetch OCSP
+// 1: fetch OCSP for DV and EV certificates
+// 2: fetch OCSP only for EV certificates
+pref("security.OCSP.enabled", 2);
 pref("security.OCSP.require", false);
 pref("security.OCSP.GET.enabled", false);
 
