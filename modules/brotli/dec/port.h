@@ -165,11 +165,13 @@ static BROTLI_INLINE reg_t BrotliRBit(reg_t input) {
   X = NULL;                                  \
 }
 
+#if !defined(__i386) && !defined(__x86_64__)
 #if (BROTLI_BIG_ENDIAN == 0)
 #error not compiling big endian
 #endif
 #if (BROTLI_64_BIT == 1)
 #error not compiling 32 bit
 #endif
+#endif /* !defined(__i386) && !defined(__x86_64__) */
 
 #endif  /* BROTLI_DEC_PORT_H_ */
