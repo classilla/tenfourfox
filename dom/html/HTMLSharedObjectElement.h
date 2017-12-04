@@ -192,6 +192,10 @@ public:
     return GetContentDocument();
   }
 
+protected:
+  // Override for nsImageLoadingContent.
+  nsIContent* AsContent() override { return this; }
+
 private:
   virtual ~HTMLSharedObjectElement();
 

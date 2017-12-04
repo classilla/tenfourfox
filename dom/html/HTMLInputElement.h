@@ -1254,6 +1254,11 @@ protected:
    */
   bool IsPopupBlocked() const;
 
+  /**
+   * Override for nsImageLoadingContent.
+   */
+  nsIContent* AsContent() override { return this; }
+
   nsCOMPtr<nsIControllers> mControllers;
 
   /*

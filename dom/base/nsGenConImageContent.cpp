@@ -56,6 +56,9 @@ public:
     }
     return nsXMLElement::PreHandleEvent(aVisitor);
   }
+
+protected:
+  nsIContent* AsContent() override { return this; }
   
 private:
   virtual ~nsGenConImageContent();

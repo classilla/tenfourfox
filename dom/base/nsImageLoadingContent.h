@@ -214,6 +214,10 @@ protected:
   // The nsContentPolicyType we would use for this ImageLoadType
   static nsContentPolicyType PolicyTypeForLoad(ImageLoadType aImageLoadType);
 
+  // Get ourselves as an nsIContent*.  Not const because some of the callers
+  // want a non-const nsIContent.
+  virtual nsIContent* AsContent() = 0;
+
 private:
   /**
    * Struct used to manage the image observers.

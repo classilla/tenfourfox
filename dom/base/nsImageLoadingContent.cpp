@@ -868,7 +868,7 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
   // We use the principal of aDocument to avoid having to QI |this| an extra
   // time. It should always be the same as the principal of this node.
 #ifdef DEBUG
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+  nsIContent* thisContent = AsContent();
   MOZ_ASSERT(thisContent &&
              thisContent->NodePrincipal() == aDocument->NodePrincipal(),
              "Principal mismatch?");
@@ -909,8 +909,7 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
 
   // Not blocked. Do the load.
   RefPtr<imgRequestProxy>& req = PrepareNextRequest(aImageLoadType);
-  nsCOMPtr<nsIContent> content =
-      do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+  nsIContent* content = AsContent();
   nsresult rv = nsContentUtils::LoadImage(aNewURI, aDocument,
                                           aDocument->NodePrincipal(),
                                           aDocument->GetDocumentURI(),
@@ -1048,10 +1047,7 @@ nsImageLoadingContent::UpdateImageState(bool aNotify)
     return;
   }
 
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  if (!thisContent) {
-    return;
-  }
+  nsIContent* thisContent = AsContent();
 
   mLoading = mBroken = mUserDisabled = mSuppressed = false;
 
@@ -1115,29 +1111,19 @@ nsImageLoadingContent::UseAsPrimaryRequest(imgRequestProxy* aRequest,
 nsIDocument*
 nsImageLoadingContent::GetOurOwnerDoc()
 {
-  nsCOMPtr<nsIContent> thisContent =
-    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  NS_ENSURE_TRUE(thisContent, nullptr);
-
-  return thisContent->OwnerDoc();
+  return AsContent()->OwnerDoc();
 }
 
 nsIDocument*
 nsImageLoadingContent::GetOurCurrentDoc()
 {
-  nsCOMPtr<nsIContent> thisContent =
-    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  NS_ENSURE_TRUE(thisContent, nullptr);
-
-  return thisContent->GetComposedDoc();
+  return AsContent()->GetComposedDoc();
 }
 
 nsIFrame*
 nsImageLoadingContent::GetOurPrimaryFrame()
 {
-  nsCOMPtr<nsIContent> thisContent =
-    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  return thisContent->GetPrimaryFrame();
+  return AsContent()->GetPrimaryFrame();
 }
 
 nsPresContext* nsImageLoadingContent::GetFramePresContext()
@@ -1159,8 +1145,7 @@ nsImageLoadingContent::StringToURI(const nsAString& aSpec,
   NS_PRECONDITION(aURI, "Null out param");
 
   // (1) Get the base URI
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  NS_ASSERTION(thisContent, "An image loading content must be an nsIContent");
+  nsIContent* thisContent = AsContent();
   nsCOMPtr<nsIURI> baseURL = thisContent->GetBaseURI();
 
   // (2) Get the charset

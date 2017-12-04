@@ -235,6 +235,10 @@ public:
     return GetContentDocument();
   }
 
+protected:
+  // Override for nsImageLoadingContent.
+  nsIContent* AsContent() override { return this; }
+
 private:
   /**
    * Calls LoadObject with the correct arguments to start the plugin load.
