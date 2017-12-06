@@ -936,11 +936,37 @@ void
 imgCacheQueue::Remove(imgCacheEntry* entry)
 {
   queueContainer::iterator it = find(mQueue.begin(), mQueue.end(), entry);
-  if (it != mQueue.end()) {
-    mSize -= (*it)->GetDataSize();
-    mQueue.erase(it);
-    MarkDirty();
+  if (it == mQueue.end()) {
+    return;
   }
+
+  mSize -= (*it)->GetDataSize();
+
+  // If the queue is clean and this is the first entry,
+  // then we can efficiently remove the entry without
+  // dirtying the sort order.
+  if (!IsDirty() && it == mQueue.begin()) {
+    std::pop_heap(mQueue.begin(), mQueue.end(),
+                  imgLoader::CompareCacheEntries);
+    mQueue.pop_back();
+    return;
+  }
+
+  // Remove from the middle of the list.  This potentially
+  // breaks the binary heap sort order.
+  mQueue.erase(it);
+
+  // If we only have one entry or the queue is empty, though,
+  // then the sort order is still effectively good.  Simply
+  // refresh the list to clear the dirty flag.
+  if (mQueue.size() <= 1) {
+    Refresh();
+    return;
+  }
+
+  // Otherwise we must mark the queue dirty and potentially
+  // trigger an expensive sort later.
+  MarkDirty();
 }
 
 void
@@ -950,7 +976,11 @@ imgCacheQueue::Push(imgCacheEntry* entry)
 
   RefPtr<imgCacheEntry> refptr(entry);
   mQueue.push_back(refptr);
-  MarkDirty();
+  // If we're not dirty already, then we can efficiently add this to the
+  // binary heap immediately.  This is only O(log n).
+  if (!IsDirty()) {
+    std::push_heap(mQueue.begin(), mQueue.end(), imgLoader::CompareCacheEntries);
+  }
 }
 
 already_AddRefed<imgCacheEntry>
@@ -974,6 +1004,8 @@ imgCacheQueue::Pop()
 void
 imgCacheQueue::Refresh()
 {
+  // Resort the list.  This is an O(3 * n) operation and best avoided
+  // if possible.
   std::make_heap(mQueue.begin(), mQueue.end(), imgLoader::CompareCacheEntries);
   mDirty = false;
 }
@@ -994,6 +1026,14 @@ uint32_t
 imgCacheQueue::GetNumElements() const
 {
   return mQueue.size();
+}
+
+bool
+imgCacheQueue::Contains(imgCacheEntry* aEntry) const
+{
+  // return mQueue.Contains(aEntry); // if we convert this to nsTArray
+  // std::vector version
+  return (std::find(mQueue.begin(), mQueue.end(), aEntry) != mQueue.end());
 }
 
 imgCacheQueue::iterator
@@ -1523,7 +1563,12 @@ void
 imgLoader::CacheEntriesChanged(bool aForChrome, int32_t aSizeDiff /* = 0 */)
 {
   imgCacheQueue& queue = GetCacheQueue(aForChrome);
-  queue.MarkDirty();
+  // We only need to dirty the queue if there is any sorting
+  // taking place.  Empty or single-entry lists can't become
+  // dirty.
+  if (queue.GetNumElements() > 1) {
+    queue.MarkDirty();
+  }
   queue.UpdateSize(aSizeDiff);
 }
 
@@ -1552,7 +1597,9 @@ imgLoader::CheckCacheLimits(imgCacheTable& cache, imgCacheQueue& queue)
     }
 
     if (entry) {
-      RemoveFromCache(entry);
+      // We just popped this entry from the queue, so pass AlreadyRemoved
+      // to avoid searching the queue again in RemoveFromCache.
+      RemoveFromCache(entry, QueueState::AlreadyRemoved);
     }
   }
 }
@@ -1859,7 +1906,7 @@ imgLoader::RemoveFromCache(const ImageCacheKey& aKey)
 }
 
 bool
-imgLoader::RemoveFromCache(imgCacheEntry* entry)
+imgLoader::RemoveFromCache(imgCacheEntry* entry, QueueState aQueueState)
 {
   LOG_STATIC_FUNC(gImgLog, "imgLoader::RemoveFromCache entry");
 
@@ -1881,7 +1928,14 @@ imgLoader::RemoveFromCache(imgCacheEntry* entry)
       if (mCacheTracker) {
         mCacheTracker->RemoveObject(entry);
       }
-      queue.Remove(entry);
+      // Only search the queue to remove the entry if its possible it might
+      // be in the queue.  If we know its not in the queue this would be
+      // wasted work.
+      MOZ_ASSERT_IF(aQueueState == QueueState::AlreadyRemoved,
+                    !queue.Contains(entry));
+      if (aQueueState == QueueState::MaybeExists) {
+        queue.Remove(entry);
+      }
     }
 
     entry->SetEvicted(true);
