@@ -186,41 +186,34 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         // If argc is already zero, skip.
         masm.cmplwi(reg_argc, 0);
         masm.x_beq(cr0, 
-#if defined(_PPC970_)
-            9*4, // count the nops
-#else
-            7*4,
-#endif
+            10*4,
             Assembler::NotLikelyB, Assembler::DontLinkB); // forward branch not
             // likely to be taken (thus don't set Lk bit)
 
         // First, move argc into CTR.
         masm.x_mtctr(reg_argc);
 
-        // Use r17 as a work register. We can't use r0, because addi
-        // will wreck the code. We'll use it again in step 3, so we just
+        // Use reg_argc as a work register. We can't use r0, because addi
+        // will wreck the code. We'll use r17 again in step 3, so we just
         // clobber reg_argc. (If argc was already zero, then r17 was already
         // cleared above.)
         masm.x_mr(reg_argc, r17);
 
-#if defined(_PPC970_)
-        // We know mtctr must lead a dispatch group, so this forces everything
-        // below into one dispatch group (addi-lfdx-stfdu-bdnz).
-        masm.x_nop();
-        masm.x_nop();
-#endif
         masm.bind(&top);
 
         // Now, copy from the argv pointer onto the stack with a tight bdnz
-        // loop. The arguments are 64-bit, so we use the FPU. It should all
-        // fit within one dispatch group on G5. This will push the arguments
-        // on in reverse order. Because the 32-bit pushes put the second
-        // 32-bit word on the stack first, using the FPU will be equivalent.
-        masm.x_subi(reg_argc, reg_argc, 8); // We start out at +1, so sub first.
-        masm.lfdx(f0, reg_argv, reg_argc); // Load from argv+argc // aligned?!
-        // G5 shouldn't need nops here, since the address isn't aliased.
-        masm.stfdu(f0, sp, -8); // Store to 0(sp) // cracked on G5
-        masm.x_bdnz(-3*4, Assembler::NotLikelyB,
+        // loop. The arguments are 64-bit, but the load could be misaligned,
+        // so we do integer loads and stores. This will push the arguments
+        // on in reverse order.
+        masm.x_subi(reg_argc, reg_argc, 4); // We start out at +1, so sub first.
+                    // As a nice side effect, this puts the low word on the
+                    // stack first so that we don't have endian problems.
+        masm.lwzx(r0, reg_argv, reg_argc);
+        masm.x_subi(reg_argc, reg_argc, 4);
+        masm.stwu(r0, sp, -4); // store to sp(-4) // not aliased on G5
+        masm.lwzx(r0, reg_argv, reg_argc);
+        masm.stwu(r0, sp, -4);
+        masm.x_bdnz(-6*4, Assembler::NotLikelyB,
             Assembler::DontLinkB); // reverse branch, likely
             // to be taken (thus don't set Lk bit)
         
@@ -581,21 +574,19 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, void **returnAddrOut)
     // Everyone clobbers their rectifier register here, so we will too.
     masm.addi(r19, r19, 1);
     masm.x_mtctr(r19);
-#if defined(_PPC970_)
-    masm.x_nop();
-    masm.x_nop();
-    masm.x_nop();
-#endif
 
-    // Push again (i.e., copy) from the position on the stack. Since we're
-    // copying 64-bit values, use the FPU.
-    // Again, optimize for single dispatch group on 970.
+    // Push again (i.e., copy) from the position on the stack. Unfortunately,
+    // we are almost certainly copying from a misaligned address and probably
+    // to one as well, so we cannot use the FPU even though these are 64-bit.
     // r5 is still pointing to the top argument.
     {
-        masm.lfd(f0, r5, 0);
-        masm.stfdu(f0, stackPointerRegister, -8); // cracked
-        masm.x_subi(r5, r5, 8);
-        masm.x_bdnz(-3*4, Assembler::NotLikelyB,
+        // ENDIAN!!!!
+        masm.lwz(r0, r5, 4); // low word on first
+        masm.stwu(r0, stackPointerRegister, -4);
+        masm.lwz(r0, r5, 0);
+        masm.x_subi(r5, r5, 8); // next double
+        masm.stwu(r0, stackPointerRegister, -4);
+        masm.x_bdnz(-5*4, Assembler::NotLikelyB,
             Assembler::DontLinkB); // reverse branch, likely
             // to be taken (thus don't set Lk bit)
     }
