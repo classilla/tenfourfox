@@ -383,10 +383,6 @@ TabParent::AddWindowListeners()
                                       this, false, false);
       }
     }
-    if (nsIPresShell* shell = mFrameElement->OwnerDoc()->GetShell()) {
-      mPresShellWithRefreshListener = shell;
-      shell->AddPostRefreshObserver(this);
-    }
   }
 }
 
@@ -400,18 +396,6 @@ TabParent::RemoveWindowListeners()
       eventTarget->RemoveEventListener(NS_LITERAL_STRING("MozUpdateWindowPos"),
                                        this, false);
     }
-  }
-  if (mPresShellWithRefreshListener) {
-    mPresShellWithRefreshListener->RemovePostRefreshObserver(this);
-    mPresShellWithRefreshListener = nullptr;
-  }
-}
-
-void
-TabParent::DidRefresh()
-{
-  if (mChromeOffset != -GetChildProcessOffset()) {
-    UpdatePosition();
   }
 }
 
