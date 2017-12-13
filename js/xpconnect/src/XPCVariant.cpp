@@ -258,7 +258,9 @@ XPCArrayHomogenizer::GetTypeForArray(JSContext* cx, HandleObject array,
 
 bool XPCVariant::InitializeData(JSContext* cx)
 {
-    JS_CHECK_RECURSION(cx, return false);
+    if (MOZ_UNLIKELY(!js::CheckRecursion(cx))) {
+        return false;
+    }
 
     RootedValue val(cx, GetJSVal());
 

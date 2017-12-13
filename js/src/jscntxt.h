@@ -149,6 +149,8 @@ class ExclusiveContext : public ContextFriendFields,
         return isJSContext();
     }
 
+    JSRuntime* ecRuntime() const { return runtime_; } // TenFourFox issue 391
+
     bool runtimeMatches(JSRuntime* rt) const {
         return runtime_ == rt;
     }

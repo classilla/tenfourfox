@@ -967,89 +967,13 @@ IsObjectInContextCompartment(JSObject* obj, const JSContext* cx);
 #define JSITER_SYMBOLSONLY 0x40 /* exclude string property keys */
 
 JS_FRIEND_API(bool)
-RunningWithTrustedPrincipals(JSContext* cx);
+CheckRecursion(JSContext* cx);
 
-MOZ_ALWAYS_INLINE uintptr_t
-GetNativeStackLimit(JSContext* cx, StackKind kind, int extraAllowance = 0)
-{
-    PerThreadDataFriendFields* mainThread =
-      PerThreadDataFriendFields::getMainThread(GetRuntime(cx));
-    uintptr_t limit = mainThread->nativeStackLimit[kind];
-#if JS_STACK_GROWTH_DIRECTION > 0
-    limit += extraAllowance;
-#else
-    limit -= extraAllowance;
-#endif
-    return limit;
-}
+JS_FRIEND_API(bool)
+CheckRecursionConservative(JSContext* cx);
 
-MOZ_ALWAYS_INLINE uintptr_t
-GetNativeStackLimit(JSContext* cx, int extraAllowance = 0)
-{
-    StackKind kind = RunningWithTrustedPrincipals(cx) ? StackForTrustedScript
-                                                      : StackForUntrustedScript;
-    return GetNativeStackLimit(cx, kind, extraAllowance);
-}
-
-/*
- * These macros report a stack overflow and run |onerror| if we are close to
- * using up the C stack. The JS_CHECK_CHROME_RECURSION variant gives us a
- * little extra space so that we can ensure that crucial code is able to run.
- * JS_CHECK_RECURSION_CONSERVATIVE allows less space than any other check,
- * including a safety buffer (as in, it uses the untrusted limit and subtracts
- * a little more from it).
- */
-
-#define JS_CHECK_RECURSION_LIMIT(cx, limit, onerror)                            \
-    JS_BEGIN_MACRO                                                              \
-        int stackDummy_;                                                        \
-        if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(limit, &stackDummy_))) {          \
-            js::ReportOverRecursed(cx);                                         \
-            onerror;                                                            \
-        }                                                                       \
-    JS_END_MACRO
-
-#define JS_CHECK_RECURSION(cx, onerror)                                         \
-    JS_CHECK_RECURSION_LIMIT(cx, js::GetNativeStackLimit(cx), onerror)
-
-#define JS_CHECK_RECURSION_LIMIT_DONT_REPORT(cx, limit, onerror)                \
-    JS_BEGIN_MACRO                                                              \
-        int stackDummy_;                                                        \
-        if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(limit, &stackDummy_))) {          \
-            onerror;                                                            \
-        }                                                                       \
-    JS_END_MACRO
-
-#define JS_CHECK_RECURSION_DONT_REPORT(cx, onerror)                             \
-    JS_CHECK_RECURSION_LIMIT_DONT_REPORT(cx, js::GetNativeStackLimit(cx), onerror)
-
-#define JS_CHECK_RECURSION_WITH_SP_DONT_REPORT(cx, sp, onerror)                 \
-    JS_BEGIN_MACRO                                                              \
-        if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(cx), sp))) { \
-            onerror;                                                            \
-        }                                                                       \
-    JS_END_MACRO
-
-#define JS_CHECK_RECURSION_WITH_SP(cx, sp, onerror)                             \
-    JS_BEGIN_MACRO                                                              \
-        if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(cx), sp))) { \
-            js::ReportOverRecursed(cx);                                         \
-            onerror;                                                            \
-        }                                                                       \
-    JS_END_MACRO
-
-#define JS_CHECK_SYSTEM_RECURSION(cx, onerror)                                  \
-    JS_CHECK_RECURSION_LIMIT(cx, js::GetNativeStackLimit(cx, js::StackForSystemCode), onerror)
-
-#define JS_CHECK_RECURSION_CONSERVATIVE(cx, onerror)                            \
-    JS_CHECK_RECURSION_LIMIT(cx,                                                \
-                             js::GetNativeStackLimit(cx, js::StackForUntrustedScript, -1024 * int(sizeof(size_t))), \
-                             onerror)
-
-#define JS_CHECK_RECURSION_CONSERVATIVE_DONT_REPORT(cx, onerror)                \
-    JS_CHECK_RECURSION_LIMIT_DONT_REPORT(cx,                                    \
-                                         js::GetNativeStackLimit(cx, js::StackForUntrustedScript, -1024 * int(sizeof(size_t))), \
-                                         onerror)
+JS_FRIEND_API(bool)
+CheckRecursionConservativeDontReport(JSContext* cx);
 
 JS_FRIEND_API(void)
 StartPCCountProfiling(JSContext* cx);

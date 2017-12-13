@@ -385,9 +385,24 @@ js::IsObjectInContextCompartment(JSObject* obj, const JSContext* cx)
 }
 
 JS_FRIEND_API(bool)
-js::RunningWithTrustedPrincipals(JSContext* cx)
+js::CheckRecursion(JSContext* cx)
 {
-    return cx->runningWithTrustedPrincipals();
+    JS_CHECK_RECURSION(cx, return false);
+    return true;
+}
+
+JS_FRIEND_API(bool)
+js::CheckRecursionConservative(JSContext* cx)
+{
+    JS_CHECK_RECURSION_CONSERVATIVE(cx, return false);
+    return true;
+}
+
+JS_FRIEND_API(bool)
+js::CheckRecursionConservativeDontReport(JSContext* cx)
+{
+    JS_CHECK_RECURSION_CONSERVATIVE_DONT_REPORT(cx, return false);
+    return true;
 }
 
 JS_FRIEND_API(JSFunction*)
