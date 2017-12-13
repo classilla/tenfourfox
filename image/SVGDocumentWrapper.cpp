@@ -5,7 +5,9 @@
 
 #include "SVGDocumentWrapper.h"
 
+#include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/Element.h"
+#include "nsDOMNavigationTiming.h"
 #include "nsICategoryManager.h"
 #include "nsIChannel.h"
 #include "nsIContentViewer.h"
@@ -115,8 +117,21 @@ bool
 SVGDocumentWrapper::IsAnimated()
 {
   nsIDocument* doc = mViewer->GetDocument();
-  return doc && doc->HasAnimationController() &&
-    doc->GetAnimationController()->HasRegisteredAnimations();
+  if (!doc) {
+    return false;
+  }
+  if (doc->Timeline()->HasAnimations()) {
+    // CSS animations (technically HasAnimations() also checks for CSS
+    // transitions and Web animations but since SVG-as-an-image doesn't run
+    // script they will never run in the document that we wrap).
+    return true;
+  }
+  if (doc->HasAnimationController() &&
+      doc->GetAnimationController()->HasRegisteredAnimations()) {
+    // SMIL animations
+    return true;
+  }
+  return false;
 }
 
 void
@@ -329,6 +344,20 @@ SVGDocumentWrapper::SetupViewer(nsIRequest* aRequest,
   NS_ENSURE_SUCCESS(rv, rv);
 
   NS_ENSURE_TRUE(viewer, NS_ERROR_UNEXPECTED);
+
+  // Create a navigation time object and pass it to the SVG document through
+  // the viewer.
+  // The timeline(DocumentTimeline, used in CSS animation) of this SVG
+  // document needs this navigation timing object for time computation, such
+  // as to calculate current time stamp based on the start time of navigation
+  // time object.
+  //
+  // For a root document, DocShell would do these sort of things
+  // automatically. Since there is no DocShell for this wrapped SVG document,
+  // we must set it up manually.
+  RefPtr<nsDOMNavigationTiming> timing = new nsDOMNavigationTiming();
+  timing->NotifyNavigationStart();
+  viewer->SetNavigationTiming(timing);
 
   nsCOMPtr<nsIParser> parser = do_QueryInterface(listener);
   NS_ENSURE_TRUE(parser, NS_ERROR_UNEXPECTED);

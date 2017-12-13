@@ -85,7 +85,6 @@ class TabParent final : public PBrowserParent
                       , public nsISecureBrowserUI
                       , public nsSupportsWeakReference
                       , public TabContext
-                      , public nsAPostRefreshObserver
                       , public nsIWebBrowserPersistable
 {
     typedef mozilla::dom::ClonedMessageData ClonedMessageData;
@@ -145,7 +144,6 @@ public:
 
     void RemoveWindowListeners();
     void AddWindowListeners();
-    void DidRefresh() override;
 
     virtual bool RecvMoveFocus(const bool& aForward,
                                const bool& aForDocumentNavigation) override;
@@ -627,8 +625,6 @@ private:
     // True if the cursor changes from the TabChild should change the widget
     // cursor.  This happens whenever the cursor is in the tab's region.
     bool mTabSetsCursor;
-
-    RefPtr<nsIPresShell> mPresShellWithRefreshListener;
 
     bool mHasContentOpener;
 
