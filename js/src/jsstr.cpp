@@ -606,6 +606,64 @@ js::SubstringKernel(JSContext* cx, HandleString str, int32_t beginInt, int32_t l
     return NewDependentString(cx, str, begin, len);
 }
 
+// Adapted from bug 1383647
+static inline bool
+FastLatin1LowerCase(Latin1Char ch)
+{
+    if (MOZ_LIKELY(ch < 128))
+        return ch >= 'A' && ch <= 'Z';
+    // U+00C0 to U+00DE, except U+00D7, have a lowercase form.
+    bool canLower = ((ch & ~0x1F) == /* LATIN_CAPITAL_LETTER_A_WITH_GRAVE */ 0xc0) &&
+                    ((ch & /* MULTIPLICATION_SIGN */ 0xd7) != 0xd7);
+    MOZ_ASSERT(canLower == CanLowerCase(char16_t(ch)));
+    return canLower;
+}
+
+static JSString*
+ToLowerCaseLatin1(JSContext* cx, JSLinearString* str)
+{
+    // Unlike toUpperCase, toLowerCase has the nice invariant that if the input
+    // is a Latin1 string, the output is also a Latin1 string.
+    UniquePtr<Latin1Char[], JS::FreePolicy> newChars;
+    size_t length = str->length();
+    {
+        AutoCheckCannotGC nogc;
+        const Latin1Char* chars = str->chars<Latin1Char>(nogc);
+        
+        // Look for the first upper case character.
+        size_t i = 0;
+        for (; i < length; i++) {
+            if (FastLatin1LowerCase(chars[i]))
+                break;
+        }
+
+        // If all characters are lower case, return the input string.
+        if (i == length)
+            return str;
+
+        newChars = cx->make_pod_array<Latin1Char>(length + 1);
+        if (MOZ_UNLIKELY(!newChars))
+            return nullptr;
+
+        PodCopy(newChars.get(), chars, i);
+
+        for (; i < length; i++) {
+            char16_t c = unicode::ToLowerCase(chars[i]);
+            MOZ_ASSERT_IF((IsSame<Latin1Char, Latin1Char>::value), c <= JSString::MAX_LATIN1_CHAR);
+            newChars[i] = c;
+        }
+
+        newChars[length] = 0;
+    }
+
+    JSString* res = NewStringDontDeflate<CanGC>(cx, newChars.get(), length);
+    if (MOZ_UNLIKELY(!res))
+        return nullptr;
+
+    newChars.release();
+    return res;
+}
+
 template <typename CharT>
 static JSString*
 ToLowerCase(JSContext* cx, JSLinearString* str)
@@ -631,7 +689,7 @@ ToLowerCase(JSContext* cx, JSLinearString* str)
             return str;
 
         newChars = cx->make_pod_array<CharT>(length + 1);
-        if (!newChars)
+        if (MOZ_UNLIKELY(!newChars))
             return nullptr;
 
         PodCopy(newChars.get(), chars, i);
@@ -646,7 +704,7 @@ ToLowerCase(JSContext* cx, JSLinearString* str)
     }
 
     JSString* res = NewStringDontDeflate<CanGC>(cx, newChars.get(), length);
-    if (!res)
+    if (MOZ_UNLIKELY(!res))
         return nullptr;
 
     newChars.release();
@@ -657,18 +715,18 @@ static inline bool
 ToLowerCaseHelper(JSContext* cx, CallReceiver call)
 {
     RootedString str(cx, ThisToStringForStringProto(cx, call));
-    if (!str)
+    if (MOZ_UNLIKELY(!str))
         return false;
 
     JSLinearString* linear = str->ensureLinear(cx);
-    if (!linear)
+    if (MOZ_UNLIKELY(!linear))
         return false;
 
     if (linear->hasLatin1Chars())
-        str = ToLowerCase<Latin1Char>(cx, linear);
+        str = ToLowerCaseLatin1(cx, linear);
     else
         str = ToLowerCase<char16_t>(cx, linear);
-    if (!str)
+    if (MOZ_UNLIKELY(!str))
         return false;
 
     call.rval().setString(str);
