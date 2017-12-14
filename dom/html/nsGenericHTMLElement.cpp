@@ -107,6 +107,7 @@
 #include "mozilla/dom/HTMLBodyElement.h"
 #include "imgIContainer.h"
 #include "nsComputedDOMStyle.h"
+#include "mozilla/dom/HTMLInputElement.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -2634,6 +2635,24 @@ void nsGenericHTMLFormElement::UpdateDisabledState(bool aNotify)
 
   EventStates oldDisabledStates = State() & DISABLED_STATES;
   EventStates changedStates = disabledStates ^ oldDisabledStates;
+
+  if (!changedStates.IsEmpty()) {
+    ToggleStates(changedStates, aNotify);
+  }
+}
+
+void
+nsGenericHTMLFormElement::UpdateRequiredState(bool aIsRequired, bool aNotify)
+{
+  EventStates requiredStates;
+  if (aIsRequired) {
+    requiredStates |= NS_EVENT_STATE_REQUIRED;
+  } else {
+    requiredStates |= NS_EVENT_STATE_OPTIONAL;
+  }
+
+  EventStates oldRequiredStates = State() & REQUIRED_STATES;
+  EventStates changedStates = requiredStates ^ oldRequiredStates;
 
   if (!changedStates.IsEmpty()) {
     ToggleStates(changedStates, aNotify);

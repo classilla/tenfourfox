@@ -2296,7 +2296,10 @@ HTMLFormElement::AddToRadioGroup(const nsAString& aName,
   nsCOMPtr<nsIContent> element = do_QueryInterface(aRadio);
   NS_ASSERTION(element, "radio controls have to be content elements!");
 
-  if (element->HasAttr(kNameSpaceID_None, nsGkAtoms::required)) {
+  HTMLInputElement* input = HTMLInputElement::FromContent(element);
+  NS_ASSERTION(input, "radio controls have to be input elements!");
+
+  if (input->IsRequired()) {
     mRequiredRadioButtonCounts.Put(aName,
                                    mRequiredRadioButtonCounts.Get(aName)+1);
   }
@@ -2307,9 +2310,12 @@ HTMLFormElement::RemoveFromRadioGroup(const nsAString& aName,
                                       nsIFormControl* aRadio)
 {
   nsCOMPtr<nsIContent> element = do_QueryInterface(aRadio);
-  NS_ASSERTION(element, "radio controls have to be content elements!");
+  NS_ASSERTION(element, "radio controls have to be content elements");
 
-  if (element->HasAttr(kNameSpaceID_None, nsGkAtoms::required)) {
+  HTMLInputElement* input = HTMLInputElement::FromContent(element);
+  NS_ASSERTION(input, "radio controls have to be input elements!");
+
+  if (input->IsRequired()) {
     uint32_t requiredNb = mRequiredRadioButtonCounts.Get(aName);
     NS_ASSERTION(requiredNb >= 1,
                  "At least one radio button has to be required!");

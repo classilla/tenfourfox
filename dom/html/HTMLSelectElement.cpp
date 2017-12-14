@@ -1070,7 +1070,7 @@ HTMLSelectElement::IsOptionDisabled(int32_t aIndex, bool* aIsDisabled)
 }
 
 bool
-HTMLSelectElement::IsOptionDisabled(HTMLOptionElement* aOption)
+HTMLSelectElement::IsOptionDisabled(HTMLOptionElement* aOption) const
 {
   MOZ_ASSERT(aOption);
   if (aOption->Disabled()) {
@@ -1301,6 +1301,11 @@ HTMLSelectElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       UpdateValueMissingValidityState();
       UpdateBarredFromConstraintValidation();
     } else if (aName == nsGkAtoms::required) {
+      // This *has* to be called *before* UpdateValueMissingValidityState
+      // because UpdateValueMissingValidityState depends on our required
+      // state.
+      UpdateRequiredState(!!aValue, aNotify);
+
       UpdateValueMissingValidityState();
     } else if (aName == nsGkAtoms::autocomplete) {
       // Clear the cached @autocomplete attribute state
@@ -1521,12 +1526,6 @@ HTMLSelectElement::IntrinsicState() const
                         !mCanShowInvalidUI)))) {
       state |= NS_EVENT_STATE_MOZ_UI_VALID;
     }
-  }
-
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::required)) {
-    state |= NS_EVENT_STATE_REQUIRED;
-  } else {
-    state |= NS_EVENT_STATE_OPTIONAL;
   }
 
   return state;
@@ -1771,7 +1770,7 @@ HTMLSelectElement::RebuildOptionsArray(bool aNotify)
 }
 
 bool
-HTMLSelectElement::IsValueMissing()
+HTMLSelectElement::IsValueMissing() const
 {
   if (!Required()) {
     return false;
