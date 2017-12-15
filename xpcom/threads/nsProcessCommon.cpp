@@ -48,6 +48,7 @@ using namespace mozilla;
 #ifdef XP_MACOSX
 typedef int cpu_type_t; // we don't have cpu_type* on 10.4.
 #define CPU_TYPE_ANY           ((cpu_type_t) -1)
+#define CPU_TYPE_X86           ((cpu_type_t)  7)
 #define CPU_TYPE_POWERPC       ((cpu_type_t) 18)
 
 cpu_type_t pref_cpu_types[2] = {
