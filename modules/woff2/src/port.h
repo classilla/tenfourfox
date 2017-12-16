@@ -72,8 +72,10 @@ inline int Log2Floor(uint32 n) {
 #endif  /* endianness */
 #endif  /* CPU whitelist */
 
+#if !defined(__i386) && !defined(__x86_64__)
 #ifndef WOFF_BIG_ENDIAN
 #error unexpected endianness
 #endif
+#endif /* !defined(__i386) && !defined(__x86_64__) */
 
 #endif  // WOFF2_PORT_H_
