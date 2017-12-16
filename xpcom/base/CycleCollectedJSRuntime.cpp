@@ -1229,7 +1229,9 @@ IncrementalFinalizeRunnable::Run()
     return NS_OK;
   }
 
+#if(0)
   TimeStamp start = TimeStamp::Now();
+#endif
   ReleaseNow(true);
 
   if (mDeferredFinalizeFunctions.Length()) {

@@ -1013,7 +1013,7 @@ pref("browser.sessionstore.resume_from_crash", true);
 pref("browser.sessionstore.resume_session_once", false);
 
 // minimal interval between two save operations in milliseconds
-pref("browser.sessionstore.interval", 25000);
+pref("browser.sessionstore.interval", 30000);
 // on which sites to save text data, POSTDATA and cookies
 // 0 = everywhere, 1 = unencrypted sites, 2 = nowhere
 pref("browser.sessionstore.privacy_level", 0);
@@ -1026,9 +1026,9 @@ pref("browser.sessionstore.max_windows_undo", 2);
 // (this pref has no effect if more than 6 hours have passed since the last crash)
 pref("browser.sessionstore.max_resumed_crashes", 1);
 // number of back button session history entries to restore (-1 = all of them)
-pref("browser.sessionstore.max_serialize_back", 10);
+pref("browser.sessionstore.max_serialize_back", 5);
 // number of forward button session history entries to restore (-1 = all of them)
-pref("browser.sessionstore.max_serialize_forward", -1);
+pref("browser.sessionstore.max_serialize_forward", 5);
 // restore_on_demand overrides MAX_CONCURRENT_TAB_RESTORES (sessionstore constant)
 // and restore_hidden_tabs. When true, tabs will not be restored until they are
 // focused (also applies to tabs that aren't visible). When false, the values
@@ -1051,8 +1051,8 @@ pref("browser.sessionstore.debug", false);
 // browser tabs that were not caused by a flush from the parent.
 // This is a testing flag and should not be used by end-users.
 pref("browser.sessionstore.debug.no_auto_updates", false);
-// Forget closed windows/tabs after two weeks
-pref("browser.sessionstore.cleanup.forget_closed_after", 1209600000);
+// Forget closed windows/tabs after 24 hours
+pref("browser.sessionstore.cleanup.forget_closed_after", 86400000);
 
 // allow META refresh by default
 pref("accessibility.blockautorefresh", false);
