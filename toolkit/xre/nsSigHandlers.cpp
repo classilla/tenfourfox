@@ -37,6 +37,14 @@
 #include <ucontext.h>
 #endif
 
+#ifdef XP_MACOSX
+#ifndef __ppc__
+#include <sys/ucontext.h>
+#include <mach/mach_types.h>
+#include <mach/thread_status.h>
+#endif
+#endif
+
 static char _progname[1024] = "huh?";
 
 // Note: some tests manipulate this value.
@@ -160,14 +168,14 @@ static void fpehandler(int signum, siginfo_t *si, void *context)
   ucontext_t *uc = (ucontext_t *)context;
 
 #if defined(__i386__) || defined(__amd64__)
-  _STRUCT_FP_CONTROL *ctrl = &uc->uc_mcontext->__fs.__fpu_fcw;
-  ctrl->__invalid = ctrl->__denorm = ctrl->__zdiv = ctrl->__ovrfl = ctrl->__undfl = ctrl->__precis = 1;
+  fp_control *ctrl = &uc->uc_mcontext->fs.fpu_fcw;
+  ctrl->invalid = ctrl->denorm = ctrl->zdiv = ctrl->ovrfl = ctrl->undfl = ctrl->precis = 1;
 
-  _STRUCT_FP_STATUS *status = &uc->uc_mcontext->__fs.__fpu_fsw;
-  status->__invalid = status->__denorm = status->__zdiv = status->__ovrfl = status->__undfl =
-    status->__precis = status->__stkflt = status->__errsumm = 0;
+  fp_status *status = &uc->uc_mcontext->fs.fpu_fsw;
+  status->invalid = status->denorm = status->zdiv = status->ovrfl = status->undfl =
+    status->precis = status->stkflt = status->errsumm = 0;
 
-  uint32_t *mxcsr = &uc->uc_mcontext->__fs.__fpu_mxcsr;
+  uint32_t *mxcsr = &uc->uc_mcontext->fs.fpu_mxcsr;
   *mxcsr |= SSE_EXCEPTION_MASK; /* disable all SSE exceptions */
   *mxcsr &= ~SSE_STATUS_FLAGS; /* clear all pending SSE exceptions */
 #endif
