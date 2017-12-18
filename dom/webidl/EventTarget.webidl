@@ -16,7 +16,8 @@ dictionary EventListenerOptions {
 };
 
 dictionary AddEventListenerOptions : EventListenerOptions {
-  // boolean passive = false;
+  boolean passive = false;
+  // XXX: this is bug 1287706 and follow-on 1367372
   // boolean once = false;
 };
 
