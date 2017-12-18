@@ -399,10 +399,10 @@ endif # WINNT && !GNU_CC
 ifeq ($(OS_ARCH),Darwin)
 # Compiling ObjC requires an Apple compiler anyway, so it's ok to set
 # host CMFLAGS here.
-HOST_CMFLAGS += -fobjc-exceptions -mno-altivec -mabi=no-altivec
-HOST_CMMFLAGS += -fobjc-exceptions -mno-altivec -mabi=no-altivec
-OS_COMPILE_CMFLAGS += -fobjc-exceptions -mno-altivec -mabi=no-altivec
-OS_COMPILE_CMMFLAGS += -fobjc-exceptions -mno-altivec -mabi=no-altivec
+HOST_CMFLAGS += -fobjc-exceptions
+HOST_CMMFLAGS += -fobjc-exceptions
+OS_COMPILE_CMFLAGS += -fobjc-exceptions
+OS_COMPILE_CMMFLAGS += -fobjc-exceptions
 ifeq ($(MOZ_WIDGET_TOOLKIT),uikit)
 OS_COMPILE_CMFLAGS += -fobjc-abi-version=2 -fobjc-legacy-dispatch
 OS_COMPILE_CMMFLAGS += -fobjc-abi-version=2 -fobjc-legacy-dispatch
