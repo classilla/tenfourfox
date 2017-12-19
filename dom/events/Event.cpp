@@ -522,6 +522,14 @@ Event::PreventDefaultInternal(bool aCalledByDefaultHandler)
   if (!mEvent->mFlags.mCancelable) {
     return;
   }
+  if (mEvent->mFlags.mInPassiveListener) {
+#if DEBUG
+    // XXX: There should be a warning here, but we don't have the string.
+    // https://hg.mozilla.org/mozilla-central/rev/cda76e80a47c
+    fprintf(stderr, "** PreventDefaultInternal called on Passive Listener\n");
+#endif
+    return;
+  }
 
   mEvent->mFlags.mDefaultPrevented = true;
 

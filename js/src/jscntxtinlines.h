@@ -19,7 +19,129 @@
 #include "vm/ProxyObject.h"
 #include "vm/Symbol.h"
 
+MOZ_ALWAYS_INLINE bool
+JSContext::runningWithTrustedPrincipals() const
+{
+    return !compartment() || compartment()->principals() == runtime()->trustedPrincipals();
+}
+
 namespace js {
+
+MOZ_ALWAYS_INLINE uintptr_t
+GetNativeStackLimit(JSContext* cx, StackKind kind, int extraAllowance = 0)
+{
+    PerThreadDataFriendFields* mainThread =
+      PerThreadDataFriendFields::getMainThread(GetRuntime(cx));
+    uintptr_t limit = mainThread->nativeStackLimit[kind];
+#if JS_STACK_GROWTH_DIRECTION > 0
+    limit += extraAllowance;
+#else
+    limit -= extraAllowance;
+#endif
+    return limit;
+}
+
+// Needed for issue 391 -- see below
+MOZ_ALWAYS_INLINE uintptr_t
+GetNativeStackLimit(ExclusiveContext* cx, StackKind kind, int extraAllowance = 0)
+{
+    PerThreadDataFriendFields* mainThread =
+      PerThreadDataFriendFields::getMainThread(cx->ecRuntime());
+    uintptr_t limit = mainThread->nativeStackLimit[kind];
+#if JS_STACK_GROWTH_DIRECTION > 0
+    limit += extraAllowance;
+#else
+    limit -= extraAllowance;
+#endif
+    return limit;
+}
+
+MOZ_ALWAYS_INLINE uintptr_t
+GetNativeStackLimit(JSContext* cx, int extraAllowance = 0)
+{
+    StackKind kind = cx->runningWithTrustedPrincipals() ? StackForTrustedScript
+                                                        : StackForUntrustedScript;
+    return GetNativeStackLimit(cx, kind, extraAllowance);
+}
+
+/*
+ * These macros report a stack overflow and run |onerror| if we are close to
+ * using up the C stack. The JS_CHECK_CHROME_RECURSION variant gives us a
+ * little extra space so that we can ensure that crucial code is able to run.
+ * JS_CHECK_RECURSION_CONSERVATIVE allows less space than any other check,
+ * including a safety buffer (as in, it uses the untrusted limit and subtracts
+ * a little more from it).
+ */
+
+// Implement a fast path a la bug 1342439, but without all that churn.
+// Leave the old limit versions here just in case.
+// TenFourFox issue 391
+
+#define JS_CHECK_RECURSION_LIMIT(cx, limit, onerror)                            \
+    JS_BEGIN_MACRO                                                              \
+        int stackDummy_;                                                        \
+        if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(limit, &stackDummy_))) {          \
+            js::ReportOverRecursed(cx);                                         \
+            onerror;                                                            \
+        }                                                                       \
+    JS_END_MACRO
+
+#define JS_CHECK_RECURSION(cx, onerror)                                         \
+    JS_BEGIN_MACRO                                                              \
+        int stackDummy_;                                                        \
+        if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(cx, js::StackForUntrustedScript), &stackDummy_))) {          \
+          if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(cx), &stackDummy_))) {\
+            js::ReportOverRecursed(cx);                                         \
+            onerror;                                                            \
+          }                                                                     \
+        }                                                                       \
+    JS_END_MACRO
+
+#define JS_CHECK_RECURSION_LIMIT_DONT_REPORT(cx, limit, onerror)                \
+    JS_BEGIN_MACRO                                                              \
+        int stackDummy_;                                                        \
+        if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(limit, &stackDummy_))) {          \
+            onerror;                                                            \
+        }                                                                       \
+    JS_END_MACRO
+
+#define JS_CHECK_RECURSION_DONT_REPORT(cx, onerror)                             \
+    JS_BEGIN_MACRO                                                              \
+        int stackDummy_;                                                        \
+        if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(cx, js::StackForUntrustedScript), &stackDummy_))) {          \
+          if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(cx), &stackDummy_))) {\
+            onerror;                                                            \
+          }                                                                     \
+        }                                                                       \
+    JS_END_MACRO
+
+#define JS_CHECK_RECURSION_WITH_SP_DONT_REPORT(cx, sp, onerror)                 \
+    JS_BEGIN_MACRO                                                              \
+        if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(cx), sp))) { \
+            onerror;                                                            \
+        }                                                                       \
+    JS_END_MACRO
+
+#define JS_CHECK_RECURSION_WITH_SP(cx, sp, onerror)                             \
+    JS_BEGIN_MACRO                                                              \
+        if (MOZ_UNLIKELY(!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(cx), sp))) { \
+            js::ReportOverRecursed(cx);                                         \
+            onerror;                                                            \
+        }                                                                       \
+    JS_END_MACRO
+
+#define JS_CHECK_SYSTEM_RECURSION(cx, onerror)                                  \
+    JS_CHECK_RECURSION_LIMIT(cx, js::GetNativeStackLimit(cx, js::StackForSystemCode), onerror)
+
+#define JS_CHECK_RECURSION_CONSERVATIVE(cx, onerror)                            \
+    JS_CHECK_RECURSION_LIMIT(cx,                                                \
+                             js::GetNativeStackLimit(cx, js::StackForUntrustedScript, -1024 * int(sizeof(size_t))), \
+                             onerror)
+
+#define JS_CHECK_RECURSION_CONSERVATIVE_DONT_REPORT(cx, onerror)                \
+    JS_CHECK_RECURSION_LIMIT_DONT_REPORT(cx,                                    \
+                                         js::GetNativeStackLimit(cx, js::StackForUntrustedScript, -1024 * int(sizeof(size_t))), \
+                                         onerror)
 
 class CompartmentChecker
 {
@@ -380,12 +502,6 @@ JSContext::setPendingException(js::Value v)
     // We don't use assertSameCompartment here to allow
     // js::SetPendingExceptionCrossContext to work.
     MOZ_ASSERT_IF(v.isObject(), v.toObject().compartment() == compartment());
-}
-
-inline bool
-JSContext::runningWithTrustedPrincipals() const
-{
-    return !compartment() || compartment()->principals() == runtime()->trustedPrincipals();
 }
 
 inline void

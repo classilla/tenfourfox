@@ -415,8 +415,10 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
 
   // Get the border values
   WritingMode outerWM = aReflowState.GetWritingMode();
-  const LogicalMargin border(outerWM,
-                             aReflowState.mStyleBorder->GetComputedBorder());
+  const LogicalMargin border(outerWM, aDelegatingFrame->GetUsedBorder());
+  // see https://hg.mozilla.org/mozilla-central/file/fe69c6a1b4a3/layout/generic/nsAbsoluteContainingBlock.cpp
+  // for various backbugs XXX
+
   const LogicalMargin margin =
     kidReflowState.ComputedLogicalMargin().ConvertTo(outerWM, wm);
   bool constrainBSize = (aReflowState.AvailableBSize() != NS_UNCONSTRAINEDSIZE)

@@ -38,9 +38,6 @@ IdIsIndex(jsid id, uint32_t* indexp)
     return js::StringIsArrayIndex(atom, indexp);
 }
 
-extern JSObject*
-InitArrayClass(JSContext* cx, js::HandleObject obj);
-
 // The methods below only create dense boxed arrays.
 
 /* Create a dense array with no capacity allocated, length set to 0. */

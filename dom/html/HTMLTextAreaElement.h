@@ -222,9 +222,9 @@ public:
   {
     SetHTMLBoolAttr(nsGkAtoms::readonly, aReadOnly, aError);
   }
-  bool Required()
+  bool Required() const
   {
-    return GetBoolAttr(nsGkAtoms::required);
+    return State().HasState(NS_EVENT_STATE_REQUIRED);
   }
 
   void SetRangeText(const nsAString& aReplacement, ErrorResult& aRv);

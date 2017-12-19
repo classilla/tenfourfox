@@ -569,7 +569,13 @@ public:
   virtual bool IsEditable(nsINode* aNode);
 
   /** returns true if aNode is a MozEditorBogus node */
-  bool IsMozEditorBogusNode(nsINode* aNode);
+  bool IsMozEditorBogusNode(nsINode* aNode)
+  {
+    return aNode && aNode->IsElement() &&
+           aNode->AsElement()->AttrValueIs(kNameSpaceID_None,
+               kMOZEditorBogusNodeAttrAtom, kMOZEditorBogusNodeValue,
+               eCaseMatters);
+  }
 
   /** counts number of editable child nodes */
   uint32_t CountEditableChildren(nsINode* aNode);
@@ -598,7 +604,10 @@ public:
   virtual bool AreNodesSameType(nsIContent* aNode1, nsIContent* aNode2);
 
   static bool IsTextNode(nsIDOMNode *aNode);
-  static bool IsTextNode(nsINode *aNode);
+  static bool IsTextNode(nsINode* aNode)
+  {
+    return aNode->NodeType() == nsIDOMNode::TEXT_NODE;
+  }
 
   static nsCOMPtr<nsIDOMNode> GetChildAt(nsIDOMNode *aParent, int32_t aOffset);
   static nsCOMPtr<nsIDOMNode> GetNodeAtRangeOffsetPoint(nsIDOMNode* aParentOrNode, int32_t aOffset);
@@ -664,7 +673,16 @@ public:
   virtual already_AddRefed<mozilla::dom::EventTarget> GetDOMEventTarget() = 0;
 
   // Fast non-refcounting editor root element accessor
-  mozilla::dom::Element *GetRoot();
+  mozilla::dom::Element *GetRoot()
+  {
+    if (!mRootElement) {
+      // Let GetRootElement() do the work
+      nsCOMPtr<nsIDOMElement> root;
+      GetRootElement(getter_AddRefs(root));
+    }
+
+    return mRootElement;
+  }
 
   // Likewise, but gets the editor's root instead, which is different for HTML
   // editors

@@ -1176,11 +1176,12 @@ nsTextEditRules::CreateBogusNodeIfNeeded(Selection* aSelection)
   // Now we've got the body element. Iterate over the body element's children,
   // looking for editable content. If no editable content is found, insert the
   // bogus node.
-  for (nsCOMPtr<nsIContent> bodyChild = body->GetFirstChild();
+  bool bodyEditable = mEditor->IsEditable(body);
+  for (nsIContent* bodyChild = body->GetFirstChild();
        bodyChild;
        bodyChild = bodyChild->GetNextSibling()) {
     if (mEditor->IsMozEditorBogusNode(bodyChild) ||
-        !mEditor->IsEditable(body) || // XXX hoist out of the loop?
+        !bodyEditable ||
         mEditor->IsEditable(bodyChild) || mEditor->IsBlockNode(bodyChild)) {
       return NS_OK;
     }

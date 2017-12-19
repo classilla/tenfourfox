@@ -3473,15 +3473,6 @@ nsEditor::IsEditable(nsINode* aNode)
   }
 }
 
-bool
-nsEditor::IsMozEditorBogusNode(nsINode* element)
-{
-  return element && element->IsElement() &&
-         element->AsElement()->AttrValueIs(kNameSpaceID_None,
-             kMOZEditorBogusNodeAttrAtom, kMOZEditorBogusNodeValue,
-             eCaseMatters);
-}
-
 uint32_t
 nsEditor::CountEditableChildren(nsINode* aNode)
 {
@@ -3623,12 +3614,6 @@ nsEditor::IsTextNode(nsIDOMNode *aNode)
   uint16_t nodeType;
   aNode->GetNodeType(&nodeType);
   return (nodeType == nsIDOMNode::TEXT_NODE);
-}
-
-bool
-nsEditor::IsTextNode(nsINode *aNode)
-{
-  return aNode->NodeType() == nsIDOMNode::TEXT_NODE;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -4842,20 +4827,6 @@ nsEditor::FinalizeSelection()
   nsContentUtils::AddScriptRunner(
                     new RepaintSelectionRunner(selCon));
   return NS_OK;
-}
-
-dom::Element *
-nsEditor::GetRoot()
-{
-  if (!mRootElement)
-  {
-    nsCOMPtr<nsIDOMElement> root;
-
-    // Let GetRootElement() do the work
-    GetRootElement(getter_AddRefs(root));
-  }
-
-  return mRootElement;
 }
 
 dom::Element*
