@@ -488,7 +488,7 @@ MacOSFontEntry::GetFontTable(uint32_t aTag)
     if (MOZ_LIKELY(mFontTableDirSize > 0)) {
         // XXX: This assumes big endian (warning Intel)
 #ifndef __ppc__
-#error needs GetFontTable fast path needs little endian version
+#warning needs GetFontTable fast path needs little endian version
 #endif
 
 #ifdef DEBUG_X

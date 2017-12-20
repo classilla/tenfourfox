@@ -257,7 +257,8 @@ PluginInstanceChild::DoNPP_New()
 
     Initialize();
 
-#if defined(XP_MACOSX) && defined(__i386__)
+#if 0
+//#if defined(XP_MACOSX) && defined(__i386__)
     // If an i386 Mac OS X plugin has selected the Carbon event model then
     // we have to fail. We do not support putting Carbon event model plugins
     // out of process. Note that Carbon is the default model so out of process
