@@ -6024,11 +6024,6 @@ nsDocShell::SetIsActive(bool aIsActive)
 nsresult
 nsDocShell::SetIsActiveInternal(bool aIsActive, bool aIsHidden)
 {
-  // We disallow setting active on chrome docshells.
-  if (mItemType == nsIDocShellTreeItem::typeChrome) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
   // Keep track ourselves.
   mIsActive = aIsActive;
 
