@@ -426,11 +426,9 @@ private:
 
     void OnTimerStart()
     {
-#if(0)
       if (!XRE_IsParentProcess()) {
         mLastChildTick = TimeStamp::Now();
       }
-#endif
     }
 
   private:
@@ -438,7 +436,6 @@ private:
 
     void RecordTelemetryProbes(TimeStamp aVsyncTimestamp)
     {
-#if(0)
       MOZ_ASSERT(NS_IsMainThread());
     #ifndef ANDROID  /* bug 1142079 */
       if (XRE_IsParentProcess()) {
@@ -466,21 +463,20 @@ private:
         mVsyncRate = mVsyncRefreshDriverTimer->mVsyncChild->GetVsyncRate();
       }
     #endif
-#endif
     }
 
     void TickRefreshDriver(TimeStamp aVsyncTimestamp)
     {
       MOZ_ASSERT(NS_IsMainThread());
 
-      //RecordTelemetryProbes(aVsyncTimestamp);
-      //if (XRE_IsParentProcess()) {
+      RecordTelemetryProbes(aVsyncTimestamp);
+      if (XRE_IsParentProcess()) {
         MonitorAutoLock lock(mRefreshTickLock);
         aVsyncTimestamp = mRecentVsync;
         mProcessedVsync = true;
-      //} else {
-      //  mLastChildTick = TimeStamp::Now();
-      //}
+      } else {
+        mLastChildTick = TimeStamp::Now();
+      }
       MOZ_ASSERT(aVsyncTimestamp <= TimeStamp::Now());
 
       // We might have a problem that we call ~VsyncRefreshDriverTimer() before
@@ -504,10 +500,9 @@ private:
 
   virtual ~VsyncRefreshDriverTimer()
   {
-    //if (XRE_IsParentProcess()) {
+    if (XRE_IsParentProcess()) {
       mVsyncDispatcher->SetParentRefreshTimer(nullptr);
       mVsyncDispatcher = nullptr;
-#if(0)
     } else {
       // Since the PVsyncChild actors live through the life of the process, just
       // send the unobserveVsync message to disable vsync event. We don't need
@@ -517,7 +512,6 @@ private:
       mVsyncChild->SetVsyncObserver(nullptr);
       mVsyncChild = nullptr;
     }
-#endif
 
     // Detach current vsync timer from this VsyncObserver. The observer will no
     // longer tick this timer.
@@ -548,11 +542,11 @@ private:
     // Protect updates to `sActiveVsyncTimers`.
     MOZ_ASSERT(NS_IsMainThread());
 
-    //if (XRE_IsParentProcess()) {
+    if (XRE_IsParentProcess()) {
       mVsyncDispatcher->SetParentRefreshTimer(nullptr);
-    //} else {
-    //  Unused << mVsyncChild->SendUnobserve();
-    //}
+    } else {
+      Unused << mVsyncChild->SendUnobserve();
+    }
 
     MOZ_ASSERT(sActiveVsyncTimers > 0);
     --sActiveVsyncTimers;
@@ -685,8 +679,6 @@ protected:
 
   virtual void ScheduleNextTick(TimeStamp aNowTime)
   {
-    return; // speculative from bug 1352205 and TenFourFox issue 446
-
     if (mDisableAfterMilliseconds > 0.0 &&
         mNextTickDuration > mDisableAfterMilliseconds)
     {
@@ -836,14 +828,14 @@ CreateVsyncRefreshTimer()
     return;
   }
 
-  //if (XRE_IsParentProcess()) {
+  if (XRE_IsParentProcess()) {
     // Make sure all vsync systems are ready.
     gfxPlatform::GetPlatform();
     // In parent process, we don't need to use ipc. We can create the
     // VsyncRefreshDriverTimer directly.
     sRegularRateTimer = new VsyncRefreshDriverTimer();
     return;
-  //}
+  }
 
 #ifdef MOZ_NUWA_PROCESS
   // NUWA process will just use software timer. Use NuwaAddFinalConstructor()
@@ -1882,7 +1874,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
     }
   }
 
-#if(0)
+#ifndef ANDROID  /* bug 1142079 */
   mozilla::Telemetry::AccumulateTimeDelta(mozilla::Telemetry::REFRESH_DRIVER_TICK, mTickStart);
 #endif
 

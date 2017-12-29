@@ -237,12 +237,6 @@ XRE_SetProcessType(const char* aProcessTypeString)
        i < (int) ArrayLength(kGeckoProcessTypeString);
        ++i) {
     if (!strcmp(kGeckoProcessTypeString[i], aProcessTypeString)) {
-      // For purposes of TenFourFox issue 441, assert that we never, ever
-      // launch a child process (it would immediately crash anyway due to
-      // defective IPC, but let's be paranoid and make it crash predictably).
-      if (MOZ_UNLIKELY(static_cast<GeckoProcessType>(i) != GeckoProcessType_Default))
-        MOZ_CRASH("TenFourFox does not support E10S child processes.");
-
       sChildProcessType = static_cast<GeckoProcessType>(i);
       return;
     }
