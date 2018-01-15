@@ -1547,9 +1547,9 @@ nsAutoCompleteController::ProcessResult(int32_t aSearchIndex, nsIAutoCompleteRes
   if (mResults.IndexOf(aResult) == -1) {
     nsIAutoCompleteResult* oldResult = mResults.SafeObjectAt(aSearchIndex);
     if (oldResult) {
-      MOZ_ASSERT(false, "Passing new matches to OnSearchResult with a new "
-                        "nsIAutoCompleteResult every time is deprecated, please "
-                        "update the same result until the search is done");
+      NS_ASSERTION(false, "Passing new matches to OnSearchResult with a new "
+                          "nsIAutoCompleteResult every time is deprecated, please "
+                          "update the same result until the search is done");
       // Build a new nsIAutocompleteSimpleResult and merge results into it.
       RefPtr<nsAutoCompleteSimpleResult> mergedResult =
         new nsAutoCompleteSimpleResult();

@@ -1096,8 +1096,9 @@ nsHttpChannel::CallOnStartRequest()
 
     LOG(("  calling mListener->OnStartRequest\n"));
     if (mListener) {
-        MOZ_ASSERT(!mOnStartRequestCalled,
-                   "We should not call OsStartRequest twice");
+        NS_ASSERTION(!mOnStartRequestCalled,
+                     "We should not call OsStartRequest twice");
+        if (mOnStartRequestCalled) return NS_OK;
         rv = mListener->OnStartRequest(this, mListenerContext);
         mOnStartRequestCalled = true;
         if (NS_FAILED(rv))
