@@ -1929,7 +1929,7 @@ XMLHttpRequest::Open(const nsACString& aMethod, const nsAString& aUrl,
 
   ++mProxy->mOpenCount;
   if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    if (!--mProxy->mOpenCount) {
+    if (mProxy && !--mProxy->mOpenCount) {
       ReleaseProxy();
     }
 
