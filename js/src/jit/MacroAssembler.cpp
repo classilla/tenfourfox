@@ -310,20 +310,40 @@ MacroAssembler::loadFromTypedArray(Scalar::Type arrayType, const T& src, AnyRegi
         load8ZeroExtend(src, dest.gpr());
         break;
       case Scalar::Int16:
+#if defined(JS_CODEGEN_PPC_OSX)
         load16SignExtendSwapped(src, dest.gpr());
+#elif defined(JS_CODEGEN_X86)
+        load16SignExtend(src, dest.gpr());
+#endif
         break;
       case Scalar::Uint16:
+#if defined(JS_CODEGEN_PPC_OSX)
         load16ZeroExtendSwapped(src, dest.gpr());
+#elif defined(JS_CODEGEN_X86)
+        load16ZeroExtend(src, dest.gpr());
+#endif
         break;
       case Scalar::Int32:
+#if defined(JS_CODEGEN_PPC_OSX)
         load32ByteSwapped(src, dest.gpr());
+#elif defined(JS_CODEGEN_X86)
+        load32Byte(src, dest.gpr());
+#endif
         break;
       case Scalar::Uint32:
         if (dest.isFloat()) {
+#if defined(JS_CODEGEN_PPC_OSX)
             load32ByteSwapped(src, temp);
+#elif defined(JS_CODEGEN_X86)
+            load32Byte(src, temp);
+#endif
             convertUInt32ToDouble(temp, dest.fpu());
         } else {
+#if defined(JS_CODEGEN_PPC_OSX)
             load32ByteSwapped(src, dest.gpr());
+#elif defined(JS_CODEGEN_X86)
+            load32Byte(src, temp);
+#endif
 
             // Bail out if the value doesn't fit into a signed int32 value. This
             // is what allows MLoadUnboxedScalar to have a type() of
@@ -491,7 +511,11 @@ MacroAssembler::loadFromTypedArray(Scalar::Type arrayType, const T& src, const V
         break;
       case Scalar::Uint32:
         // Don't clobber dest when we could fail, instead use temp.
+#if defined(JS_CODEGEN_PPC_OSX)
         load32ByteSwapped(src, temp);
+#elif defined(JS_CODEGEN_X86)
+        load32(src, temp);
+#endif
         if (allowDouble) {
             // If the value fits in an int32, store an int32 type tag.
             // Else, convert the value to double and box it.

@@ -315,7 +315,9 @@ NativeRegExpMacroAssembler::GenerateCode(JSContext* cx, bool match_only)
     masm.jump(&start_label_);
 
     // Exit code:
+#if defined(JS_CODEGEN_PPC_OSX)
     BufferOffset bo_exit1, bo_exit2;
+#endif
     if (success_label_.used()) {
         MOZ_ASSERT(num_saved_registers_ > 0);
 

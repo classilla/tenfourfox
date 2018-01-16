@@ -2542,7 +2542,7 @@ ICGetElem_Arguments::Compiler::generateStubCode(MacroAssembler& masm)
     AllocatableGeneralRegisterSet regs(availableGeneralRegs(2));
     Register scratchReg = regs.takeAny();
 
-#if(0)
+#ifndef JS_CODEGEN_PPC_OSX
     // Guard on input being an arguments object.
     masm.branchTestObject(Assembler::NotEqual, R0, &failure);
     Register objReg = masm.extractObject(R0, ExtractTemp0);

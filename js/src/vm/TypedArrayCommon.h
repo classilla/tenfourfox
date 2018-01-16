@@ -126,7 +126,7 @@ IsAnyTypedArrayClass(const Class* clasp)
 class SharedOps
 {
   public:
-#if(0)
+#ifndef JS_CODEGEN_PPC_OSX
     template<typename T>
     static T load(SharedMem<T*> addr) {
         return js::jit::AtomicOperations::loadSafeWhenRacy(addr);
@@ -214,7 +214,7 @@ class SharedOps
 class UnsharedOps
 {
   public:
-#if(0)
+#ifndef JS_CODEGEN_PPC_OSX
     template<typename T>
     static T load(SharedMem<T*> addr) {
         return *addr.unwrapUnshared();
