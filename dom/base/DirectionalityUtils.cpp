@@ -436,7 +436,7 @@ class nsTextNodeDirectionalityMap
 
     nsTextNodeDirectionalityMap* map =
       reinterpret_cast<nsTextNodeDirectionalityMap * >(aPropertyValue);
-    map->EnsureMapIsClear(textNode);
+    map->EnsureMapIsClear();
     delete map;
   }
 
@@ -565,11 +565,12 @@ private:
     return OpRemove;
   }
 
-  static nsCheapSetOperator ClearEntry(nsPtrHashKey<Element>* aEntry, void* aData)
+  static nsCheapSetOperator TakeEntries(nsPtrHashKey<Element>* aEntry, void* aData)
   {
-    Element* rootNode = aEntry->GetKey();
-    rootNode->ClearHasDirAutoSet();
-    rootNode->DeleteProperty(nsGkAtoms::dirAutoSetBy);
+    // TenFourFox lacks AutoTArray, so convert bug 1414452 to nsAutoTArray.
+    nsAutoTArray<Element*, 8>* entries =
+      static_cast<nsAutoTArray<Element*, 8>*>(aData);
+    entries->AppendElement(aEntry->GetKey());
     return OpRemove;
   }
 
@@ -585,12 +586,18 @@ public:
     mElements.EnumerateEntries(ResetNodeDirection, &data);
   }
 
-  void EnsureMapIsClear(nsINode* aTextNode)
+  void EnsureMapIsClear()
   {
     AutoRestore<Element*> restore(mElementToBeRemoved);
-    DebugOnly<uint32_t> clearedEntries =
-      mElements.EnumerateEntries(ClearEntry, aTextNode);
-    MOZ_ASSERT(clearedEntries == 0, "Map should be empty already");
+    // As above.
+    nsAutoTArray<Element*, 8> entries;
+    mElements.EnumerateEntries(TakeEntries, &entries);
+    uint32_t size = entries.Length();
+    for(uint32_t i = 0; i < size; i++) {
+      Element* el = entries.ElementAt(i);
+      el->ClearHasDirAutoSet();
+      el->DeleteProperty(nsGkAtoms::dirAutoSetBy);
+    }
   }
 
   static void RemoveElementFromMap(nsINode* aTextNode, Element* aElement)
@@ -630,7 +637,7 @@ public:
   static void EnsureMapIsClearFor(nsINode* aTextNode)
   {
     if (aTextNode->HasTextNodeDirectionalityMap()) {
-      GetDirectionalityMap(aTextNode)->EnsureMapIsClear(aTextNode);
+      GetDirectionalityMap(aTextNode)->EnsureMapIsClear();
     }
   }
 };
