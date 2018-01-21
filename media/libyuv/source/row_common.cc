@@ -1116,6 +1116,13 @@ void I422ToARGB4444Row_C(const uint8* src_y,
   }
 }
 
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 8 && __GNUC_PATCHLEVEL__ == 5)
+#ifdef __ppc__
+/* work around issue 461 */
+__attribute__((optimize("no-tree-vectorize")))
+#endif
+#endif
+
 void I422ToARGB1555Row_C(const uint8* src_y,
                          const uint8* src_u,
                          const uint8* src_v,
@@ -1153,6 +1160,16 @@ void I422ToARGB1555Row_C(const uint8* src_y,
         0x8000;
   }
 }
+
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 8 && __GNUC_PATCHLEVEL__ == 5)
+#ifdef __ppc__
+#ifndef TENFOURFOX_G5
+/* Work around issue 461, 7450 only
+   Safe to comment for a 7400 build */
+__attribute__((optimize("no-tree-vectorize")))
+#endif
+#endif
+#endif
 
 void I422ToRGB565Row_C(const uint8* src_y,
                        const uint8* src_u,
@@ -1280,6 +1297,14 @@ void NV21ToARGBRow_C(const uint8* src_y,
   }
 }
 
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 8 && __GNUC_PATCHLEVEL__ == 5)
+#ifdef __ppc__
+/* work around issue 461 */
+__attribute__((optimize("no-tree-vectorize")))
+#endif
+#endif
+
+
 void NV12ToRGB565Row_C(const uint8* src_y,
                        const uint8* usrc_v,
                        uint8* dst_rgb565,
@@ -1314,6 +1339,13 @@ void NV12ToRGB565Row_C(const uint8* src_y,
     *(uint16*)(dst_rgb565) = b0 | (g0 << 5) | (r0 << 11);
   }
 }
+
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 8 && __GNUC_PATCHLEVEL__ == 5)
+#ifdef __ppc__
+/* work around issue 461 */
+__attribute__((optimize("no-tree-vectorize")))
+#endif
+#endif
 
 void NV21ToRGB565Row_C(const uint8* src_y,
                        const uint8* vsrc_u,
