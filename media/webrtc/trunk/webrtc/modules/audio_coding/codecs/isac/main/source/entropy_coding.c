@@ -391,7 +391,6 @@ int WebRtcIsac_DecodeSpec(Bitstr* streamdata, int16_t AvgPitchGain_Q12,
 __attribute__((optimize("no-tree-vectorize")))
 #endif
 #endif
-
 int WebRtcIsac_EncodeSpec(const int16_t* fr, const int16_t* fi,
                           int16_t AvgPitchGain_Q12, enum ISACBand band,
                           Bitstr* streamdata) {

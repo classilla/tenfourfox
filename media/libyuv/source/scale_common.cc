@@ -94,7 +94,6 @@ void ScaleRowDown4_C(const uint8* src_ptr, ptrdiff_t src_stride,
 __attribute__((optimize("no-tree-vectorize")))
 #endif
 #endif
-
 void ScaleRowDown4Box_C(const uint8* src_ptr, ptrdiff_t src_stride,
                         uint8* dst, int dst_width) {
   intptr_t stride = src_stride;

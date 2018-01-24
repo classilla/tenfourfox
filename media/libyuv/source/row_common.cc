@@ -1122,7 +1122,6 @@ void I422ToARGB4444Row_C(const uint8* src_y,
 __attribute__((optimize("no-tree-vectorize")))
 #endif
 #endif
-
 void I422ToARGB1555Row_C(const uint8* src_y,
                          const uint8* src_u,
                          const uint8* src_v,
@@ -1170,7 +1169,6 @@ __attribute__((optimize("no-tree-vectorize")))
 #endif
 #endif
 #endif
-
 void I422ToRGB565Row_C(const uint8* src_y,
                        const uint8* src_u,
                        const uint8* src_v,
@@ -1303,8 +1301,6 @@ void NV21ToARGBRow_C(const uint8* src_y,
 __attribute__((optimize("no-tree-vectorize")))
 #endif
 #endif
-
-
 void NV12ToRGB565Row_C(const uint8* src_y,
                        const uint8* usrc_v,
                        uint8* dst_rgb565,
@@ -1346,7 +1342,6 @@ void NV12ToRGB565Row_C(const uint8* src_y,
 __attribute__((optimize("no-tree-vectorize")))
 #endif
 #endif
-
 void NV21ToRGB565Row_C(const uint8* src_y,
                        const uint8* vsrc_u,
                        uint8* dst_rgb565,
