@@ -38,7 +38,7 @@
 <!ENTITY community.creditsLink      "Mozilla Community Credits">
 <!ENTITY community.end3             " working together to keep the Web open, public and accessible to all.">
 
-<!ENTITY contribute.start           "Project lead: Cameron Kaiser. Thanks to: Tobias Netzel, Ben Stuhl, Claudio Leite, Chris Trusch, David Kilbridge, David Fang, Chad Weider, Theo Waddell, Narcotix, PoLiYa, Edwin Smith and all our localizers. Powered by Mozilla Firefox: ">
+<!ENTITY contribute.start           "Project lead: Cameron Kaiser. Thanks to: Tobias Netzel, Ben Stuhl, Claudio Leite, Chris Trusch, David Kilbridge, David Fang, Riccardo Mottola, Raphaël Guay, Ken Cunningham, Chad Weider, Narcotix, PoLiYa, Edwin Smith and our localizers. Powered by Mozilla Firefox: ">
 <!ENTITY contribute.end             "">
 
 <!ENTITY helpus.start               "Want to help? ">
@@ -49,7 +49,7 @@
 <!ENTITY helpus.getInvolvedLink     "get involved!">
 <!ENTITY helpus.end                 "">
 
-<!ENTITY copyright.blurb            "Copyright © 2010-2017 Contributors to TenFourFox. All rights reserved.">
+<!ENTITY copyright.blurb            "Copyright © 2010-2018 Contributors to TenFourFox. All rights reserved.">
 
 <!-- LOCALIZATION NOTE (bottomLinks.license): This is a link title that links to about:license. -->
 <!ENTITY bottomLinks.license        "Licensing Information">
