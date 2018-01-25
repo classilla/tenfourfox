@@ -142,99 +142,6 @@ static void inline this_CGContextSetBlendMode(CGContextRef cg, CompositionOp op)
 		(CGBlendMode)(pcm - kPrivateCGBlendModesStartHere));
 }
 
-// marked for DEATH
-PrivateCGCompositeMode ToOldBlendMode(CompositionOp op)
-{
-  PrivateCGCompositeMode mode = kPrivateCGCompositeSourceOver;
-  switch (op) {
-    case CompositionOp::OP_OVER:
-      mode = kPrivateCGBlendModeNormal; // ??? kPrivateCGCompositeSourceOver;
-      break;
-    case CompositionOp::OP_ADD:
-      mode = kPrivateCGCompositePlusLighter;
-      break;
-    case CompositionOp::OP_ATOP:
-      mode = kPrivateCGCompositeSourceAtop;
-      break;
-    case CompositionOp::OP_OUT:
-      mode = kPrivateCGCompositeSourceOut;
-      break;
-    case CompositionOp::OP_IN:
-      mode = kPrivateCGCompositeSourceIn;
-      break;
-    case CompositionOp::OP_SOURCE:
-      mode = kPrivateCGCompositeCopy;
-      break;
-    case CompositionOp::OP_DEST_IN:
-      mode = kPrivateCGCompositeDestinationIn;
-      break;
-    case CompositionOp::OP_DEST_OUT:
-      mode = kPrivateCGCompositeDestinationOut;
-      break;
-    case CompositionOp::OP_DEST_OVER:
-      mode = kPrivateCGCompositeDestinationOver;
-      break;
-    case CompositionOp::OP_DEST_ATOP:
-      mode = kPrivateCGCompositeSourceAtop;
-      break;
-    case CompositionOp::OP_XOR:
-      mode = kPrivateCGCompositeXOR;
-      break;
-    case CompositionOp::OP_MULTIPLY:
-      mode = kPrivateCGBlendModeMultiply;
-      break;
-    case CompositionOp::OP_SCREEN:
-      mode = kPrivateCGBlendModeScreen;
-      break;
-    case CompositionOp::OP_OVERLAY:
-      mode = kPrivateCGBlendModeOverlay;
-      break;
-    case CompositionOp::OP_DARKEN:
-      mode = kPrivateCGBlendModeDarken;
-      break;
-    case CompositionOp::OP_LIGHTEN:
-      mode = kPrivateCGBlendModeLighten;
-      break;
-    case CompositionOp::OP_COLOR_DODGE:
-      mode = kPrivateCGBlendModeColorDodge;
-      break;
-    case CompositionOp::OP_COLOR_BURN:
-      mode = kPrivateCGBlendModeColorBurn;
-      break;
-    case CompositionOp::OP_HARD_LIGHT:
-      mode = kPrivateCGBlendModeHardLight;
-      break;
-    case CompositionOp::OP_SOFT_LIGHT:
-      mode = kPrivateCGBlendModeSoftLight;
-      break;
-    case CompositionOp::OP_DIFFERENCE:
-      mode = kPrivateCGBlendModeDifference;
-      break;
-    case CompositionOp::OP_EXCLUSION:
-      mode = kPrivateCGBlendModeExclusion;
-      break;
-    case CompositionOp::OP_HUE:
-      mode = kPrivateCGBlendModeHue;
-      break;
-    case CompositionOp::OP_SATURATION:
-      mode = kPrivateCGBlendModeSaturation;
-      break;
-    case CompositionOp::OP_COLOR:
-      mode = kPrivateCGBlendModeColor;
-      break;
-    case CompositionOp::OP_LUMINOSITY:
-      mode = kPrivateCGBlendModeLuminosity;
-      break;
-      /*
-    case OP_CLEAR:
-      mode = kPrivateCGCompositeClear;
-      break;*/
-    default:
-      mode = kPrivateCGBlendModeNormal; // ??? kPrivateCGCompositeSourceOver;
-  }
-  return mode;
-}
-
 #else
 
 static void inline this_CGContextSetBlendMode(CGContextRef cg, CGBlendMode m) {
@@ -348,6 +255,25 @@ InterpolationQualityFromFilter(Filter aFilter)
   }
 }
 
+// TenFourFox issue 453
+// There is no bounds-checking on CoreGraphics paths.
+// Also, Facebook can suck me.
+static inline bool this_CGContextAddPath(CGContextRef aContext, CGPathRef aPath)
+{
+  // Empty paths are always acceptable (and shouldn't be added anyway).
+  if (CGPathIsEmpty(aPath)) return true;
+  
+  // Non-empty paths need to be bounds-checked.
+  CGRect r = CGPathGetBoundingBox(aPath);
+  if (MOZ_UNLIKELY(CGRectIsNull(r))) return true; // should have been caught above?
+  if (MOZ_UNLIKELY(r.origin.x >= INT_MAX || r.origin.x <= INT_MIN)) return false;
+  if (MOZ_UNLIKELY(r.origin.y >= INT_MAX || r.origin.y <= INT_MIN)) return false;
+  if (MOZ_UNLIKELY(r.size.height >= INT_MAX)) return false;
+  if (MOZ_UNLIKELY(r.size.width >= INT_MAX)) return false;
+  
+  CGContextAddPath(aContext, aPath);
+  return true;
+}
 
 DrawTargetCG::DrawTargetCG()
   : mColorSpace(nullptr)
@@ -1643,7 +1569,12 @@ DrawTargetCG::Stroke(const Path *aPath, const Pattern &aPattern, const StrokeOpt
 
   //assert(aPath->GetBackendType() == BackendType::COREGRAPHICS);
   const PathCG *cgPath = static_cast<const PathCG*>(aPath);
-  CGContextAddPath(cg, cgPath->GetPath());
+  if (MOZ_UNLIKELY(!this_CGContextAddPath(cg, cgPath->GetPath()))) {
+    fprintf(stderr, "Warning: TenFourFox DrawTargetCG::Stroke received an illegal path coordinate.\n");
+    fixer.Fix(this);
+    CGContextRestoreGState(mCg);
+    return;
+  }
 
   SetStrokeOptions(cg, aStrokeOptions);
 
@@ -1700,7 +1631,12 @@ DrawTargetCG::Fill(const Path *aPath, const Pattern &aPattern, const DrawOptions
       CGContextClipToRect(mCg, CGRectZero);
       extents = CGRectZero;
     } else {
-      CGContextAddPath(cg, cgPath->GetPath());
+      if (MOZ_UNLIKELY(!this_CGContextAddPath(cg, cgPath->GetPath()))) {
+        fprintf(stderr, "Warning: TenFourFox DrawTargetCG::Fill received an illegal path coordinate.\n");
+        fixer.Fix(this);
+        CGContextRestoreGState(mCg);
+        return;
+      }
       extents = CGContextGetPathBoundingBox(cg);
       if (cgPath->GetFillRule() == FillRule::FILL_EVEN_ODD)
         CGContextEOClip(mCg);
@@ -1710,7 +1646,12 @@ DrawTargetCG::Fill(const Path *aPath, const Pattern &aPattern, const DrawOptions
 
     DrawGradient(mColorSpace, cg, aPattern, extents);
   } else {
-    CGContextAddPath(cg, cgPath->GetPath());
+    if (MOZ_UNLIKELY(!this_CGContextAddPath(cg, cgPath->GetPath()))) {
+      fprintf(stderr, "Warning: TenFourFox DrawTargetCG::Fill received an illegal path coordinate.\n");
+      fixer.Fix(this);
+      CGContextRestoreGState(mCg);
+      return;
+    }
 
     SetFillFromPattern(cg, mColorSpace, aPattern);
 
@@ -2050,10 +1991,10 @@ DrawTargetCG::Init(BackendType aType,
 {
   // XXX: we should come up with some consistent semantics for dealing
   // with zero area drawtargets
-  if (aSize.width <= 0 ||
+  if (MOZ_UNLIKELY(aSize.width <= 0 ||
       aSize.height <= 0 ||
       size_t(aSize.width) > GetMaxSurfaceSize() ||
-      size_t(aSize.height) > GetMaxSurfaceSize())
+      size_t(aSize.height) > GetMaxSurfaceSize()))
   {
     gfxWarning() << "Failed to Init() DrawTargetCG because of bad size.";
     mColorSpace = nullptr;
@@ -2128,7 +2069,7 @@ DrawTargetCG::Init(BackendType aType,
   }
 
   //assert(mCg);
-  if (!mCg) {
+  if (MOZ_UNLIKELY(!mCg)) {
     gfxCriticalError() << "Failed to create CG context" << mSize << ", " << aStride;
     return false;
   }
@@ -2242,7 +2183,7 @@ DrawTargetCG::Init(CGContextRef cgContext, const IntSize &aSize)
   CGContextRetain(mCg);
 
   //assert(mCg);
-  if (!mCg) {
+  if (MOZ_UNLIKELY(!mCg)) {
     gfxCriticalError() << "Invalid CG context at Init " << aSize;
     return false;
   }
@@ -2384,7 +2325,10 @@ DrawTargetCG::PushClip(const Path *aPath)
    * while we add the path. XXX: this could be improved if we keep
    * the CTM as resident state on the DrawTarget. */
   CGContextSaveGState(mCg);
-  CGContextAddPath(mCg, cgPath->GetPath());
+  if (MOZ_UNLIKELY(!this_CGContextAddPath(mCg, cgPath->GetPath()))) {
+    fprintf(stderr, "Warning: TenFourFox DrawTargetCG::PushClip received an illegal coordinate.\n");
+    return;
+  }
   CGContextRestoreGState(mCg);
 
   if (cgPath->GetFillRule() == FillRule::FILL_EVEN_ODD)
