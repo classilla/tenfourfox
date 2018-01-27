@@ -259,6 +259,10 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
     } else
         failed = true;
     if (failed ||
+	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4dcd1b9d7833fcec708a/fonts/KisFBDisplay-Bold.woff") ||
+	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4dcd1b9d7833fcec708a/fonts/KisFBDisplay-Bold.woff2") ||
+	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4dcd1b9d7833fcec708a/fonts/KisFBDisplay-Roman.woff") ||
+	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4dcd1b9d7833fcec708a/fonts/KisFBDisplay-Roman.woff2") ||
 	spec.Equals("https://cdn-static-1.medium.com/_/fp/fonts/charter-nonlatin.b-nw7PXlIqmGHGmHvkDiTw.woff") ||
 	spec.Equals("http://typeface.nytimes.com/fonts/nyt-cheltenham-200-normal.woff") ||
 	spec.Equals("https://typeface.nyt.com/fonts/nyt-cheltenham-200-normal.woff") ||
