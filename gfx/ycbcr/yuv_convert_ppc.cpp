@@ -29,21 +29,12 @@ void FilterRows_VMX(uint8* ybuf, const uint8* y0_ptr, const uint8* y1_ptr,
 
   uint8 *end = ybuf + source_width;
 
+  // Compute a weighted average.
   do {
     vector unsigned char r0;
     vector unsigned char c0 = vec_ld(0, y0_ptr);
     vector unsigned char c1 = vec_ld(0, y1_ptr);
 
-    // Compute a weighted average.
-    // Quick trivial cases first:
-    // If source_y_fraction is 0, then the result is y0, etc.
-    if (source_y_fraction < 1) {
-        r0 = c0;
-    } else if (source_y_fraction > 255) {
-        r0 = c1;
-    // Sure would be nice to use vec_avg for 128, but it doesn't quite
-    // work, so here's the long case for everything else.
-    } else {
         // another VMX annoyance: unpackh/l are SIGNED. bastard Motorola.
         register vector unsigned short y0 = vec_mergeh(vector_c_zero, c0);
         register vector unsigned short y1 = vec_mergeh(vector_c_zero, c1);
@@ -60,7 +51,7 @@ void FilterRows_VMX(uint8* ybuf, const uint8* y0_ptr, const uint8* y1_ptr,
         y2 = vec_sr(y2, vector_eight);
 
         r0 = vec_pack(y0, y2);
-    }
+
     vec_st(r0, 0, (unsigned char *)ybuf);
     ybuf += 16;
     y0_ptr += 16;
