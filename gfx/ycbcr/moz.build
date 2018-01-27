@@ -17,14 +17,16 @@ UNIFIED_SOURCES += [
     'YCbCrUtils.cpp',
     'yuv_convert.cpp',
     'yuv_row_c.cpp',
-    'yuv_row_table.cpp',
 ]
 
 if CONFIG['TENFOURFOX_VMX']:
     SOURCES += ['yuv_convert_ppc.cpp']
     SOURCES['yuv_convert_ppc.cpp'].flags += ['-maltivec']
+    # Use fast aligned version for VMX.
+    UNIFIED_SOURCES += ['yuv_row_table16.cpp']
 else:
     UNIFIED_SOURCES += ['yuv_convert_ppc.cpp']
+    UNIFIED_SOURCES += ['yuv_row_table.cpp']
 
 if CONFIG['INTEL_ARCHITECTURE']:
     # These files use MMX and SSE2 intrinsics, so they need special compile flags
