@@ -712,11 +712,11 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 
                 BLOK("adservice.google.com") ||
                 
+                BLOK("adrta.com") ||
                 BLOK("p.adrta.com") ||
                 BLOK("q.adrta.com") ||
                 BLOK("cdn.adrta.com") ||
                 BLOK("ipv6.adrta.com") ||
-                BLOK("adrta.com") ||
 
                 BLOK("ib.adnxs.com") ||
                 BLOK("acdn.adnxs.com") ||
@@ -730,9 +730,10 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("b.scorecardresearch.com") ||
                 BLOK("sb.scorecardresearch.com") ||
 
-                BLOK("securepubads.g.doubleclick.net") ||
-                BLOK("stats.g.doubleclick.net") ||
                 BLOK("ad.doubleclick.net") ||
+                BLOK("stats.g.doubleclick.net") ||
+                BLOK("googleads.g.doubleclick.net") ||
+                BLOK("securepubads.g.doubleclick.net") ||
                 
                 BLOK("at.atwola.com") ||
                 
