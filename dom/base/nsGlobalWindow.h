@@ -118,6 +118,7 @@ class RequestOrUSVString;
 class Selection;
 class SpeechSynthesis;
 class WakeLock;
+class IdleRequestCallback;
 #if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
 class WindowOrientationObserver;
 #endif
@@ -1042,6 +1043,13 @@ public:
   int32_t RequestAnimationFrame(mozilla::dom::FrameRequestCallback& aCallback,
                                 mozilla::ErrorResult& aError);
   void CancelAnimationFrame(int32_t aHandle, mozilla::ErrorResult& aError);
+
+  uint32_t RequestIdleCallback(JSContext* aCx,
+                               mozilla::dom::IdleRequestCallback& aCallback,
+                               const mozilla::dom::IdleRequestOptions& aOptions,
+                               mozilla::ErrorResult& aError);
+  void CancelIdleCallback(uint32_t aHandle);
+
 #ifdef MOZ_WEBSPEECH
   mozilla::dom::SpeechSynthesis*
     GetSpeechSynthesis(mozilla::ErrorResult& aError);
@@ -1790,6 +1798,9 @@ protected:
   uint32_t mFocusMethod;
 
   uint32_t mSerial;
+
+  // requestIdleCallback() support
+  uint32_t mIdleRequestCallbackCounter;
 
 #ifdef DEBUG
   bool mSetOpenerWindowCalled;

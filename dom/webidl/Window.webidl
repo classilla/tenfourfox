@@ -494,3 +494,17 @@ interface ChromeWindow {
 Window implements ChromeWindow;
 Window implements GlobalFetch;
 Window implements ImageBitmapFactories;
+
+partial interface Window {
+  [Throws, Pref="dom.requestIdleCallback.enabled"]
+  unsigned long requestIdleCallback(IdleRequestCallback callback,
+                                    optional IdleRequestOptions options);
+  [Pref="dom.requestIdleCallback.enabled"]
+  void          cancelIdleCallback(unsigned long handle);
+};
+
+dictionary IdleRequestOptions {
+  unsigned long timeout;
+};
+
+callback IdleRequestCallback = void (IdleDeadline deadline);
