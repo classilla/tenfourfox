@@ -268,6 +268,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 	spec.Equals("https://typeface.nyt.com/fonts/nyt-cheltenham-200-normal.woff") ||
 	spec.Equals("http://typeface.nytimes.com/fonts/nyt-cheltenham-300-normal.woff") ||
 	spec.Equals("https://typeface.nyt.com/fonts/nyt-cheltenham-300-normal.woff") ||
+	spec.Equals("http://typeface.nytimes.com/fonts/nyt-cheltenham-400-normal.woff") ||
+	spec.Equals("https://typeface.nyt.com/fonts/nyt-cheltenham-400-normal.woff") ||
 	spec.Equals("http://fonts.gstatic.com/ea/notosansjapanese/v6/NotoSansJP-Regular.woff") ||
 	spec.Equals("http://fonts.gstatic.com/ea/notosansjapanese/v6/NotoSansJP-Bold.woff") ||
 	spec.Equals("http://fonts.gstatic.com/ea/notosansjapanese/v6/NotoSansJP-Regular.otf") ||
