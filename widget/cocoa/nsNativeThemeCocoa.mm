@@ -3391,6 +3391,7 @@ nsNativeThemeCocoa::DrawWidgetBackground(nsRenderingContext* aContext,
       // draw a focus ring
       if (eventState.HasState(NS_EVENT_STATE_FOCUS)) {
         NSGraphicsContext* savedContext = [NSGraphicsContext currentContext];
+        if (MOZ_UNLIKELY(!savedContext)) break; // speculative fix issue 471
         [NSGraphicsContext setCurrentContext:[NSGraphicsContext graphicsContextWithGraphicsPort:cgContext flipped:YES]];
         CGContextSaveGState(cgContext);
         NSSetFocusRingStyle(NSFocusRingOnly);
