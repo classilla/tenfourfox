@@ -702,15 +702,23 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 // Probably also shouldn't block googletagmanager.com
                 // for the same reasons.
                 //BLOK("www.googletagservices.com") ||
+                
+                // blocking zdbb.net seems to be problematic
+                // https://github.com/AdguardTeam/AdguardFilters/issues/1278
 
                 BLOK("c.amazon-adsystem.com") ||
 
+                BLOK("google-analytics.com") ||
                 BLOK("www.google-analytics.com") ||
+                BLOK("ssl.google-analytics.com") ||
+                
                 BLOK("tpc.googlesyndication.com") ||
                 BLOK("pagead.googlesyndication.com") ||
                 BLOK("pagead2.googlesyndication.com") ||
                 
                 BLOK("adservice.google.com") ||
+                
+                BLOK("www.googleadservices.com") ||
                 
                 BLOK("adrta.com") ||
                 BLOK("p.adrta.com") ||
@@ -721,16 +729,19 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("ib.adnxs.com") ||
                 BLOK("acdn.adnxs.com") ||
                 BLOK("secure.adnxs.com") ||
+                BLOK("yj-a.p.adnxs.com") ||
                 BLOK("sharethrough.adnxs.com") ||
 
                 BLOK("c2.taboola.com") ||
                 BLOK("nr.taboola.com") ||
                 BLOK("cdn.taboola.com") ||
+                BLOK("trc.taboola.com") ||
 
                 BLOK("b.scorecardresearch.com") ||
                 BLOK("sb.scorecardresearch.com") ||
 
                 BLOK("ad.doubleclick.net") ||
+                BLOK("static.doubleclick.net") ||
                 BLOK("stats.g.doubleclick.net") ||
                 BLOK("googleads.g.doubleclick.net") ||
                 BLOK("securepubads.g.doubleclick.net") ||
@@ -784,6 +795,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("trends.revcontent.com") ||
                 BLOK("cdn.revcontent.com") ||
                 
+                BLOK("cas.criteo.com") ||
                 BLOK("static.criteo.net") ||
                 
                 BLOK("jsc.idealmedia.com") ||
@@ -872,6 +884,26 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("pippio.com") ||
                 
                 BLOK("cdn.quantummetric.com") ||
+                
+                BLOK("cdn.blueconic.net") ||
+                
+                BLOK("www.zergnet.com") ||
+                
+                BLOK("f.monetate.net") ||
+                BLOK("sb.monetate.net") ||
+                BLOK("se.monetate.net") ||
+                
+                BLOK("tags.crwdcntrl.net") ||
+                
+                BLOK("cdn.nsstatic.net") ||
+                
+                BLOK("tags.bkrtx.com") ||
+                
+                BLOK("yads.c.yimg.jp") ||
+                BLOK("yjtag.yahoo.co.jp") ||
+                BLOK("yads.yjtag.yahoo.co.jp") ||
+                
+                BLOK("px-ya.ladsp.com") ||
                     0) {
 #undef BLOK
                 // Yup.
