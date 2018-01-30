@@ -8136,6 +8136,9 @@ else
 MOZ_ENABLE_SKIA=
 fi
 
+dnl force disabling of SKIA totally for FFF, to be optionally re-enabled later
+MOZ_ENABLE_SKIA=
+
 MOZ_ARG_ENABLE_BOOL(skia,
 [  --enable-skia   Enable use of Skia],
 MOZ_ENABLE_SKIA=1,
