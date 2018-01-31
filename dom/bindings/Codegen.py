@@ -1642,7 +1642,7 @@ class CGClassConstructor(CGAbstractStaticMethod):
               return ThrowConstructorWithoutNew(cx, "${ctorName}");
             }
             JS::Rooted<JSObject*> desiredProto(cx);
-            if (!GetDesiredProto(cx, args, &desiredProto)) {
+            if (MOZ_UNLIKELY(!GetDesiredProto(cx, args, &desiredProto))) {
               return false;
             }
             """,
@@ -2672,10 +2672,10 @@ class CGJsonifyAttributesMethod(CGAbstractMethod):
                     """
                     { // scope for "temp"
                       JS::Rooted<JS::Value> temp(aCx);
-                      if (!get_${name}(aCx, obj, self, JSJitGetterCallArgs(&temp))) {
+                      if (MOZ_UNLIKELY(!get_${name}(aCx, obj, self, JSJitGetterCallArgs(&temp)))) {
                         return false;
                       }
-                      if (!JS_DefineProperty(aCx, aResult, "${name}", temp, JSPROP_ENUMERATE)) {
+                      if (MOZ_UNLIKELY(!JS_DefineProperty(aCx, aResult, "${name}", temp, JSPROP_ENUMERATE))) {
                         return false;
                       }
                     }
@@ -3311,7 +3311,7 @@ def CreateBindingJSObject(descriptor, properties):
             """
             creator.CreateProxyObject(aCx, &Class.mBase, DOMProxyHandler::getInstance(),
                                       proto, aObject, aReflector);
-            if (!aReflector) {
+            if (MOZ_UNLIKELY(!aReflector)) {
               return false;
             }
 
@@ -3326,7 +3326,7 @@ def CreateBindingJSObject(descriptor, properties):
         create = dedent(
             """
             creator.CreateObject(aCx, Class.ToJSClass(), proto, aObject, aReflector);
-            if (!aReflector) {
+            if (MOZ_UNLIKELY(!aReflector)) {
               return false;
             }
             """)
@@ -3431,7 +3431,7 @@ def CopyUnforgeablePropertiesToInstance(descriptor, wrapperCache):
             """
             JS::Rooted<JSObject*> expando(aCx,
               DOMProxyHandler::EnsureExpandoObject(aCx, aReflector));
-            if (!expando) {
+            if (MOZ_UNLIKELY(!expando)) {
               $*{cleanup}
               return false;
             }
@@ -3452,7 +3452,7 @@ def CopyUnforgeablePropertiesToInstance(descriptor, wrapperCache):
         """
         JS::Rooted<JSObject*> unforgeableHolder(aCx,
           &js::GetReservedSlot(canonicalProto, DOM_INTERFACE_PROTO_SLOTS_BASE).toObject());
-        if (!${copyFunc}(aCx, ${obj}, unforgeableHolder)) {
+        if (MOZ_UNLIKELY(!${copyFunc}(aCx, ${obj}, unforgeableHolder))) {
           $*{cleanup}
           return false;
         }
@@ -3500,7 +3500,7 @@ def InitMemberSlots(descriptor, wrapperCache):
         clearWrapper = ""
     return fill(
         """
-        if (!UpdateMemberSlots(aCx, aReflector, aObject)) {
+        if (MOZ_UNLIKELY(!UpdateMemberSlots(aCx, aReflector, aObject))) {
           $*{clearWrapper}
           return false;
         }
@@ -3515,7 +3515,7 @@ def DeclareProto():
     return dedent(
         """
         JS::Handle<JSObject*> canonicalProto = GetProtoObjectHandle(aCx, global);
-        if (!canonicalProto) {
+        if (MOZ_UNLIKELY(!canonicalProto)) {
           return false;
         }
         JS::Rooted<JSObject*> proto(aCx);
@@ -3525,7 +3525,7 @@ def DeclareProto():
           // coming in, we changed compartments to that of "parent" so may need
           // to wrap the proto here.
           if (js::GetContextCompartment(aCx) != js::GetObjectCompartment(proto)) {
-            if (!JS_WrapObject(aCx, &proto)) {
+            if (MOZ_UNLIKELY(!JS_WrapObject(aCx, &proto))) {
               return false;
             }
           }
@@ -3573,7 +3573,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
                        "nsISupports must be on our primary inheritance chain");
 
             JS::Rooted<JSObject*> parent(aCx, WrapNativeParent(aCx, aObject->GetParentObject()));
-            if (!parent) {
+            if (MOZ_UNLIKELY(!parent)) {
               return false;
             }
 
@@ -3738,7 +3738,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
                                              aPrincipal,
                                              aInitStandardClasses,
                                              aReflector);
-            if (!aReflector) {
+            if (MOZ_UNLIKELY(!aReflector)) {
               return false;
             }
             $*{assertProto}
@@ -3747,7 +3747,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             // before doing anything with it.
             JSAutoCompartment ac(aCx, aReflector);
 
-            if (!DefineProperties(aCx, aReflector, ${properties}, ${chromeProperties})) {
+            if (MOZ_UNLIKELY(!DefineProperties(aCx, aReflector, ${properties}, ${chromeProperties}))) {
               return false;
             }
             $*{unforgeable}
@@ -3790,7 +3790,7 @@ class CGUpdateMemberSlotsMethod(CGAbstractStaticMethod):
                 body += fill(
                     """
 
-                    if (!get_${member}(aCx, aWrapper, aObject, args)) {
+                    if (MOZ_UNLIKELY(!get_${member}(aCx, aWrapper, aObject, args))) {
                       return false;
                     }
                     // Getter handled setting our reserved slots
@@ -3832,7 +3832,7 @@ class CGClearCachedValueMethod(CGAbstractMethod):
                 JS::Rooted<JS::Value> temp(aCx);
                 JSJitGetterCallArgs args(&temp);
                 JSAutoCompartment ac(aCx, obj);
-                if (!get_${name}(aCx, obj, aObject, args)) {
+                if (MOZ_UNLIKELY(!get_${name}(aCx, obj, aObject, args))) {
                   js::SetReservedSlot(obj, ${slotIndex}, oldValue);
                   return false;
                 }
@@ -6026,7 +6026,7 @@ class CGArgumentConverter(CGThing):
             rooterDecl +
             dedent("""
                 if (${argc} > ${index}) {
-                  if (!${declName}.SetCapacity(${argc} - ${index}, mozilla::fallible)) {
+                  if (MOZ_UNLIKELY(!${declName}.SetCapacity(${argc} - ${index}, mozilla::fallible))) {
                     JS_ReportOutOfMemory(cx);
                     return false;
                   }
@@ -6912,7 +6912,7 @@ def wrapTypeIntoCurrentCompartment(type, value, isMember=True):
             value = "JS::MutableHandle<JS::Value>::fromMarkedLocation(&%s)" % value
         else:
             value = "&" + value
-        return CGGeneric("if (!JS_WrapValue(cx, %s)) {\n"
+        return CGGeneric("if (MOZ_UNLIKELY(!JS_WrapValue(cx, %s))) {\n"
                          "  return false;\n"
                          "}\n" % value)
 
@@ -6921,7 +6921,7 @@ def wrapTypeIntoCurrentCompartment(type, value, isMember=True):
             value = "JS::MutableHandle<JSObject*>::fromMarkedLocation(&%s)" % value
         else:
             value = "&" + value
-        return CGGeneric("if (!JS_WrapObject(cx, %s)) {\n"
+        return CGGeneric("if (MOZ_UNLIKELY(!JS_WrapObject(cx, %s))) {\n"
                          "  return false;\n"
                          "}\n" % value)
 
@@ -6929,7 +6929,7 @@ def wrapTypeIntoCurrentCompartment(type, value, isMember=True):
         origValue = value
         if type.nullable():
             value = "%s.Value()" % value
-        wrapCode = CGGeneric("if (!%s.WrapIntoNewCompartment(cx)) {\n"
+        wrapCode = CGGeneric("if (MOZ_UNLIKELY(!%s.WrapIntoNewCompartment(cx))) {\n"
                              "  return false;\n"
                              "}\n" % value)
         if type.nullable():
@@ -7131,7 +7131,7 @@ class CGPerSignatureCall(CGThing):
             cgThings.append(CGGeneric(fill(
                 """
                 GlobalObject global(cx, ${obj});
-                if (global.Failed()) {
+                if (MOZ_UNLIKELY(global.Failed())) {
                   return false;
                 }
 
@@ -7269,7 +7269,7 @@ class CGPerSignatureCall(CGThing):
                 CGGeneric(fill(
                     """
                     ${obj} = js::CheckedUnwrap(${obj});
-                    if (!${obj}) {
+                    if (MOZ_UNLIKELY(!${obj})) {
                       return false;
                     }
                     """,
@@ -7288,7 +7288,7 @@ class CGPerSignatureCall(CGThing):
                 xraySteps.append(CGGeneric("ac.emplace(cx, obj);\n"))
                 xraySteps.append(CGGeneric(dedent(
                     """
-                    if (!JS_WrapObject(cx, &desiredProto)) {
+                    if (MOZ_UNLIKELY(!JS_WrapObject(cx, &desiredProto))) {
                       return false;
                     }
                     """)))
@@ -7384,7 +7384,7 @@ class CGPerSignatureCall(CGThing):
                 assert self.idlNode.type.isSequence() or self.idlNode.type.isDictionary()
                 freezeValue = CGGeneric(
                     "JS::Rooted<JSObject*> rvalObj(cx, &args.rval().toObject());\n"
-                    "if (!JS_FreezeObject(cx, rvalObj)) {\n"
+                    "if (MOZ_UNLIKELY(!JS_FreezeObject(cx, rvalObj))) {\n"
                     "  return false;\n"
                     "}\n")
                 if self.idlNode.type.nullable():
@@ -8239,7 +8239,7 @@ class CGJsonifierMethod(CGSpecializedMethod):
     def definition_body(self):
         ret = dedent("""
             JS::Rooted<JSObject*> result(cx, JS_NewPlainObject(cx));
-            if (!result) {
+            if (MOZ_UNLIKELY(!result)) {
               return false;
             }
             """)
@@ -8256,7 +8256,7 @@ class CGJsonifierMethod(CGSpecializedMethod):
         for descriptor in jsonDescriptors[::-1]:
             ret += fill(
                 """
-                if (!${parentclass}::JsonifyAttributes(cx, obj, self, result)) {
+                if (MOZ_UNLIKELY(!${parentclass}::JsonifyAttributes(cx, obj, self, result))) {
                   return false;
                 }
                 """,
@@ -8307,10 +8307,10 @@ class CGResolveHook(CGAbstractClassHook):
     def generate_code(self):
         return dedent("""
             JS::Rooted<JSPropertyDescriptor> desc(cx);
-            if (!self->DoResolve(cx, obj, id, &desc)) {
+            if (MOZ_UNLIKELY(!self->DoResolve(cx, obj, id, &desc))) {
               return false;
             }
-            if (!desc.object()) {
+            if (MOZ_UNLIKELY(!desc.object())) {
               return true;
             }
             // If desc.value() is undefined, then the DoResolve call
@@ -8318,7 +8318,7 @@ class CGResolveHook(CGAbstractClassHook):
             // define it.
             if (!desc.value().isUndefined()) {
               desc.attributesRef() |= JSPROP_RESOLVING;
-              if (!JS_DefinePropertyById(cx, obj, id, desc)) {
+              if (MOZ_UNLIKELY(!JS_DefinePropertyById(cx, obj, id, desc))) {
                 return false;
               }
             }
@@ -8330,7 +8330,7 @@ class CGResolveHook(CGAbstractClassHook):
         if self.descriptor.isGlobal():
             # Resolve standard classes
             prefix = dedent("""
-                if (!ResolveGlobal(cx, obj, id, resolvedp)) {
+                if (MOZ_UNLIKELY(!ResolveGlobal(cx, obj, id, resolvedp))) {
                   return false;
                 }
                 if (*resolvedp) {
@@ -8390,7 +8390,7 @@ class CGEnumerateHook(CGAbstractBindingMethod):
             nsAutoTArray<nsString, 8> names;
             ErrorResult rv;
             self->GetOwnPropertyNames(cx, names, rv);
-            if (rv.MaybeSetPendingException(cx)) {
+            if (MOZ_UNLIKELY(rv.MaybeSetPendingException(cx))) {
               return false;
             }
             bool dummy;
@@ -8406,7 +8406,7 @@ class CGEnumerateHook(CGAbstractBindingMethod):
         if self.descriptor.isGlobal():
             # Enumerate standard classes
             prefix = dedent("""
-                if (!EnumerateGlobal(cx, obj)) {
+                if (MOZ_UNLIKELY(!EnumerateGlobal(cx, obj))) {
                   return false;
                 }
 
@@ -8466,7 +8466,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
             name = "genericLenientGetter"
             unwrapFailureCode = dedent("""
                 MOZ_ASSERT(!JS_IsExceptionPending(cx));
-                if (!ReportLenientThisUnwrappingFailure(cx, &args.callee())) {
+                if (MOZ_UNLIKELY(!ReportLenientThisUnwrappingFailure(cx, &args.callee()))) {
                   return false;
                 }
                 args.rval().set(JS::UndefinedValue());
@@ -8597,7 +8597,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
             name = "genericLenientSetter"
             unwrapFailureCode = dedent("""
                 MOZ_ASSERT(!JS_IsExceptionPending(cx));
-                if (!ReportLenientThisUnwrappingFailure(cx, &args.callee())) {
+                if (MOZ_UNLIKELY(!ReportLenientThisUnwrappingFailure(cx, &args.callee()))) {
                   return false;
                 }
                 args.rval().set(JS::UndefinedValue());
@@ -8625,7 +8625,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
             const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(args.calleev());
             MOZ_ASSERT(info->type() == JSJitInfo::Setter);
             JSJitSetterOp setter = info->setter;
-            if (!setter(cx, obj, self, JSJitSetterCallArgs(args))) {
+            if (MOZ_UNLIKELY(!setter(cx, obj, self, JSJitSetterCallArgs(args)))) {
               return false;
             }
             args.rval().setUndefined();
@@ -8704,11 +8704,11 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
         return fill(
             """
             JS::Rooted<JS::Value> v(cx);
-            if (!JS_GetProperty(cx, obj, "${attr}", &v)) {
+            if (MOZ_UNLIKELY(!JS_GetProperty(cx, obj, "${attr}", &v))) {
               return false;
             }
 
-            if (!v.isObject()) {
+            if (MOZ_UNLIKELY(!v.isObject())) {
               return ThrowErrorMessage(cx, MSG_NOT_OBJECT, "${interface}.${attr}");
             }
 
@@ -9204,7 +9204,7 @@ class CGEnumToJSValue(CGAbstractMethod):
             JSString* resultStr =
               JS_NewStringCopyN(aCx, ${strings}[uint32_t(aArgument)].value,
                                 ${strings}[uint32_t(aArgument)].length);
-            if (!resultStr) {
+            if (MOZ_UNLIKELY(!resultStr)) {
               return false;
             }
             aValue.setString(resultStr);
@@ -9382,7 +9382,7 @@ def getUnionTypeTemplateVars(unionType, type, descriptorProvider,
         # but it keeps the code cleaner and lets us avoid rooting |obj| over the
         # call to CallerSubsumes().
         body = body + dedent("""
-            if (passedToJSImpl && !CallerSubsumes(obj)) {
+            if (MOZ_UNLIKELY(passedToJSImpl && !CallerSubsumes(obj))) {
               ThrowErrorMessage(cx, MSG_PERMISSION_DENIED_TO_PASS_ARG, "%s");
               return false;
             }
@@ -10408,15 +10408,15 @@ class CGResolveOwnPropertyViaResolve(CGAbstractBindingMethod):
               // them.
               JSAutoCompartment ac(cx, obj);
               JS::Rooted<JSPropertyDescriptor> objDesc(cx);
-              if (!self->DoResolve(cx, obj, id, &objDesc)) {
+              if (MOZ_UNLIKELY(!self->DoResolve(cx, obj, id, &objDesc))) {
                 return false;
               }
               // If desc.value() is undefined, then the DoResolve call
               // has already defined the property on the object.  Don't
               // try to also define it.
-              if (objDesc.object() &&
+              if (MOZ_UNLIKELY(objDesc.object() &&
                   !objDesc.value().isUndefined() &&
-                  !JS_DefinePropertyById(cx, obj, id, objDesc)) {
+                  !JS_DefinePropertyById(cx, obj, id, objDesc))) {
                 return false;
               }
             }
@@ -10717,7 +10717,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
                 """
                 $*{decls}
                 bool isSymbol;
-                if (!ConvertIdToString(cx, ${idName}, ${argName}, isSymbol)) {
+                if (MOZ_UNLIKELY(!ConvertIdToString(cx, ${idName}, ${argName}, isSymbol))) {
                   return false;
                 }
                 if (!isSymbol) {
@@ -10738,8 +10738,8 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
             $*{decls}
             JS::Rooted<JS::Value> nameVal(cx, ${value});
             if (!nameVal.isSymbol()) {
-              if (!ConvertJSValueToString(cx, nameVal, eStringify, eStringify,
-                                          ${argName})) {
+              if (MOZ_UNLIKELY(!ConvertJSValueToString(cx, nameVal, eStringify, eStringify,
+                                          ${argName}))) {
                 return false;
               }
               $*{main}
@@ -10890,7 +10890,7 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
 
             computeCondition = dedent("""
                 bool hasOnProto;
-                if (!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto)) {
+                if (MOZ_UNLIKELY(!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto))) {
                   return false;
                 }
                 callNamedGetter = !hasOnProto;
@@ -10934,7 +10934,7 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
             $*{getIndexed}
             JS::Rooted<JSObject*> expando(cx);
             if (!isXray && (expando = GetExpandoObject(proxy))) {
-              if (!JS_GetOwnPropertyDescriptorById(cx, expando, id, desc)) {
+              if (MOZ_UNLIKELY(!JS_GetOwnPropertyDescriptorById(cx, expando, id, desc))) {
                 return false;
               }
               if (desc.object()) {
@@ -11150,7 +11150,7 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                 delete = fill(
                     """
                     bool hasOnProto;
-                    if (!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto)) {
+                    if (MOZ_UNLIKELY(!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto))) {
                       return false;
                     }
                     if (!hasOnProto) {
@@ -11185,7 +11185,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
                 uint32_t length = UnwrapProxy(proxy)->Length();
                 MOZ_ASSERT(int32_t(length) >= 0);
                 for (int32_t i = 0; i < int32_t(length); ++i) {
-                  if (!props.append(INT_TO_JSID(i))) {
+                  if (MOZ_UNLIKELY(!props.append(INT_TO_JSID(i)))) {
                     return false;
                   }
                 }
@@ -11203,7 +11203,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
 
                 nsTArray<nsString> names;
                 UnwrapProxy(proxy)->GetSupportedNames(flags, names);
-                if (!AppendNamedPropertyIds(cx, proxy, names, ${shadow}, props)) {
+                if (MOZ_UNLIKELY(!AppendNamedPropertyIds(cx, proxy, names, ${shadow}, props))) {
                   return false;
                 }
                 """,
@@ -11218,8 +11218,8 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
             $*{addNames}
 
             JS::Rooted<JSObject*> expando(cx);
-            if (!isXray && (expando = DOMProxyHandler::GetExpandoObject(proxy)) &&
-                !js::GetPropertyKeys(cx, expando, flags, &props)) {
+            if (MOZ_UNLIKELY(!isXray && (expando = DOMProxyHandler::GetExpandoObject(proxy)) &&
+                !js::GetPropertyKeys(cx, expando, flags, &props))) {
               return false;
             }
 
@@ -11272,7 +11272,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
                 named = fill(
                     """
                     bool hasOnProto;
-                    if (!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto)) {
+                    if (MOZ_UNLIKELY(!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto))) {
                       return false;
                     }
                     if (!hasOnProto) {
@@ -11328,7 +11328,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
               JS::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
               if (expando) {
                 bool hasProp;
-                if (!JS_HasPropertyById(cx, expando, id, &hasProp)) {
+                if (MOZ_UNLIKELY(!JS_HasPropertyById(cx, expando, id, &hasProp))) {
                   return false;
                 }
 
@@ -11370,7 +11370,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
 
         getOnPrototype = dedent("""
             bool foundOnPrototype;
-            if (!GetPropertyOnPrototype(cx, proxy, receiver, id, &foundOnPrototype, vp)) {
+            if (MOZ_UNLIKELY(!GetPropertyOnPrototype(cx, proxy, receiver, id, &foundOnPrototype, vp))) {
               return false;
             }
 
@@ -11544,7 +11544,7 @@ class CGDOMJSProxyHandler_getElements(ClassMethod):
 
             if (end > ourEnd) {
               JS::Rooted<JSObject*> proto(cx);
-              if (!js::GetObjectProto(cx, proxy, &proto)) {
+              if (MOZ_UNLIKELY(!js::GetObjectProto(cx, proxy, &proto))) {
                 return false;
               }
               return js::GetElementsWithAdder(cx, proto, proxy, ourEnd, end, adder);
@@ -12101,7 +12101,7 @@ def initIdsClassMethod(identifiers, atomCacheName):
 
         // Initialize these in reverse order so that any failure leaves the first one
         // uninitialized.
-        if (${idinit}) {
+        if (MOZ_UNLIKELY(${idinit})) {
           return false;
         }
         return true;
@@ -12172,7 +12172,7 @@ class CGDictionary(CGThing):
                 ${dictName}Atoms* atomsCache = nullptr;
                 if (cx) {
                   atomsCache = GetAtomCache<${dictName}Atoms>(cx);
-                  if (!*reinterpret_cast<jsid**>(atomsCache) && !InitIds(cx, atomsCache)) {
+                  if (MOZ_UNLIKELY(!*reinterpret_cast<jsid**>(atomsCache) && !InitIds(cx, atomsCache))) {
                     return false;
                   }
                 }
@@ -12184,7 +12184,7 @@ class CGDictionary(CGThing):
             body += fill(
                 """
                 // Per spec, we init the parent's members first
-                if (!${dictName}::Init(cx, val)) {
+                if (MOZ_UNLIKELY(!${dictName}::Init(cx, val))) {
                   return false;
                 }
 
@@ -12195,7 +12195,7 @@ class CGDictionary(CGThing):
                 """
                 { // scope for isConvertible
                   bool isConvertible;
-                  if (!IsConvertibleToDictionary(cx, val, &isConvertible)) {
+                  if (MOZ_UNLIKELY(!IsConvertibleToDictionary(cx, val, &isConvertible))) {
                     return false;
                   }
                   if (!isConvertible) {
@@ -12264,7 +12264,7 @@ class CGDictionary(CGThing):
             body += fill(
                 """
                 ${dictName}Atoms* atomsCache = GetAtomCache<${dictName}Atoms>(cx);
-                if (!*reinterpret_cast<jsid**>(atomsCache) && !InitIds(cx, atomsCache)) {
+                if (MOZ_UNLIKELY(!*reinterpret_cast<jsid**>(atomsCache) && !InitIds(cx, atomsCache))) {
                   return false;
                 }
 
@@ -12275,7 +12275,7 @@ class CGDictionary(CGThing):
             body += fill(
                 """
                 // Per spec, we define the parent's members first
-                if (!${dictName}::ToObjectInternal(cx, rval)) {
+                if (MOZ_UNLIKELY(!${dictName}::ToObjectInternal(cx, rval))) {
                   return false;
                 }
                 JS::Rooted<JSObject*> obj(cx, &rval.toObject());
@@ -12286,7 +12286,7 @@ class CGDictionary(CGThing):
             body += dedent(
                 """
                 JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
-                if (!obj) {
+                if (MOZ_UNLIKELY(!obj)) {
                   return false;
                 }
                 rval.set(JS::ObjectValue(*obj));
@@ -14474,7 +14474,7 @@ class CGJSImplClass(CGBindingImplClass):
             // GlobalObject will go through wrappers as needed for us, and
             // is simpler than the right UnwrapArg incantation.
             GlobalObject global(cx, &args[0].toObject());
-            if (global.Failed()) {
+            if (MOZ_UNLIKELY(global.Failed())) {
               return false;
             }
             nsCOMPtr<nsIGlobalObject> globalHolder = do_QueryInterface(global.GetAsSupports());
@@ -15413,7 +15413,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
             """
             // TODO (Bug 1173651): Xrays currently cannot wrap iterators. Change
             // after bug 1023984 is fixed.
-            if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
+            if (MOZ_UNLIKELY(xpc::WrapperFactory::IsXrayWrapper(obj))) {
               JS_ReportError(cx, "Xray wrapping of iterators not supported.");
               return false;
             }
@@ -15463,7 +15463,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
             """
             // Create a wrapper function.
             JSFunction* func = js::NewFunctionWithReserved(cx, ForEachHandler, 3, 0, nullptr);
-            if (!func) {
+            if (MOZ_UNLIKELY(!func)) {
               return false;
             }
             JS::Rooted<JSObject*> funcObj(cx, JS_GetFunctionObject(func));
