@@ -187,10 +187,11 @@ endif
 
 ifeq ($(OS_TARGET),Darwin)
 ifeq ($(CPU_ARCH),x86)
-    ASFILES  = mpi_sse2.s
+# Disable SSE2 since it causes assembler and linker issues
+#    ASFILES  = mpi_sse2.s
     DEFINES += -DMP_USE_UINT_DIGIT
-    DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
-    DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
+#    DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
+#    DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
 endif
 endif # Darwin
 
