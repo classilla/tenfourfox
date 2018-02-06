@@ -11537,10 +11537,20 @@ nsGlobalWindow::SetInterval(JSContext* aCx, const nsAString& aHandler,
   return SetTimeoutOrInterval(aCx, aHandler, timeout, isInterval, aError);
 }
 
+// TenFourFox issue 463
 nsresult
 nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
                                      int32_t interval,
                                      bool aIsInterval, int32_t *aReturn)
+{
+  return SetTimeoutOrIntervalOrIdleCallback(aHandler, interval, aIsInterval, aReturn, nullptr);
+}
+
+nsresult
+nsGlobalWindow::SetTimeoutOrIntervalOrIdleCallback(nsIScriptTimeoutHandler *aHandler,
+                                                   int32_t interval,
+                                                   bool aIsInterval, int32_t *aReturn,
+                                                   mozilla::dom::IdleRequestCallback *aCallback)
 {
   MOZ_ASSERT(IsInnerWindow());
 
@@ -11565,7 +11575,10 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
   RefPtr<nsTimeout> timeout = new nsTimeout();
   timeout->mIsInterval = aIsInterval;
   timeout->mInterval = interval;
-  timeout->mScriptHandler = aHandler;
+  if (aCallback)
+    timeout->mCallback = aCallback;
+  else
+    timeout->mScriptHandler = aHandler;
 
   // Now clamp the actual interval we will use for the timer based on
   uint32_t nestingLevel = sNestingLevel + 1;
@@ -11752,6 +11765,13 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
     reason = "setInterval handler";
   } else {
     reason = "setTimeout handler";
+  }
+
+  if (!timeout->mScriptHandler) {
+    // Time to assess the conditions for requestIdleCallback (issue 463).
+    MOZ_ASSERT(timeout->mCallback);
+    MOZ_CRASH("RunTimeoutHandler triggered on requestIdleCallback");
+    return false;
   }
 
   nsCOMPtr<nsIScriptTimeoutHandler> handler(timeout->mScriptHandler);
