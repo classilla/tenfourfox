@@ -1143,6 +1143,7 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
     mTimeoutsSuspendDepth(0),
     mFocusMethod(0),
     mSerial(0),
+    mIdleRequestCallbackCounter(1),
 #ifdef DEBUG
     mSetOpenerWindowCalled(false),
 #endif
@@ -13858,3 +13859,35 @@ nsGlobalWindow::CreateImageBitmap(const ImageBitmapSource& aImage,
 {
   return ImageBitmap::Create(this, aImage, Some(gfx::IntRect(aSx, aSy, aSw, aSh)), aRv);
 }
+
+/* Support for requestIdleCallback() from TenFourFox issue 463 */
+
+uint32_t
+nsGlobalWindow::RequestIdleCallback(JSContext* aCx,
+                                    IdleRequestCallback& aCallback,
+                                    const IdleRequestOptions& aOptions,
+                                    ErrorResult& aError)
+{
+  MOZ_RELEASE_ASSERT(IsInnerWindow());
+  AssertIsOnMainThread();
+
+  // uint32_t handle = ++mIdleRequestCallbackCounter;
+
+  fprintf(stderr, "::RequestIdleCallback() is not yet implemented\n");
+#if DEBUG
+  MOZ_ASSERT(0);
+#endif
+  return 0; // handle;
+}
+
+void
+nsGlobalWindow::CancelIdleCallback(uint32_t aHandle)
+{
+  MOZ_RELEASE_ASSERT(IsInnerWindow());
+
+  fprintf(stderr, "::CancelIdleCallback() is not yet implemented\n");
+#if DEBUG
+  MOZ_ASSERT(0);
+#endif
+}
+

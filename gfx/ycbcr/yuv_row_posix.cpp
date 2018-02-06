@@ -915,21 +915,10 @@ void FastConvertYUVToRGB32Row(const uint8 *y_buf,
 	register vector unsigned char mergehalf =
 { 0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 23 };
 
-	// damn Google, the table rows are only aligned to *8* bytes!
-	// assume any arbitrary load is misaligned or we get too
-	// branchy in this loop. fortunately, since we are only ever
-	// loading eight bytes we only need to do a single load.
-#define LOADC(x, y, z) \
-	mask = vec_lvsl(0, (unsigned char*)&(kCoefficientsRgbY[z+y])); \
-	msq = vec_ld(0, (unsigned char*)&(kCoefficientsRgbY[z+y])); \
-	x = (vector short)vec_perm(msq, msq, mask);
+#define LOADC(x,y,z) \
+	x = (vector short)vec_ld(0, (unsigned char*)&(kCoefficientsRgbY[z+y]));
 
 	while(width >= 4) {
-		// This is probably the best we can do with the table and
-		// output stores aligned the way they are. Do two separate
-		// unaligned loads and perm them into a single vector.
-		// This also unrolls the loop as a side effect, which the PPC
-		// prefers.
                 uint8 u = u_buf[edi++];
                 uint8 v = v_buf[esi++];
                 uint8 y0 = y_buf[edx++];

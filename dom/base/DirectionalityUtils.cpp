@@ -387,7 +387,7 @@ GetDirectionFromText(const nsTextFragment* aFrag,
  *            know not to return it
  * @return the text node containing the character that determined the direction
  */
-static nsINode*
+static nsTextNode*
 WalkDescendantsSetDirectionFromText(Element* aElement, bool aNotify = true,
                                     nsINode* aChangedNode = nullptr)
 {
@@ -413,7 +413,7 @@ WalkDescendantsSetDirectionFromText(Element* aElement, bool aNotify = true,
         // We found a descendant text node with strong directional characters.
         // Set the directionality of aElement to the corresponding value.
         aElement->SetDirectionality(textNodeDir, aNotify);
-        return child;
+        return static_cast<nsTextNode*>(child);
       }
     }
     child = child->GetNextNode(aElement);
@@ -436,7 +436,7 @@ class nsTextNodeDirectionalityMap
 
     nsTextNodeDirectionalityMap* map =
       reinterpret_cast<nsTextNodeDirectionalityMap * >(aPropertyValue);
-    map->EnsureMapIsClear(textNode);
+    map->EnsureMapIsClear();
     delete map;
   }
 
@@ -471,7 +471,7 @@ public:
     NS_RELEASE(textNode);
   }
 
-  void AddEntry(nsINode* aTextNode, Element* aElement)
+  void AddEntry(nsTextNode* aTextNode, Element* aElement)
   {
     if (!mElements.Contains(aElement)) {
       mElements.Put(aElement);
@@ -482,7 +482,7 @@ public:
     }
   }
 
-  void RemoveEntry(nsINode* aTextNode, Element* aElement)
+  void RemoveEntry(nsTextNode* aTextNode, Element* aElement)
   {
     NS_ASSERTION(mElements.Contains(aElement),
                  "element already removed from map");
@@ -542,7 +542,7 @@ private:
       static_cast<nsTextNodeDirectionalityMapAndElement*>(aData);
     nsINode* oldTextNode = data->mNode;
     Element* rootNode = aEntry->GetKey();
-    nsINode* newTextNode = nullptr;
+    nsTextNode* newTextNode = nullptr;
     if (rootNode->GetParentNode() && rootNode->HasDirAuto()) {
       newTextNode = WalkDescendantsSetDirectionFromText(rootNode, true,
                                                         oldTextNode);
@@ -565,11 +565,12 @@ private:
     return OpRemove;
   }
 
-  static nsCheapSetOperator ClearEntry(nsPtrHashKey<Element>* aEntry, void* aData)
+  static nsCheapSetOperator TakeEntries(nsPtrHashKey<Element>* aEntry, void* aData)
   {
-    Element* rootNode = aEntry->GetKey();
-    rootNode->ClearHasDirAutoSet();
-    rootNode->DeleteProperty(nsGkAtoms::dirAutoSetBy);
+    // TenFourFox lacks AutoTArray, so convert bug 1414452 to nsAutoTArray.
+    nsAutoTArray<Element*, 8>* entries =
+      static_cast<nsAutoTArray<Element*, 8>*>(aData);
+    entries->AppendElement(aEntry->GetKey());
     return OpRemove;
   }
 
@@ -585,22 +586,28 @@ public:
     mElements.EnumerateEntries(ResetNodeDirection, &data);
   }
 
-  void EnsureMapIsClear(nsINode* aTextNode)
+  void EnsureMapIsClear()
   {
     AutoRestore<Element*> restore(mElementToBeRemoved);
-    DebugOnly<uint32_t> clearedEntries =
-      mElements.EnumerateEntries(ClearEntry, aTextNode);
-    MOZ_ASSERT(clearedEntries == 0, "Map should be empty already");
+    // As above.
+    nsAutoTArray<Element*, 8> entries;
+    mElements.EnumerateEntries(TakeEntries, &entries);
+    uint32_t size = entries.Length();
+    for(uint32_t i = 0; i < size; i++) {
+      Element* el = entries.ElementAt(i);
+      el->ClearHasDirAutoSet();
+      el->DeleteProperty(nsGkAtoms::dirAutoSetBy);
+    }
   }
 
-  static void RemoveElementFromMap(nsINode* aTextNode, Element* aElement)
+  static void RemoveElementFromMap(nsTextNode* aTextNode, Element* aElement)
   {
     if (aTextNode->HasTextNodeDirectionalityMap()) {
       GetDirectionalityMap(aTextNode)->RemoveEntry(aTextNode, aElement);
     }
   }
 
-  static void AddEntryToMap(nsINode* aTextNode, Element* aElement)
+  static void AddEntryToMap(nsTextNode* aTextNode, Element* aElement)
   {
     nsTextNodeDirectionalityMap* map = GetDirectionalityMap(aTextNode);
     if (!map) {
@@ -618,8 +625,8 @@ public:
     return GetDirectionalityMap(aTextNode)->UpdateAutoDirection(aDir);
   }
 
-  static void ResetTextNodeDirection(nsINode* aTextNode,
-                                     nsINode* aChangedTextNode)
+  static void ResetTextNodeDirection(nsTextNode* aTextNode,
+                                     nsTextNode* aChangedTextNode)
   {
     MOZ_ASSERT(aTextNode->HasTextNodeDirectionalityMap(),
                "Map missing in ResetTextNodeDirection");
@@ -630,7 +637,7 @@ public:
   static void EnsureMapIsClearFor(nsINode* aTextNode)
   {
     if (aTextNode->HasTextNodeDirectionalityMap()) {
-      GetDirectionalityMap(aTextNode)->EnsureMapIsClear(aTextNode);
+      GetDirectionalityMap(aTextNode)->EnsureMapIsClear();
     }
   }
 };
@@ -694,7 +701,7 @@ SetDirectionalityOnDescendants(Element* aElement, Directionality aDir,
 void
 WalkAncestorsResetAutoDirection(Element* aElement, bool aNotify)
 {
-  nsINode* setByNode;
+  nsTextNode* setByNode;
   Element* parent = aElement->GetParentElement();
 
   while (parent && parent->NodeOrAncestorHasDirAuto()) {
@@ -704,7 +711,7 @@ WalkAncestorsResetAutoDirection(Element* aElement, bool aNotify)
       // Remove it from the map and reset its direction by the downward
       // propagation algorithm
       setByNode =
-        static_cast<nsINode*>(parent->GetProperty(nsGkAtoms::dirAutoSetBy));
+        static_cast<nsTextNode*>(parent->GetProperty(nsGkAtoms::dirAutoSetBy));
       if (setByNode) {
         nsTextNodeDirectionalityMap::RemoveElementFromMap(setByNode, parent);
       }
@@ -730,11 +737,9 @@ WalkDescendantsResetAutoDirection(Element* aElement)
       continue;
     }
 
-    if (child->HasTextNodeDirectionalityMap()) {
-      nsTextNodeDirectionalityMap::ResetTextNodeDirection(child, nullptr);
-      // Don't call nsTextNodeDirectionalityMap::EnsureMapIsClearFor(child)
-      // since ResetTextNodeDirection may have kept elements in child's
-      // DirectionalityMap.
+    if (child->NodeType() == nsIDOMNode::TEXT_NODE &&
+        child->HasTextNodeDirectionalityMap()) {
+      nsTextNodeDirectionalityMap::ResetTextNodeDirection(static_cast<nsTextNode*>(child), nullptr);
     }
     child = child->GetNextNode(aElement);
   }
@@ -776,7 +781,7 @@ WalkDescendantsSetDirAuto(Element* aElement, bool aNotify)
     }
   }
 
-  nsINode* textNode = WalkDescendantsSetDirectionFromText(aElement, aNotify);
+  nsTextNode* textNode = WalkDescendantsSetDirectionFromText(aElement, aNotify);
   if (textNode) {
     nsTextNodeDirectionalityMap::AddEntryToMap(textNode, aElement);
   }
@@ -797,7 +802,7 @@ WalkDescendantsClearAncestorDirAuto(Element* aElement)
   }
 }
 
-void SetAncestorDirectionIfAuto(nsINode* aTextNode, Directionality aDir,
+void SetAncestorDirectionIfAuto(nsTextNode* aTextNode, Directionality aDir,
                                 bool aNotify = true)
 {
   MOZ_ASSERT(aTextNode->NodeType() == nsIDOMNode::TEXT_NODE,
@@ -811,8 +816,8 @@ void SetAncestorDirectionIfAuto(nsINode* aTextNode, Directionality aDir,
 
     if (parent->HasDirAuto()) {
       bool resetDirection = false;
-      nsINode* directionWasSetByTextNode =
-        static_cast<nsINode*>(parent->GetProperty(nsGkAtoms::dirAutoSetBy));
+      nsTextNode* directionWasSetByTextNode =
+        static_cast<nsTextNode*>(parent->GetProperty(nsGkAtoms::dirAutoSetBy));
 
       if (!parent->HasDirAutoSet()) {
         // Fast path if parent's direction is not yet set by any descendant
@@ -883,7 +888,7 @@ TextNodeWillChangeDirection(nsIContent* aTextNode, Directionality* aOldDir,
 }
 
 void
-TextNodeChangedDirection(nsIContent* aTextNode, Directionality aOldDir,
+TextNodeChangedDirection(nsTextNode* aTextNode, Directionality aOldDir,
                          bool aNotify)
 {
   Directionality newDir = GetDirectionFromText(aTextNode->GetText());
@@ -913,7 +918,7 @@ TextNodeChangedDirection(nsIContent* aTextNode, Directionality aOldDir,
 }
 
 void
-SetDirectionFromNewTextNode(nsIContent* aTextNode)
+SetDirectionFromNewTextNode(nsTextNode* aTextNode)
 {
   if (!NodeAffectsDirAutoAncestor(aTextNode)) {
     return;
@@ -1000,8 +1005,8 @@ OnSetDirAttr(Element* aElement, const nsAttrValue* aNewValue,
     WalkDescendantsSetDirAuto(aElement, aNotify);
   } else {
     if (aElement->HasDirAutoSet()) {
-      nsINode* setByNode =
-        static_cast<nsINode*>(aElement->GetProperty(nsGkAtoms::dirAutoSetBy));
+      nsTextNode* setByNode =
+        static_cast<nsTextNode*>(aElement->GetProperty(nsGkAtoms::dirAutoSetBy));
       nsTextNodeDirectionalityMap::RemoveElementFromMap(setByNode, aElement);
     }
     SetDirectionalityOnDescendants(aElement,

@@ -67,6 +67,7 @@ static bool sUnprefixingServiceGloballyWhitelisted;
 #endif
 static bool sMozGradientsEnabled;
 static bool sControlCharVisibility;
+static bool sMozDocumentEnabledInContent;
 
 const uint32_t
 nsCSSProps::kParserVariantTable[eCSSProperty_COUNT_no_shorthands] = {
@@ -3725,6 +3726,11 @@ CSSParserImpl::ParseMediaRule(RuleAppendFunc aAppendFunc, void* aData)
 bool
 CSSParserImpl::ParseMozDocumentRule(RuleAppendFunc aAppendFunc, void* aData)
 {
+  if (mParsingMode == css::eAuthorSheetFeatures &&
+      !sMozDocumentEnabledInContent) {
+    return false;
+  }
+
   css::DocumentRule::URL *urls = nullptr;
   css::DocumentRule::URL **next = &urls;
 
@@ -16852,6 +16858,8 @@ nsCSSParser::Startup()
                                "layout.css.prefixes.gradients");
   Preferences::AddBoolVarCache(&sControlCharVisibility,
                                "layout.css.control-characters.visible");
+  Preferences::AddBoolVarCache(&sMozDocumentEnabledInContent,
+                               "layout.css.moz-document.content.enabled");
 }
 
 nsCSSParser::nsCSSParser(mozilla::css::Loader* aLoader,

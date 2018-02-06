@@ -1042,6 +1042,9 @@ pref("dom.disable_window_open_feature.status",      true);
 
 pref("dom.allow_scripts_to_close_windows",          false);
 
+// TenFourFox issue 463
+pref("dom.requestIdleCallback.enabled",             false);
+
 pref("dom.require_user_interaction_for_beforeunload", true);
 
 pref("dom.disable_open_during_load",                false);
@@ -2229,6 +2232,9 @@ pref("layout.css.report_errors", true);
 
 // Should the :visited selector ever match (otherwise :link matches instead)?
 pref("layout.css.visited_links_enabled", true);
+
+// Pref to control whether @-moz-document rules are enabled in content pages.
+pref("layout.css.moz-document.content.enabled", true); // XXX: change in FPR6
 
 // Override DPI. A value of -1 means use the maximum of 96 and the system DPI.
 // A value of 0 means use the system DPI. A positive value is used as the DPI.
@@ -5129,3 +5135,6 @@ pref("dom.mozKillSwitch.enabled", false);
 pref("toolkit.pageThumbs.screenSizeDivisor", 7);
 pref("toolkit.pageThumbs.minWidth", 0);
 pref("toolkit.pageThumbs.minHeight", 0);
+
+pref("tenfourfox.adblock.enabled", false);
+pref("tenfourfox.adblock.logging.enabled", true);

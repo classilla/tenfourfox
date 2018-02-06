@@ -88,6 +88,12 @@ void ScaleRowDown4_C(const uint8* src_ptr, ptrdiff_t src_stride,
   }
 }
 
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 8 && __GNUC_PATCHLEVEL__ == 5)
+#ifdef TENFOURFOX_G5
+/* work around issue 461 */
+__attribute__((optimize("no-tree-vectorize")))
+#endif
+#endif
 void ScaleRowDown4Box_C(const uint8* src_ptr, ptrdiff_t src_stride,
                         uint8* dst, int dst_width) {
   intptr_t stride = src_stride;

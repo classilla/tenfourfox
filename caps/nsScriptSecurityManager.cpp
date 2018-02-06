@@ -680,12 +680,241 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     nsAutoCString targetScheme;
     nsresult rv = targetBaseURI->GetScheme(targetScheme);
     if (NS_FAILED(rv)) return rv;
-
+    
     //-- Some callers do not allow loading javascript:
     if ((aFlags & nsIScriptSecurityManager::DISALLOW_SCRIPT) &&
          targetScheme.EqualsLiteral("javascript"))
     {
        return NS_ERROR_DOM_BAD_URI;
+    }
+
+    // TenFourFox issue 469
+    // determine if this is a script we want to block
+    if (mIsTenFourFoxAdBlockEnabled &&
+            (targetScheme.EqualsLiteral("http") || targetScheme.EqualsLiteral("https"))) {
+        nsAutoCString hostname;
+        if (NS_SUCCEEDED(targetBaseURI->GetHost(hostname))) {
+            ToLowerCase(hostname);
+#define BLOK(q) hostname.EqualsLiteral(q)
+            if (0 ||
+                // This is used as a data source by a lot of UIs,
+                // so we shouldn't block it (e.g., nytimes).
+                // Probably also shouldn't block googletagmanager.com
+                // for the same reasons.
+                //BLOK("www.googletagservices.com") ||
+                
+                // blocking zdbb.net seems to be problematic
+                // https://github.com/AdguardTeam/AdguardFilters/issues/1278
+
+                BLOK("c.amazon-adsystem.com") ||
+
+                BLOK("google-analytics.com") ||
+                BLOK("www.google-analytics.com") ||
+                BLOK("ssl.google-analytics.com") ||
+                
+                BLOK("tpc.googlesyndication.com") ||
+                BLOK("pagead.googlesyndication.com") ||
+                BLOK("pagead2.googlesyndication.com") ||
+                
+                BLOK("adservice.google.com") ||
+                
+                BLOK("www.googleadservices.com") ||
+                
+                BLOK("adrta.com") ||
+                BLOK("p.adrta.com") ||
+                BLOK("q.adrta.com") ||
+                BLOK("cdn.adrta.com") ||
+                BLOK("ipv6.adrta.com") ||
+
+                BLOK("ib.adnxs.com") ||
+                BLOK("acdn.adnxs.com") ||
+                BLOK("secure.adnxs.com") ||
+                BLOK("yj-a.p.adnxs.com") ||
+                BLOK("sharethrough.adnxs.com") ||
+
+                BLOK("c2.taboola.com") ||
+                BLOK("nr.taboola.com") ||
+                BLOK("cdn.taboola.com") ||
+                BLOK("trc.taboola.com") ||
+
+                BLOK("b.scorecardresearch.com") ||
+                BLOK("sb.scorecardresearch.com") ||
+
+                BLOK("ad.doubleclick.net") ||
+                BLOK("static.doubleclick.net") ||
+                BLOK("stats.g.doubleclick.net") ||
+                BLOK("googleads.g.doubleclick.net") ||
+                BLOK("securepubads.g.doubleclick.net") ||
+                
+                BLOK("at.atwola.com") ||
+                
+                BLOK("pixel.advertising.com") ||
+                BLOK("dtm.advertising.com") ||
+                
+                BLOK("sp.analytics.yahoo.com") ||                
+                BLOK("ads.yap.yahoo.com") ||
+                
+                BLOK("cdn.gotraffic.net") ||
+                
+                BLOK("cdn.rta247.com") ||
+
+                BLOK("widget.perfectmarket.com") ||
+
+                BLOK("cdn.doubleverify.com") ||
+                BLOK("rtb0.doubleverify.com") ||
+                BLOK("rtbcdn.doubleverify.com") ||
+
+                BLOK("cdn.flashtalking.com") ||
+                BLOK("servedby.flashtalking.com") ||
+
+                BLOK("a.postrelease.com") ||
+                BLOK("jadserve.postrelease.com") ||
+
+                BLOK("native.sharethrough.com") ||
+
+                BLOK("static.chartbeat.com") ||
+
+                BLOK("edge.quantserve.com") ||
+                BLOK("secure.quantserve.com") ||
+                
+                BLOK("rules.quantcount.com") ||
+                
+                BLOK("api.viglink.com") ||
+                BLOK("cdn.viglink.com") ||
+                
+                BLOK("xcp.go.sonobi.com") ||
+                
+                BLOK("s.ntv.io") ||
+                
+                BLOK("cdn.segment.com") ||
+                
+                BLOK("cdn-gl.imrworldwide.com") ||
+                BLOK("secure-dcr.imrworldwide.com") ||
+                
+                BLOK("labs-cdn.revcontent.com") ||
+                BLOK("trends.revcontent.com") ||
+                BLOK("cdn.revcontent.com") ||
+                
+                BLOK("cas.criteo.com") ||
+                BLOK("static.criteo.net") ||
+                
+                BLOK("jsc.idealmedia.com") ||
+                BLOK("servicer.idealmedia.com") ||
+                
+                BLOK("js-agent.newrelic.com") ||
+                BLOK("bam.nr-data.net") ||
+                
+                BLOK("widgets.outbrain.com") ||
+                BLOK("amplify.outbrain.com") ||
+                
+                BLOK("cdn.krxd.net") ||
+                BLOK("beacon.krxd.net") ||
+                
+                BLOK("scdn.cxense.com") ||
+                BLOK("rscdn.cxense.com") ||
+                
+                BLOK("z.moatads.com") ||
+                BLOK("s-jsonp.moatads.com") ||
+                
+                BLOK("static.yieldmo.com") ||
+                
+                BLOK("ads.rubiconproject.com") ||
+                
+                BLOK("cdn.engine.4dsply.com") ||
+                
+                BLOK("as-sec.casalemedia.com") ||
+                
+                BLOK("loadm.exelator.com") ||
+                
+                BLOK("sdk.streamrail.com") ||
+                
+                BLOK("cdn.lockerdome.com") ||
+                BLOK("cdn2.lockerdome.com") ||
+                
+                BLOK("pi.pardot.com") ||
+                
+                BLOK("js-sec.indexww.com") ||
+                
+                BLOK("tags.tiqcdn.com") ||
+                
+                BLOK("tag.bounceexchange.com") ||
+                BLOK("api.bounceexchange.com") ||
+                
+                BLOK("www.npttech.com") ||
+                
+                BLOK("cdn.adsafeprotected.com") ||
+                
+                BLOK("aka-cdn.adtechus.com") ||
+                BLOK("adserver.adtechus.com") ||
+                
+                BLOK("r.skimresources.com") ||
+                BLOK("s.skimresources.com") ||
+                BLOK("t.skimresources.com") ||
+                
+                BLOK("contextual.media.net") ||
+                
+                BLOK("edge.simplereach.com") ||
+                
+                BLOK("js.adsrvr.org") ||
+                
+                BLOK("script.crazyegg.com") ||
+                
+                BLOK("launch.newsinc.com") ||
+                
+                BLOK("c.go-mpulse.net") ||
+                
+                BLOK("cdn5.userzoom.com") ||
+                
+                BLOK("dx.steelhousemedia.com") ||
+                BLOK("px.steelhousemedia.com") ||
+                BLOK("ww.steelhousemedia.com") ||
+                
+                BLOK("nexus.ensighten.com") ||
+                
+                BLOK("cdn.mediavoice.com") ||
+                BLOK("plugin.mediavoice.com") ||
+                
+                BLOK("segment-data.zqtk.net") ||
+                
+                BLOK("d.turn.com") ||
+                
+                BLOK("i.yldbt.com") ||
+                BLOK("cdn.yldbt.com") ||
+                
+                BLOK("pippio.com") ||
+                
+                BLOK("cdn.quantummetric.com") ||
+                
+                BLOK("cdn.blueconic.net") ||
+                
+                BLOK("www.zergnet.com") ||
+                
+                BLOK("f.monetate.net") ||
+                BLOK("sb.monetate.net") ||
+                BLOK("se.monetate.net") ||
+                
+                BLOK("tags.crwdcntrl.net") ||
+                
+                BLOK("cdn.nsstatic.net") ||
+                
+                BLOK("tags.bkrtx.com") ||
+                
+                BLOK("yads.c.yimg.jp") ||
+                BLOK("yjtag.yahoo.co.jp") ||
+                BLOK("yads.yjtag.yahoo.co.jp") ||
+                
+                BLOK("px-ya.ladsp.com") ||
+                    0) {
+#undef BLOK
+                // Yup.
+#ifndef DEBUG
+                if (mIsTenFourFoxAdBlockLoggingEnabled)
+#endif
+                fprintf(stderr, "Warning: TenFourFox basic adblock intercepted script from %s.\n",
+                    hostname.get());
+                return NS_ERROR_DOM_BAD_URI;
+            }
+        }
     }
 
     NS_NAMED_LITERAL_STRING(errorTag, "CheckLoadURIError");
@@ -728,6 +957,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
         NS_ENSURE_SUCCESS(rv, rv);
 
         if (hasFlags) {
+#if(0) // no B2G
             // Let apps load the whitelisted theme resources even if they don't
             // have the webapps-manage permission but have the themeable one.
             // Resources from the theme origin are also allowed to load from
@@ -744,6 +974,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                         ? NS_OK : NS_ERROR_DOM_BAD_URI;
                 }
             }
+#endif
             // In this case, we allow opening only if the source and target URIS
             // are on the same domain, or the opening URI has the webapps
             // permision granted
@@ -1246,6 +1477,7 @@ static const char* kObservedPrefs[] = {
   sJSEnabledPrefName,
   sFileOriginPolicyPrefName,
   "capability.policy.",
+  "tenfourfox.adblock.",
   nullptr
 };
 
@@ -1264,6 +1496,8 @@ nsScriptSecurityManager::Observe(nsISupports* aObject, const char* aTopic,
 nsScriptSecurityManager::nsScriptSecurityManager(void)
     : mPrefInitialized(false)
     , mIsJavaScriptEnabled(false)
+    , mIsTenFourFoxAdBlockEnabled(false)
+    , mIsTenFourFoxAdBlockLoggingEnabled(false)
 {
     static_assert(sizeof(intptr_t) == sizeof(void*),
                   "intptr_t and void* have different lengths on this platform. "
@@ -1400,6 +1634,10 @@ nsScriptSecurityManager::ScriptSecurityPrefChanged()
         Preferences::GetBool(sJSEnabledPrefName, mIsJavaScriptEnabled);
     sStrictFileOriginPolicy =
         Preferences::GetBool(sFileOriginPolicyPrefName, false);
+    mIsTenFourFoxAdBlockEnabled =
+        Preferences::GetBool("tenfourfox.adblock.enabled", mIsTenFourFoxAdBlockEnabled);
+    mIsTenFourFoxAdBlockLoggingEnabled =
+        Preferences::GetBool("tenfourfox.adblock.logging.enabled", mIsTenFourFoxAdBlockLoggingEnabled);
 
     //
     // Rebuild the set of principals for which we allow file:// URI loads. This

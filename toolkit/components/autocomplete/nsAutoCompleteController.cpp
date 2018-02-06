@@ -180,8 +180,9 @@ nsAutoCompleteController::StartSearch(const nsAString &aSearchString)
 }
 
 NS_IMETHODIMP
-nsAutoCompleteController::HandleText()
+nsAutoCompleteController::HandleText(bool *_retval)
 {
+  *_retval = false;
   // Note: the events occur in the following order when IME is used.
   // 1. a compositionstart event(HandleStartComposition)
   // 2. some input events (HandleText), eCompositionState_Composing
@@ -284,6 +285,7 @@ nsAutoCompleteController::HandleText()
     return NS_OK;
   }
 
+  *_retval = true;
   StartSearches();
 
   return NS_OK;
@@ -610,7 +612,8 @@ nsAutoCompleteController::HandleDelete(bool *_retval)
   input->GetPopupOpen(&isOpen);
   if (!isOpen || mRowCount <= 0) {
     // Nothing left to delete, proceed as normal
-    HandleText();
+    bool unused = false;
+    HandleText(&unused);
     return NS_OK;
   }
 
@@ -621,7 +624,8 @@ nsAutoCompleteController::HandleDelete(bool *_retval)
   popup->GetSelectedIndex(&index);
   if (index == -1) {
     // No row is selected in the list
-    HandleText();
+    bool unused = false;
+    HandleText(&unused);
     return NS_OK;
   }
 
@@ -1185,7 +1189,7 @@ nsAutoCompleteController::StartSearch(uint16_t aSearchType)
     nsAutoString searchParam;
     nsresult rv = input->GetSearchParam(searchParam);
     if (NS_FAILED(rv))
-        return rv;
+      return rv;
 
     // FormFill expects the searchParam to only contain the input element id,
     // other consumers may have other expectations, so this modifies it only
@@ -1547,9 +1551,9 @@ nsAutoCompleteController::ProcessResult(int32_t aSearchIndex, nsIAutoCompleteRes
   if (mResults.IndexOf(aResult) == -1) {
     nsIAutoCompleteResult* oldResult = mResults.SafeObjectAt(aSearchIndex);
     if (oldResult) {
-      MOZ_ASSERT(false, "Passing new matches to OnSearchResult with a new "
-                        "nsIAutoCompleteResult every time is deprecated, please "
-                        "update the same result until the search is done");
+      NS_ASSERTION(false, "Passing new matches to OnSearchResult with a new "
+                          "nsIAutoCompleteResult every time is deprecated, please "
+                          "update the same result until the search is done");
       // Build a new nsIAutocompleteSimpleResult and merge results into it.
       RefPtr<nsAutoCompleteSimpleResult> mergedResult =
         new nsAutoCompleteSimpleResult();

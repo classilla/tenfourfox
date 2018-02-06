@@ -123,6 +123,8 @@ private:
     nsCOMPtr<nsIPrincipal> mSystemPrincipal;
     bool mPrefInitialized;
     bool mIsJavaScriptEnabled;
+    bool mIsTenFourFoxAdBlockEnabled;
+    bool mIsTenFourFoxAdBlockLoggingEnabled;
     nsTArray<nsCOMPtr<nsIURI>> mFileURIWhitelist;
 
     // This machinery controls new-style domain policies. The old-style

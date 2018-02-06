@@ -18,6 +18,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/TextTrackManager.h"
+#include "mozilla/WeakPtr.h"
 #include "MediaDecoder.h"
 #ifdef MOZ_EME
 #include "mozilla/dom/MediaKeys.h"
@@ -76,7 +77,8 @@ class HTMLMediaElement : public nsGenericHTMLElement,
                          public nsIDOMHTMLMediaElement,
                          public nsIObserver,
                          public MediaDecoderOwner,
-                         public nsIAudioChannelAgentCallback
+                         public nsIAudioChannelAgentCallback,
+                         public SupportsWeakPtr<HTMLMediaElement>
 {
   friend AutoNotifyAudioChannelAgent;
 
@@ -88,6 +90,8 @@ public:
   typedef mozilla::MediaResource MediaResource;
   typedef mozilla::MediaDecoderOwner MediaDecoderOwner;
   typedef mozilla::MetadataTags MetadataTags;
+
+  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(HTMLMediaElement)
 
   CORSMode GetCORSMode() {
     return mCORSMode;

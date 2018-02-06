@@ -96,6 +96,8 @@ MediaEngineDefaultVideoSource::Allocate(const dom::MediaTrackConstraints &aConst
   mOpts = aPrefs;
   mOpts.mWidth = mOpts.mWidth ? mOpts.mWidth : MediaEngine::DEFAULT_43_VIDEO_WIDTH;
   mOpts.mHeight = mOpts.mHeight ? mOpts.mHeight : MediaEngine::DEFAULT_43_VIDEO_HEIGHT;
+  mOpts.mWidth = std::max(160, std::min(mOpts.mWidth, 4096));
+  mOpts.mHeight = std::max(90, std::min(mOpts.mHeight, 2160));
   mState = kAllocated;
   return NS_OK;
 }

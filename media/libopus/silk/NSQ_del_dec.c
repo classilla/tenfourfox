@@ -106,6 +106,12 @@ static OPUS_INLINE void silk_noise_shape_quantizer_del_dec(
     opus_int            decisionDelay           /* I                                        */
 );
 
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 8 && __GNUC_PATCHLEVEL__ == 5)
+#ifdef TENFOURFOX_G5
+/* work around issue 461 */
+__attribute__((optimize("no-tree-vectorize")))
+#endif
+#endif
 void silk_NSQ_del_dec(
     const silk_encoder_state    *psEncC,                                    /* I/O  Encoder State                   */
     silk_nsq_state              *NSQ,                                       /* I/O  NSQ state                       */
