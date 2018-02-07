@@ -748,8 +748,9 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 
                 BLOK("at.atwola.com") ||
                 
-                BLOK("pixel.advertising.com") ||
                 BLOK("dtm.advertising.com") ||
+                BLOK("pixel.advertising.com") ||
+                BLOK("adserver-us.adtech.advertising.com") ||
                 
                 BLOK("sp.analytics.yahoo.com") ||                
                 BLOK("ads.yap.yahoo.com") ||
@@ -904,6 +905,12 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("yads.yjtag.yahoo.co.jp") ||
                 
                 BLOK("px-ya.ladsp.com") ||
+
+                BLOK("stats.cloudwp.io") ||
+
+                BLOK("ap.lijit.com") ||
+
+                BLOK("tlx.3lift.com") ||
                     0) {
 #undef BLOK
                 // Yup.
