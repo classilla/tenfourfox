@@ -815,6 +815,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("rscdn.cxense.com") ||
                 
                 BLOK("z.moatads.com") ||
+                BLOK("js.moatads.com") ||
                 BLOK("s-jsonp.moatads.com") ||
                 
                 BLOK("static.yieldmo.com") ||
@@ -911,6 +912,16 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("ap.lijit.com") ||
 
                 BLOK("tlx.3lift.com") ||
+
+                BLOK("v.lkqd.net") ||
+                BLOK("ad.lkqd.net") ||
+
+                BLOK("vpaid.springserve.com") ||
+
+                BLOK("vd.ads.memevideoad.com") ||
+                BLOK("sp.ads.memevideoad.com") ||
+
+                BLOK("static.adsnative.com") ||
                     0) {
 #undef BLOK
                 // Yup.
