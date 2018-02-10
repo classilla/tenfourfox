@@ -727,9 +727,11 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("ipv6.adrta.com") ||
 
                 BLOK("ib.adnxs.com") ||
+                BLOK("cdn.adnxs.com") ||
                 BLOK("acdn.adnxs.com") ||
                 BLOK("secure.adnxs.com") ||
                 BLOK("yj-a.p.adnxs.com") ||
+                BLOK("nym1-ib.adnxs.com") ||
                 BLOK("sharethrough.adnxs.com") ||
 
                 BLOK("c2.taboola.com") ||
@@ -845,6 +847,8 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("www.npttech.com") ||
                 
                 BLOK("cdn.adsafeprotected.com") ||
+                BLOK("pixel.adsafeprotected.com") ||
+                BLOK("static.adsafeprotected.com") ||
                 
                 BLOK("aka-cdn.adtechus.com") ||
                 BLOK("adserver.adtechus.com") ||
@@ -922,6 +926,52 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("sp.ads.memevideoad.com") ||
 
                 BLOK("static.adsnative.com") ||
+
+                BLOK("cm.mgid.com") ||
+                BLOK("jsc.mgid.com") ||
+                BLOK("servicer.mgid.com") ||
+
+                BLOK("cdn.engine.addroplet.com") ||
+
+                BLOK("de.tynt.com") ||
+                BLOK("sc.tynt.com") ||
+                BLOK("cdn.tynt.com") ||
+
+                BLOK("bid.underdog.media") ||
+
+                BLOK("cdn.fastclick.net") ||
+                BLOK("media.fastclick.net") ||
+
+                BLOK("udmserve.net") ||
+
+                BLOK("sic.33across.com") ||
+                BLOK("cdn-sic.33across.com") ||
+
+                BLOK("d.adroll.com") ||
+                BLOK("s.adroll.com") ||
+
+                BLOK("c.betrad.com") ||
+
+                BLOK("fqtag.com") ||
+                BLOK("c.fqtag.com") ||
+                BLOK("new.fqtag.com") ||
+
+                BLOK("a-nj.1rx.io") ||
+                BLOK("rxcdn.1rx.io") ||
+
+                BLOK("c.evidon.com") ||
+
+                BLOK("api.content-ad.net") ||
+
+                BLOK("cdn.distiltag.com") ||
+
+                BLOK("my.hellobar.com") ||
+
+                BLOK("static.hotjar.com") ||
+                BLOK("script.hotjar.com") ||
+
+                BLOK("tags.mathtag.com") ||
+                BLOK("pixel.mathtag.com") ||
                     0) {
 #undef BLOK
                 // Yup.
