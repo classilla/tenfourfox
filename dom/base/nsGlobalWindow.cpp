@@ -256,6 +256,8 @@ class nsIScriptTimeoutHandler;
 #include <unistd.h> // for getpid()
 #endif
 
+#include "mozilla/dom/IdleDeadline.h" // issue 463
+
 static const char kStorageEnabled[] = "dom.storage.enabled";
 
 using namespace mozilla;
@@ -11538,11 +11540,21 @@ nsGlobalWindow::SetInterval(JSContext* aCx, const nsAString& aHandler,
 }
 
 // TenFourFox issue 463
+
+static bool
+SystemIsIdle()
+{
+   // XXX: check Mach factor
+   return false;
+}
+
 nsresult
 nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
                                      int32_t interval,
                                      bool aIsInterval, int32_t *aReturn)
 {
+  // XXX: see below about interval versus deadline. we abuse interval for
+  // when to recheck if idle.
   return SetTimeoutOrIntervalOrIdleCallback(aHandler, interval, aIsInterval, aReturn, nullptr);
 }
 
@@ -11574,6 +11586,9 @@ nsGlobalWindow::SetTimeoutOrIntervalOrIdleCallback(nsIScriptTimeoutHandler *aHan
 
   RefPtr<nsTimeout> timeout = new nsTimeout();
   timeout->mIsInterval = aIsInterval;
+
+  // XXX: add to Interval a deadline field, and use the interval for when to check
+  // if idle again. TenFourFox issue 463
   timeout->mInterval = interval;
   if (aCallback)
     timeout->mCallback = aCallback;
@@ -11768,11 +11783,19 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
   }
 
   if (!timeout->mScriptHandler) {
-    // Time to assess the conditions for requestIdleCallback (issue 463).
+    // Call the idle callback. TenFourFox issue 463.
     MOZ_ASSERT(timeout->mCallback);
-    MOZ_CRASH("RunTimeoutHandler triggered on requestIdleCallback");
-    return false;
-  }
+    nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
+
+    ErrorResult error;
+    RefPtr<IdleDeadline> deadline =
+      new IdleDeadline(timeout->mWindow,
+        /* didTimeout */ true,
+        /* timeRemaining */ 0.0f);
+    timeout->mCallback->Call(*deadline, error, "requestIdleCallback handler");
+    timeout->mCallback = nullptr;
+    error.SuppressException();
+  } else {
 
   nsCOMPtr<nsIScriptTimeoutHandler> handler(timeout->mScriptHandler);
   RefPtr<Function> callback = handler->GetCallback();
@@ -11803,6 +11826,8 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
     JS::Rooted<JS::Value> ignoredVal(CycleCollectedJSRuntime::Get()->Runtime());
     callback->Call(me, handler->GetArgs(), &ignoredVal, ignored, reason);
     ignored.SuppressException();
+  }
+
   }
 
   // We ignore any failures from calling EvaluateString() on the context or
@@ -11917,6 +11942,8 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 {
   // If a modal dialog is open for this window, return early. Pending
   // timeouts will run when the modal dialog is dismissed.
+  // (Similarly, do this behaviour for idleCallbacks, since it's too
+  // much bookwork otherwise. See issue 463.)
   if (IsInModalState() || mTimeoutsSuspendDepth) {
     return;
   }
@@ -11974,6 +12001,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     return;
   }
 
+#if(0)
   // Record telemetry information about timers set recently.
   TimeDuration recordingInterval = TimeDuration::FromMilliseconds(STATISTICS_INTERVAL);
   if (gLastRecordedRecentTimeouts.IsNull() ||
@@ -11983,6 +12011,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     Telemetry::Accumulate(Telemetry::DOM_TIMERS_RECENTLY_SET, count);
     gLastRecordedRecentTimeouts = now;
   }
+#endif
 
   // Insert a dummy timeout into the list of timeouts between the
   // portion of the list that we are about to process now and those
@@ -12000,7 +12029,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   // the logic in ResetTimersForNonBackgroundWindow will need to change.
   mTimeoutInsertionPoint = dummy_timeout;
 
-  Telemetry::AutoCounter<Telemetry::DOM_TIMERS_FIRED_PER_NATIVE_TIMEOUT> timeoutsRan;
+  //Telemetry::AutoCounter<Telemetry::DOM_TIMERS_FIRED_PER_NATIVE_TIMEOUT> timeoutsRan;
 
   for (nsTimeout *timeout = mTimeouts.getFirst();
        timeout != dummy_timeout && !IsFrozen();
@@ -12024,6 +12053,13 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     // The timeout is on the list to run at this depth, go ahead and
     // process it.
 
+    // If this timeout is an IdleCallback (TenFourFox issue 463), check
+    // to see if we have hit the deadline. If so, run the timeout. If not,
+    // check to see if we're idle. If so, run the timeout. If not, reschedule
+    // to check again.
+    //
+    // -- NYI XXX --
+
     // Get the script context (a strong ref to prevent it going away)
     // for this timeout and ensure the script language is enabled.
     nsCOMPtr<nsIScriptContext> scx = GetContextInternal();
@@ -12035,7 +12071,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     }
 
     // This timeout is good to run
-    ++timeoutsRan;
+    //++timeoutsRan;
     bool timeout_was_cleared = RunTimeoutHandler(timeout, scx);
 
     if (timeout_was_cleared) {
@@ -13894,6 +13930,11 @@ nsGlobalWindow::RequestIdleCallback(JSContext* aCx,
   // uint32_t handle = ++mIdleRequestCallbackCounter;
 
   fprintf(stderr, "::RequestIdleCallback() is not yet implemented\n");
+
+  // Plan:
+  // Check if idle now. If so, set a timeout of zero so it runs right away.
+  // Else set the deadline, if provided, and set an interval to recheck idle.
+  // See SystemIsIdle()
 #if DEBUG
   MOZ_ASSERT(0);
 #endif
@@ -13906,6 +13947,10 @@ nsGlobalWindow::CancelIdleCallback(uint32_t aHandle)
   MOZ_RELEASE_ASSERT(IsInnerWindow());
 
   fprintf(stderr, "::CancelIdleCallback() is not yet implemented\n");
+
+  // Plan:
+  // Check if this is a timeout with a Callback. If not, fail.
+  // If so, hand this to RemoveTimeout.
 #if DEBUG
   MOZ_ASSERT(0);
 #endif
