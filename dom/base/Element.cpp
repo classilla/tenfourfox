@@ -3556,6 +3556,55 @@ Element::InsertAdjacentHTML(const nsAString& aPosition, const nsAString& aText,
   }
 }
 
+nsINode*
+Element::InsertAdjacent(const nsAString& aWhere,
+                        nsINode* aNode,
+                        ErrorResult& aError)
+{
+  if (aWhere.LowerCaseEqualsLiteral("beforebegin")) {
+    nsCOMPtr<nsINode> parent = GetParentNode();
+    if (!parent) {
+      return nullptr;
+    }
+    parent->InsertBefore(*aNode, this, aError);
+  } else if (aWhere.LowerCaseEqualsLiteral("afterbegin")) {
+    nsCOMPtr<nsINode> refChild = GetFirstChild();
+    static_cast<nsINode*>(this)->InsertBefore(*aNode, refChild, aError);
+  } else if (aWhere.LowerCaseEqualsLiteral("beforeend")) {
+    static_cast<nsINode*>(this)->AppendChild(*aNode, aError);
+  } else if (aWhere.LowerCaseEqualsLiteral("afterend")) {
+    nsCOMPtr<nsINode> parent = GetParentNode();
+    if (!parent) {
+      return nullptr;
+    }
+    nsCOMPtr<nsINode> refChild = GetNextSibling();
+    parent->InsertBefore(*aNode, refChild, aError);
+  } else {
+    aError.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    return nullptr;
+  }
+
+  return aError.Failed() ? nullptr : aNode;
+}
+
+Element*
+Element::InsertAdjacentElement(const nsAString& aWhere,
+                               Element& aElement,
+                               ErrorResult& aError) {
+  nsINode* newNode = InsertAdjacent(aWhere, &aElement, aError);
+  MOZ_ASSERT(!newNode || newNode->IsElement());
+
+  return newNode ? newNode->AsElement() : nullptr;
+}
+
+void
+Element::InsertAdjacentText(
+  const nsAString& aWhere, const nsAString& aData, ErrorResult& aError)
+{
+  RefPtr<nsTextNode> textNode = OwnerDoc()->CreateTextNode(aData);
+  InsertAdjacent(aWhere, textNode, aError);
+}
+
 nsIEditor*
 Element::GetEditorInternal()
 {
