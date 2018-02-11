@@ -328,7 +328,7 @@ js::GetElementsWithAdder(JSContext* cx, HandleObject obj, HandleObject receiver,
             if (!GetElement(cx, obj, receiver, i, &val))
                 return false;
         }
-        if (!adder->append(cx, val))
+        if (MOZ_UNLIKELY(!adder->append(cx, val)))
             return false;
     }
 
@@ -715,7 +715,7 @@ js::ArraySetLength(JSContext* cx, Handle<ArrayObject*> arr, HandleId id,
                 // We should use radix sort to be O(n), but this is uncommon
                 // enough that we'll punt til someone complains.
                 Vector<uint32_t> scratch(cx);
-                if (!scratch.resize(count))
+                if (MOZ_UNLIKELY(!scratch.resize(count)))
                     return false;
                 MOZ_ALWAYS_TRUE(MergeSort(indexes.begin(), count, scratch.begin(),
                                           ReverseIndexComparator()));
@@ -1101,19 +1101,19 @@ js::ArrayJoin(JSContext* cx, HandleObject obj, HandleLinearString sepstr, uint32
     }
 
     StringBuffer sb(cx);
-    if (sepstr->hasTwoByteChars() && !sb.ensureTwoByteChars())
+    if (sepstr->hasTwoByteChars() && MOZ_UNLIKELY(!sb.ensureTwoByteChars()))
         return nullptr;
 
     // The separator will be added |length - 1| times, reserve space for that
     // so that we don't have to unnecessarily grow the buffer.
     size_t seplen = sepstr->length();
     CheckedInt<uint32_t> res = CheckedInt<uint32_t>(seplen) * (length - 1);
-    if (length > 0 && !res.isValid()) {
+    if (length > 0 && MOZ_UNLIKELY(!res.isValid())) {
         ReportAllocationOverflow(cx);
         return nullptr;
     }
 
-    if (length > 0 && !sb.reserve(res.value()))
+    if (length > 0 && MOZ_UNLIKELY(!sb.reserve(res.value())))
         return nullptr;
 
     // Various optimized versions of steps 7-10.
@@ -1172,7 +1172,7 @@ ArrayJoin(JSContext* cx, CallArgs& args)
         if (!s)
             return false;
         sepstr = s->ensureLinear(cx);
-        if (!sepstr)
+        if (MOZ_UNLIKELY(!sepstr))
             return false;
     } else {
         sepstr = cx->names().comma;
@@ -1850,7 +1850,7 @@ js::array_sort(JSContext* cx, unsigned argc, Value* vp)
      * malloc'd vector.
      */
 #if JS_BITS_PER_WORD == 32
-    if (size_t(len) > size_t(-1) / (2 * sizeof(Value))) {
+    if (MOZ_UNLIKELY(size_t(len) > size_t(-1) / (2 * sizeof(Value)))) {
         ReportAllocationOverflow(cx);
         return false;
     }
@@ -1868,7 +1868,7 @@ js::array_sort(JSContext* cx, unsigned argc, Value* vp)
     size_t n, undefs;
     {
         AutoValueVector vec(cx);
-        if (!vec.reserve(2 * size_t(len)))
+        if (MOZ_UNLIKELY(!vec.reserve(2 * size_t(len))))
             return false;
 
         /*
@@ -1997,7 +1997,7 @@ js::NewbornArrayPush(JSContext* cx, HandleObject obj, const Value& v)
     uint32_t length = arr->length();
     MOZ_ASSERT(length <= arr->getDenseCapacity());
 
-    if (!arr->ensureElements(cx, length + 1))
+    if (MOZ_UNLIKELY(!arr->ensureElements(cx, length + 1)))
         return false;
 
     arr->setDenseInitializedLength(length + 1);
@@ -2137,7 +2137,7 @@ ArrayShiftDenseKernel(JSContext* cx, HandleObject obj, MutableHandleValue rval)
         return DenseElementResult::Incomplete;
 
     RootedObjectGroup group(cx, obj->getGroup(cx));
-    if (MOZ_UNLIKELY(!group))
+    if (!group)
         return DenseElementResult::Failure;
 
     if (MOZ_UNLIKELY(group->hasAllFlags(OBJECT_FLAG_ITERATED)))
@@ -2411,7 +2411,7 @@ js::array_splice_impl(JSContext* cx, unsigned argc, Value* vp, bool returnValueI
     if (CanOptimizeForDenseStorage(obj, actualStart, actualDeleteCount, cx)) {
         if (returnValueIsUsed) {
             arr = NewFullyAllocatedArrayTryReuseGroup(cx, obj, actualDeleteCount);
-            if (!arr)
+            if (MOZ_UNLIKELY(!arr))
                 return false;
             DebugOnly<DenseElementResult> result =
                 CopyAnyBoxedOrUnboxedDenseElements(cx, arr, obj, 0, actualStart, actualDeleteCount);
@@ -2419,7 +2419,7 @@ js::array_splice_impl(JSContext* cx, unsigned argc, Value* vp, bool returnValueI
         }
     } else {
         arr = NewFullyAllocatedArrayTryReuseGroup(cx, obj, actualDeleteCount);
-        if (!arr)
+        if (MOZ_UNLIKELY(!arr))
             return false;
 
         RootedValue fromValue(cx);
@@ -2645,7 +2645,7 @@ js::array_concat(JSContext* cx, unsigned argc, Value* vp)
 
         size_t initlen = GetAnyBoxedOrUnboxedInitializedLength(aobj);
         narr = NewFullyAllocatedArrayTryReuseGroup(cx, aobj, initlen);
-        if (!narr)
+        if (MOZ_UNLIKELY(!narr))
             return false;
         CopyAnyBoxedOrUnboxedDenseElements(cx, narr, aobj, 0, 0, initlen);
         SetAnyBoxedOrUnboxedArrayLength(cx, narr, length);
@@ -2709,7 +2709,7 @@ js::array_concat(JSContext* cx, unsigned argc, Value* vp)
         }
     } else {
         narr = NewFullyAllocatedArrayTryReuseGroup(cx, aobj, 0);
-        if (!narr)
+        if (MOZ_UNLIKELY(!narr))
             return false;
         args.rval().setObject(*narr);
         length = 0;
@@ -2791,7 +2791,7 @@ GetIndexedPropertiesInRange(JSContext* cx, HandleObject obj, uint32_t begin, uin
         for (uint32_t i = begin; i < initLen && i < end; i++) {
             if (nativeObj->getDenseElement(i).isMagic(JS_ELEMENTS_HOLE))
                 continue;
-            if (!indexes.append(i))
+            if (MOZ_UNLIKELY(!indexes.append(i)))
                 return false;
         }
 
@@ -2799,7 +2799,7 @@ GetIndexedPropertiesInRange(JSContext* cx, HandleObject obj, uint32_t begin, uin
         if (IsAnyTypedArray(pobj)) {
             uint32_t len = AnyTypedArrayLength(pobj);
             for (uint32_t i = begin; i < len && i < end; i++) {
-                if (!indexes.append(i))
+                if (MOZ_UNLIKELY(!indexes.append(i)))
                     return false;
             }
         }
@@ -2821,7 +2821,7 @@ GetIndexedPropertiesInRange(JSContext* cx, HandleObject obj, uint32_t begin, uin
                 if (!shape.hasDefaultGetter())
                     return true;
 
-                if (!indexes.append(i))
+                if (MOZ_UNLIKELY(!indexes.append(i)))
                     return false;
             }
         }
@@ -2830,7 +2830,7 @@ GetIndexedPropertiesInRange(JSContext* cx, HandleObject obj, uint32_t begin, uin
     // Sort the indexes.
     Vector<uint32_t> tmp(cx);
     size_t n = indexes.length();
-    if (!tmp.resize(n))
+    if (MOZ_UNLIKELY(!tmp.resize(n)))
         return false;
     if (!MergeSort(indexes.begin(), n, tmp.begin(), SortComparatorIndexes()))
         return false;
@@ -2845,7 +2845,7 @@ GetIndexedPropertiesInRange(JSContext* cx, HandleObject obj, uint32_t begin, uin
                 indexes[last] = elem;
             }
         }
-        if (!indexes.resize(last + 1))
+        if (MOZ_UNLIKELY(!indexes.resize(last + 1)))
             return false;
     }
 
@@ -2952,7 +2952,7 @@ js::array_slice(JSContext* cx, unsigned argc, Value* vp)
             count = Min<size_t>(initlen - begin, end - begin);
 
         RootedObject narr(cx, NewFullyAllocatedArrayTryReuseGroup(cx, obj, count));
-        if (!narr)
+        if (MOZ_UNLIKELY(!narr))
             return false;
         SetAnyBoxedOrUnboxedArrayLength(cx, narr, end - begin);
 
@@ -2966,7 +2966,7 @@ js::array_slice(JSContext* cx, unsigned argc, Value* vp)
     }
 
     RootedObject narr(cx, NewPartlyAllocatedArrayTryReuseGroup(cx, obj, end - begin));
-    if (!narr)
+    if (MOZ_UNLIKELY(!narr))
         return false;
 
     if (js::GetElementsOp op = obj->getOps()->getElements) {
@@ -3072,7 +3072,7 @@ static bool
 ArrayFromCallArgs(JSContext* cx, CallArgs& args, HandleObject proto = nullptr)
 {
     JSObject* obj = NewCopiedArrayForCallingAllocationSite(cx, args.array(), args.length(), proto);
-    if (!obj)
+    if (MOZ_UNLIKELY(!obj))
         return false;
 
     args.rval().setObject(*obj);
@@ -3217,7 +3217,7 @@ js::ArrayConstructor(JSContext* cx, unsigned argc, Value* vp)
     }
 
     JSObject* obj = NewPartlyAllocatedArrayForCallingAllocationSite(cx, length, proto);
-    if (!obj)
+    if (MOZ_UNLIKELY(!obj))
         return false;
 
     args.rval().setObject(*obj);
@@ -3227,7 +3227,7 @@ js::ArrayConstructor(JSContext* cx, unsigned argc, Value* vp)
 JSObject*
 js::ArrayConstructorOneArg(JSContext* cx, HandleObjectGroup group, int32_t lengthInt)
 {
-    if (lengthInt < 0) {
+    if (MOZ_UNLIKELY(lengthInt < 0)) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_BAD_ARRAY_LENGTH);
         return nullptr;
     }
@@ -3241,27 +3241,27 @@ CreateArrayPrototype(JSContext* cx, JSProtoKey key)
 {
     MOZ_ASSERT(key == JSProto_Array);
     RootedObject proto(cx, cx->global()->getOrCreateObjectPrototype(cx));
-    if (!proto)
+    if (MOZ_UNLIKELY(!proto))
         return nullptr;
 
     RootedObjectGroup group(cx, ObjectGroup::defaultNewGroup(cx, &ArrayObject::class_,
                                                              TaggedProto(proto)));
-    if (!group)
+    if (MOZ_UNLIKELY(!group))
         return nullptr;
 
     RootedShape shape(cx, EmptyShape::getInitialShape(cx, &ArrayObject::class_, TaggedProto(proto),
                                                       gc::AllocKind::OBJECT0));
-    if (!shape)
+    if (MOZ_UNLIKELY(!shape))
         return nullptr;
 
     AutoSetNewObjectMetadata metadata(cx);
     RootedArrayObject arrayProto(cx, ArrayObject::createArray(cx, gc::AllocKind::OBJECT4,
                                                               gc::TenuredHeap, shape, group, 0,
                                                               metadata));
-    if (!arrayProto ||
+    if (MOZ_UNLIKELY(!arrayProto ||
         !JSObject::setSingleton(cx, arrayProto) ||
         !arrayProto->setDelegate(cx) ||
-        !AddLengthProperty(cx, arrayProto))
+        !AddLengthProperty(cx, arrayProto)))
     {
         return nullptr;
     }
@@ -3283,7 +3283,7 @@ array_proto_finish(JSContext* cx, JS::HandleObject ctor, JS::HandleObject proto)
 {
     // Add Array.prototype[@@unscopables]. ECMA-262 draft (2016 Mar 19) 22.1.3.32.
     RootedObject unscopables(cx, NewObjectWithGivenProto<PlainObject>(cx, nullptr, TenuredObject));
-    if (!unscopables)
+    if (MOZ_UNLIKELY(!unscopables))
         return false;
 
     RootedValue value(cx, BooleanValue(true));
@@ -3343,7 +3343,7 @@ EnsureNewArrayElements(ExclusiveContext* cx, ArrayObject* obj, uint32_t length)
      */
     DebugOnly<uint32_t> cap = obj->getDenseCapacity();
 
-    if (!obj->ensureElements(cx, length))
+    if (MOZ_UNLIKELY(!obj->ensureElements(cx, length)))
         return false;
 
     MOZ_ASSERT_IF(cap, !obj->hasDynamicElements());
@@ -3381,7 +3381,7 @@ NewArray(ExclusiveContext* cxArg, uint32_t length,
                 arr->setFixedElements();
                 arr->setLength(cx, length);
                 if (maxLength > 0 &&
-                    !EnsureNewArrayElements(cx, arr, std::min(maxLength, length)))
+                    MOZ_UNLIKELY(!EnsureNewArrayElements(cx, arr, std::min(maxLength, length))))
                 {
                     return nullptr;
                 }
@@ -3392,7 +3392,7 @@ NewArray(ExclusiveContext* cxArg, uint32_t length,
 
     RootedObjectGroup group(cxArg, ObjectGroup::defaultNewGroup(cxArg, &ArrayObject::class_,
                                                                 TaggedProto(proto)));
-    if (!group)
+    if (MOZ_UNLIKELY(!group))
         return nullptr;
 
     /*
@@ -3402,14 +3402,14 @@ NewArray(ExclusiveContext* cxArg, uint32_t length,
     RootedShape shape(cxArg, EmptyShape::getInitialShape(cxArg, &ArrayObject::class_,
                                                          TaggedProto(proto),
                                                          gc::AllocKind::OBJECT0));
-    if (!shape)
+    if (MOZ_UNLIKELY(!shape))
         return nullptr;
 
     AutoSetNewObjectMetadata metadata(cxArg);
     RootedArrayObject arr(cxArg, ArrayObject::createArray(cxArg, allocKind,
                                                           GetInitialHeap(newKind, &ArrayObject::class_),
                                                           shape, group, length, metadata));
-    if (!arr)
+    if (MOZ_UNLIKELY(!arr))
         return nullptr;
 
     if (shape->isEmptyShape()) {
@@ -3429,7 +3429,7 @@ NewArray(ExclusiveContext* cxArg, uint32_t length,
         cache.fillProto(entry, &ArrayObject::class_, taggedProto, allocKind, arr);
     }
 
-    if (maxLength > 0 && !EnsureNewArrayElements(cxArg, arr, std::min(maxLength, length)))
+    if (maxLength > 0 && MOZ_UNLIKELY(!EnsureNewArrayElements(cxArg, arr, std::min(maxLength, length))))
         return nullptr;
 
     probes::CreateObject(cxArg, arr);
@@ -3474,7 +3474,7 @@ js::NewDenseCopiedArray(ExclusiveContext* cx, uint32_t length, const Value* valu
                         NewObjectKind newKind /* = GenericObject */)
 {
     ArrayObject* arr = NewArray<UINT32_MAX>(cx, length, proto, newKind);
-    if (!arr)
+    if (MOZ_UNLIKELY(!arr))
         return nullptr;
 
     MOZ_ASSERT(arr->getDenseCapacity() >= length);
@@ -3501,10 +3501,10 @@ js::NewDenseFullyAllocatedArrayWithTemplate(JSContext* cx, uint32_t length, JSOb
     gc::InitialHeap heap = GetInitialHeap(GenericObject, &ArrayObject::class_);
     Rooted<ArrayObject*> arr(cx, ArrayObject::createArray(cx, allocKind,
                                                           heap, shape, group, length, metadata));
-    if (!arr)
+    if (MOZ_UNLIKELY(!arr))
         return nullptr;
 
-    if (!EnsureNewArrayElements(cx, arr, length))
+    if (MOZ_UNLIKELY(!EnsureNewArrayElements(cx, arr, length)))
         return nullptr;
 
     probes::CreateObject(cx, arr);
@@ -3518,7 +3518,7 @@ js::NewDenseCopyOnWriteArray(JSContext* cx, HandleArrayObject templateObject, gc
     MOZ_ASSERT(!gc::IsInsideNursery(templateObject));
 
     ArrayObject* arr = ArrayObject::createCopyOnWriteArray(cx, heap, templateObject);
-    if (!arr)
+    if (MOZ_UNLIKELY(!arr))
         return nullptr;
 
     probes::CreateObject(cx, arr);
@@ -3550,7 +3550,7 @@ NewArrayTryUseGroup(ExclusiveContext* cx, HandleObjectGroup group, size_t length
     }
 
     ArrayObject* res = NewArray<maxLength>(cx, length, proto, newKind);
-    if (!res)
+    if (MOZ_UNLIKELY(!res))
         return nullptr;
 
     res->setGroup(group);
@@ -3655,7 +3655,7 @@ js::NewCopiedArrayTryUseGroup(ExclusiveContext* cx, HandleObjectGroup group,
             if (objects->empty()) {
                 size_t nlength = Min<size_t>(length, 100);
                 JSObject* obj = NewFullyAllocatedArrayTryUseGroup(cx, group, nlength);
-                if (!obj)
+                if (MOZ_UNLIKELY(!obj))
                     return nullptr;
                 DebugOnly<DenseElementResult> result =
                     SetOrExtendAnyBoxedOrUnboxedDenseElements(cx, obj, 0, vp, nlength, updateTypes);
@@ -3666,7 +3666,7 @@ js::NewCopiedArrayTryUseGroup(ExclusiveContext* cx, HandleObjectGroup group,
     }
 
     JSObject* obj = NewFullyAllocatedArrayTryUseGroup(cx, group, length, newKind, forceAnalyze);
-    if (!obj)
+    if (MOZ_UNLIKELY(!obj))
         return nullptr;
 
     DenseElementResult result =
@@ -3707,7 +3707,7 @@ js::NewValuePair(JSContext* cx, const Value& val1, const Value& val2, MutableHan
     vec[1].set(val2);
 
     JSObject* aobj = js::NewDenseCopiedArray(cx, 2, vec.begin());
-    if (!aobj)
+    if (MOZ_UNLIKELY(!aobj))
         return false;
     rval.setObject(*aobj);
     return true;
