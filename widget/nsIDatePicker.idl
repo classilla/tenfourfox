@@ -1,0 +1,74 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIURI;
+interface nsIDOMWindow;
+
+[scriptable, function, uuid(0d79adad-b244-49A5-9997-2a8cad93fc45)]
+interface nsIDatePickerShownCallback : nsISupports
+{
+ /**
+  * Callback which is called when a datepicker is shown and a result
+  * is returned.
+  *
+  * @param aResult One of returnOK, returnCancel
+  */
+  void done(in short aResult);
+};
+
+[scriptable, uuid(9840d564-42c8-4d78-9a4d-71002343c919)]
+interface nsIDatePicker : nsISupports
+{
+  const short returnOK        = 0;              // User hit Ok, process selection
+  const short returnCancel    = 1;              // User hit cancel, ignore selection
+
+ /**
+  * Initialize the date picker widget.  The date picker is not valid until this
+  * method is called.
+  *
+  * @param      title    The title for the file widget
+  */
+  void init(in nsIDOMWindow parent, in AString title);
+
+ /**
+  * The date that should be suggested to the user as a default.
+  * The date is a string in YYYY-MM-DD format.
+  *
+  * @throws NS_ERROR_FAILURE on attempts to get
+  */
+  attribute AString defaultDate;
+
+ /**
+  * The minimum date range. If null, there is no minimum date.
+  * The date is a string in YYYY-MM-DD format.
+  *
+  * @throws NS_ERROR_FAILURE on attempts to get
+  */
+  attribute AString minDate;
+
+ /**
+  * The maximum date range. If null, there is no maximum date.
+  * The date is a string in YYYY-MM-DD format.
+  *
+  * @throws NS_ERROR_FAILURE on attempts to get
+  */
+  attribute AString maxDate;
+
+ /**
+  * Show date dialog. The dialog is displayed modally.
+  *
+  * @return returnOK if the user selects OK, returnCancel if the user selects cancel
+  */
+  [deprecated] short show();
+
+ /**
+  * Opens the date dialog asynchrounously.
+  * The passed in object's done method will be called upon completion.
+  */
+  void open(in nsIDatePickerShownCallback aDatePickerShownCallback);
+};

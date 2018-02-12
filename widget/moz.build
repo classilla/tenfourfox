@@ -65,6 +65,7 @@ XPIDL_SOURCES += [
     'nsIClipboardHelper.idl',
     'nsIClipboardOwner.idl',
     'nsIColorPicker.idl',
+    'nsIDatePicker.idl',
     'nsIDisplayInfo.idl',
     'nsIDragService.idl',
     'nsIDragSession.idl',
@@ -195,6 +196,11 @@ if CONFIG['MOZ_X11']:
     DIRS += ['x11']
     UNIFIED_SOURCES += [
         'GfxInfoX11.cpp'
+    ]
+
+if toolkit == 'cocoa':
+    SOURCES += [
+        'nsBaseDatePicker.cpp',
     ]
 
 if toolkit in ('cocoa', 'windows'):
