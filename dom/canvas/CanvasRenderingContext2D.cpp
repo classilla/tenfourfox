@@ -2498,8 +2498,11 @@ CanvasRenderingContext2D::UpdateFilter()
 //
 
 static bool
-ValidateRect(double& aX, double& aY, double& aWidth, double& aHeight)
+ValidateRect(double& aX, double& aY, double& aWidth, double& aHeight, bool aIsZeroSizeValid)
 {
+  if (!aIsZeroSizeValid && (aWidth == 0.0 || aHeight == 0.0)) {
+    return false;
+  }
 
   // bug 1018527
   // The values of canvas API input are in double precision, but Moz2D APIs are
@@ -2530,7 +2533,8 @@ void
 CanvasRenderingContext2D::ClearRect(double x, double y, double w,
                                     double h)
 {
-  if(!ValidateRect(x, y, w, h)) {
+  // Do not allow zeros - it's a no-op at that point per spec.
+  if (!ValidateRect(x, y, w, h, false)) {
     return;
   }
 
@@ -2547,7 +2551,7 @@ CanvasRenderingContext2D::FillRect(double x, double y, double w,
 {
   const ContextState &state = CurrentState();
 
-  if(!ValidateRect(x, y, w, h)) {
+  if(!ValidateRect(x, y, w, h, true)) {
     return;
   }
 
@@ -2625,7 +2629,7 @@ CanvasRenderingContext2D::StrokeRect(double x, double y, double w,
     return;
   }
 
-  if(!ValidateRect(x, y, w, h)) {
+  if(!ValidateRect(x, y, w, h, true)) {
     return;
   }
 
@@ -2991,7 +2995,7 @@ CanvasRenderingContext2D::Arc(double x, double y, double r,
                               double startAngle, double endAngle,
                               bool anticlockwise, ErrorResult& error)
 {
-  if (r < 0.0) {
+  if (MOZ_UNLIKELY(r < 0.0)) {
     error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
     return;
   }
@@ -3019,6 +3023,22 @@ CanvasRenderingContext2D::Rect(double x, double y, double w, double h)
     mDSPathBuilder->LineTo(mTarget->GetTransform() * Point(x, y + h));
     mDSPathBuilder->Close();
   }
+}
+
+void
+CanvasRenderingContext2D::Ellipse(double aX, double aY, double aRadiusX, double aRadiusY,
+                                  double aRotation, double aStartAngle, double aEndAngle,
+                                  bool aAnticlockwise, ErrorResult& aError)
+{
+  if (MOZ_UNLIKELY(aRadiusX < 0.0 || aRadiusY < 0.0)) {
+    aError.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+    return;
+  }
+
+  EnsureWritablePath();
+
+  ArcToBezier(this, Point(aX, aY), Size(aRadiusX, aRadiusY), aStartAngle, aEndAngle,
+              aAnticlockwise, aRotation);
 }
 
 void
@@ -4402,8 +4422,8 @@ CanvasRenderingContext2D::DrawImage(const CanvasImageSource& image,
   MOZ_ASSERT(optional_argc == 0 || optional_argc == 2 || optional_argc == 6);
 
   if (optional_argc == 6) {
-    if (!ValidateRect(sx, sy, sw, sh) ||
-        !ValidateRect(dx, dy, dw, dh)) {
+    if (!ValidateRect(sx, sy, sw, sh, true) ||
+        !ValidateRect(dx, dy, dw, dh, true)) {
       return;
     }
   }
@@ -5916,6 +5936,22 @@ CanvasPath::Arc(double x, double y, double radius,
   EnsurePathBuilder();
 
   ArcToBezier(this, Point(x, y), Size(radius, radius), startAngle, endAngle, anticlockwise);
+}
+
+void
+CanvasPath::Ellipse(double x, double y, double radiusX, double radiusY,
+                    double rotation, double startAngle, double endAngle,
+                    bool anticlockwise, ErrorResult& error)
+{
+  if (MOZ_UNLIKELY(radiusX < 0.0 || radiusY < 0.0)) {
+    error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+    return;
+  }
+
+  EnsurePathBuilder();
+
+  ArcToBezier(this, Point(x, y), Size(radiusX, radiusY), startAngle, endAngle,
+              anticlockwise, rotation);
 }
 
 void

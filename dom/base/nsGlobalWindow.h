@@ -211,7 +211,10 @@ public:
   PopupControlState mPopupState;
 
   // The language-specific information about the callback.
+  // If there is an nsIScriptTimeoutHandler, this is a regular setTimeout.
+  // If there is an IdleRequestCallback, this is requestIdleCallback (issue 463).
   nsCOMPtr<nsIScriptTimeoutHandler> mScriptHandler;
+  RefPtr<mozilla::dom::IdleRequestCallback> mCallback;
 };
 
 struct IdleObserverHolder
@@ -1411,6 +1414,12 @@ public:
   nsresult SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
                                 int32_t interval,
                                 bool aIsInterval, int32_t* aReturn) override;
+  // TenFourFox issue 463
+  nsresult SetTimeoutOrIntervalOrIdleCallback(nsIScriptTimeoutHandler *aHandler,
+                                              int32_t interval,
+                                              bool aIsInterval, int32_t *aReturn,
+                                              mozilla::dom::IdleRequestCallback *aCallback);
+
   int32_t SetTimeoutOrInterval(JSContext* aCx,
                                mozilla::dom::Function& aFunction,
                                int32_t aTimeout,

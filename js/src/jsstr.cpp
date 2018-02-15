@@ -145,7 +145,7 @@ Escape(JSContext* cx, const CharT* chars, uint32_t length, uint32_t* newLengthOu
     }
 
     Latin1Char* newChars = cx->pod_malloc<Latin1Char>(newLength + 1);
-    if (!newChars)
+    if (MOZ_UNLIKELY(!newChars))
         return nullptr;
 
     static const char digits[] = "0123456789ABCDEF";
@@ -194,11 +194,11 @@ str_escape(JSContext* cx, unsigned argc, Value* vp)
         newChars = Escape(cx, str->twoByteChars(nogc), str->length(), &newLength);
     }
 
-    if (!newChars)
+    if (MOZ_UNLIKELY(!newChars))
         return false;
 
     JSString* res = NewString<CanGC>(cx, newChars.get(), newLength);
-    if (!res)
+    if (MOZ_UNLIKELY(!res))
         return false;
 
     newChars.forget();
@@ -277,7 +277,7 @@ Unescape(StringBuffer& sb, const mozilla::Range<const CharT> chars)
         do {                                                 \
             if (!building) {                                 \
                 building = true;                             \
-                if (!sb.reserve(length))                     \
+                if (MOZ_UNLIKELY(!sb.reserve(length)))                     \
                     return false;                            \
                 sb.infallibleAppend(chars.start().get(), k); \
             }                                                \
@@ -302,7 +302,7 @@ Unescape(StringBuffer& sb, const mozilla::Range<const CharT> chars)
         }
 
       step_18:
-        if (building && !sb.append(c))
+        if (building && MOZ_UNLIKELY(!sb.append(c)))
             return false;
 
         /* Step 19. */
@@ -326,23 +326,23 @@ str_unescape(JSContext* cx, unsigned argc, Value* vp)
 
     /* Step 3. */
     StringBuffer sb(cx);
-    if (str->hasTwoByteChars() && !sb.ensureTwoByteChars())
+    if (str->hasTwoByteChars() && MOZ_UNLIKELY(!sb.ensureTwoByteChars()))
         return false;
 
     if (str->hasLatin1Chars()) {
         AutoCheckCannotGC nogc;
-        if (!Unescape(sb, str->latin1Range(nogc)))
+        if (MOZ_UNLIKELY(!Unescape(sb, str->latin1Range(nogc))))
             return false;
     } else {
         AutoCheckCannotGC nogc;
-        if (!Unescape(sb, str->twoByteRange(nogc)))
+        if (MOZ_UNLIKELY(!Unescape(sb, str->twoByteRange(nogc))))
             return false;
     }
 
     JSLinearString* result;
     if (!sb.empty()) {
         result = sb.finishString();
-        if (!result)
+        if (MOZ_UNLIKELY(!result))
             return false;
     } else {
         result = str;
@@ -389,7 +389,7 @@ str_enumerate(JSContext* cx, HandleObject obj)
     RootedValue value(cx);
     for (size_t i = 0, length = str->length(); i < length; i++) {
         JSString* str1 = NewDependentString(cx, str, i, 1);
-        if (!str1)
+        if (MOZ_UNLIKELY(!str1))
             return false;
         value.setString(str1);
         if (!DefineElement(cx, obj, i, value, nullptr, nullptr,
@@ -593,11 +593,11 @@ js::SubstringKernel(JSContext* cx, HandleString str, int32_t beginInt, int32_t l
 
         Rooted<JSRope*> ropeRoot(cx, rope);
         RootedString lhs(cx, NewDependentString(cx, ropeRoot->leftChild(), begin, lhsLength));
-        if (!lhs)
+        if (MOZ_UNLIKELY(!lhs))
             return nullptr;
 
         RootedString rhs(cx, NewDependentString(cx, ropeRoot->rightChild(), 0, rhsLength));
-        if (!rhs)
+        if (MOZ_UNLIKELY(!rhs))
             return nullptr;
 
         return JSRope::new_<CanGC>(cx, lhs, rhs, len);
@@ -715,7 +715,7 @@ static inline bool
 ToLowerCaseHelper(JSContext* cx, CallReceiver call)
 {
     RootedString str(cx, ThisToStringForStringProto(cx, call));
-    if (MOZ_UNLIKELY(!str))
+    if (!str)
         return false;
 
     JSLinearString* linear = str->ensureLinear(cx);
@@ -829,14 +829,14 @@ ToUpperCase(JSContext* cx, JSLinearString* str)
 
         if (resultIsLatin1) {
             Latin1CharPtr buf = cx->make_pod_array<Latin1Char>(length + 1);
-            if (!buf)
+            if (MOZ_UNLIKELY(!buf))
                 return nullptr;
 
             ToUpperCaseImpl(buf.get(), chars, i, length);
             newChars.construct<Latin1CharPtr>(Move(buf));
         } else {
             TwoByteCharPtr buf = cx->make_pod_array<char16_t>(length + 1);
-            if (!buf)
+            if (MOZ_UNLIKELY(!buf))
                 return nullptr;
 
             ToUpperCaseImpl(buf.get(), chars, i, length);
@@ -847,13 +847,13 @@ ToUpperCase(JSContext* cx, JSLinearString* str)
     JSString* res;
     if (newChars.constructed<Latin1CharPtr>()) {
         res = NewStringDontDeflate<CanGC>(cx, newChars.ref<Latin1CharPtr>().get(), length);
-        if (!res)
+        if (MOZ_UNLIKELY(!res))
             return nullptr;
 
         newChars.ref<Latin1CharPtr>().release();
     } else {
         res = NewStringDontDeflate<CanGC>(cx, newChars.ref<TwoByteCharPtr>().get(), length);
-        if (!res)
+        if (MOZ_UNLIKELY(!res))
             return nullptr;
 
         newChars.ref<TwoByteCharPtr>().release();
@@ -870,14 +870,14 @@ ToUpperCaseHelper(JSContext* cx, CallReceiver call)
         return false;
 
     JSLinearString* linear = str->ensureLinear(cx);
-    if (!linear)
+    if (MOZ_UNLIKELY(!linear))
         return false;
 
     if (linear->hasLatin1Chars())
         str = ToUpperCase<Latin1Char>(cx, linear);
     else
         str = ToUpperCase<char16_t>(cx, linear);
-    if (!str)
+    if (MOZ_UNLIKELY(!str))
         return false;
 
     call.rval().setString(str);
@@ -986,7 +986,7 @@ str_normalize(JSContext* cx, unsigned argc, Value* vp)
 
     // Step 8.
     AutoStableStringChars stableChars(cx);
-    if (!str->ensureFlat(cx) || !stableChars.initTwoByte(cx, str))
+    if (MOZ_UNLIKELY(!str->ensureFlat(cx) || !stableChars.initTwoByte(cx, str)))
         return false;
 
     static const size_t INLINE_CAPACITY = 32;
@@ -994,7 +994,7 @@ str_normalize(JSContext* cx, unsigned argc, Value* vp)
     const UChar* srcChars = Char16ToUChar(stableChars.twoByteRange().start().get());
     int32_t srcLen = AssertedCast<int32_t>(str->length());
     Vector<char16_t, INLINE_CAPACITY> chars(cx);
-    if (!chars.resize(INLINE_CAPACITY))
+    if (MOZ_UNLIKELY(!chars.resize(INLINE_CAPACITY)))
         return false;
 
     UErrorCode status = U_ZERO_ERROR;
@@ -1002,7 +1002,7 @@ str_normalize(JSContext* cx, unsigned argc, Value* vp)
                                    Char16ToUChar(chars.begin()), INLINE_CAPACITY,
                                    &status);
     if (status == U_BUFFER_OVERFLOW_ERROR) {
-        if (!chars.resize(size))
+        if (MOZ_UNLIKELY(!chars.resize(size)))
             return false;
         status = U_ZERO_ERROR;
 #ifdef DEBUG
@@ -1017,7 +1017,7 @@ str_normalize(JSContext* cx, unsigned argc, Value* vp)
         return false;
 
     JSString* ns = NewStringCopyN<CanGC>(cx, chars.begin(), size);
-    if (!ns)
+    if (MOZ_UNLIKELY(!ns))
         return false;
 
     // Step 9.
@@ -1053,7 +1053,7 @@ js::str_charAt(JSContext* cx, unsigned argc, Value* vp)
     }
 
     str = cx->staticStrings().getUnitStringForElement(cx, str, i);
-    if (!str)
+    if (MOZ_UNLIKELY(!str))
         return false;
     args.rval().setString(str);
     return true;
@@ -1082,7 +1082,7 @@ js::str_charCodeAt_impl(JSContext* cx, HandleString string, HandleValue index, M
         i = size_t(d);
     }
     char16_t c;
-    if (!string->getChar(cx, i , &c))
+    if (MOZ_UNLIKELY(!string->getChar(cx, i , &c)))
         return false;
     res.setInt32(c);
     return true;
@@ -1378,7 +1378,7 @@ class StringSegmentRange
     bool settle(JSString* str) {
         while (str->isRope()) {
             JSRope& rope = str->asRope();
-            if (!stack.append(rope.rightChild()))
+            if (MOZ_UNLIKELY(!stack.append(rope.rightChild())))
                 return false;
             str = rope.leftChild();
         }
@@ -1521,7 +1521,7 @@ RopeMatch(JSContext* cx, JSRope* text, JSLinearString* pat, int* match)
                 !strings.append(r.front()))
             {
                 JSLinearString* linear = text->ensureLinear(cx);
-                if (!linear)
+                if (MOZ_UNLIKELY(!linear))
                     return false;
 
                 *match = StringMatch(linear, pat);
@@ -1598,7 +1598,7 @@ str_includes(JSContext* cx, unsigned argc, Value* vp)
 
     // Steps 13 and 14
     JSLinearString* text = str->ensureLinear(cx);
-    if (!text)
+    if (MOZ_UNLIKELY(!text))
         return false;
 
     args.rval().setBoolean(StringMatch(text, searchStr, start) != -1);
@@ -1663,7 +1663,7 @@ js::str_indexOf(JSContext* cx, unsigned argc, Value* vp)
 
     // Steps 10 and 11
     JSLinearString* text = str->ensureLinear(cx);
-    if (!text)
+    if (MOZ_UNLIKELY(!text))
         return false;
 
     args.rval().setInt32(StringMatch(text, searchStr, start));
@@ -1751,7 +1751,7 @@ js::str_lastIndexOf(JSContext* cx, unsigned argc, Value* vp)
     }
 
     JSLinearString* text = textstr->ensureLinear(cx);
-    if (!text)
+    if (MOZ_UNLIKELY(!text))
         return false;
 
     int32_t res;
@@ -1856,7 +1856,7 @@ js::str_startsWith(JSContext* cx, unsigned argc, Value* vp)
 
     // Steps 15 and 16
     JSLinearString* text = str->ensureLinear(cx);
-    if (!text)
+    if (MOZ_UNLIKELY(!text))
         return false;
 
     args.rval().setBoolean(HasSubstringAt(text, searchStr, start));
@@ -1925,7 +1925,7 @@ str_endsWith(JSContext* cx, unsigned argc, Value* vp)
 
     // Steps 16 and 17
     JSLinearString* text = str->ensureLinear(cx);
-    if (!text)
+    if (MOZ_UNLIKELY(!text))
         return false;
 
     args.rval().setBoolean(HasSubstringAt(text, searchStr, start));
@@ -1962,7 +1962,7 @@ TrimString(JSContext* cx, Value* vp, bool trimLeft, bool trimRight)
         return false;
 
     JSLinearString* linear = str->ensureLinear(cx);
-    if (!linear)
+    if (MOZ_UNLIKELY(!linear))
         return false;
 
     size_t length = linear->length();
@@ -1976,7 +1976,7 @@ TrimString(JSContext* cx, Value* vp, bool trimLeft, bool trimRight)
     }
 
     str = NewDependentString(cx, str, begin, end - begin);
-    if (!str)
+    if (MOZ_UNLIKELY(!str))
         return false;
 
     call.rval().setString(str);
@@ -2097,10 +2097,10 @@ class MOZ_STACK_CLASS StringRegExpGuard
         static const char ESCAPE_CHAR = '\\';
         for (const CharT* it = chars; it < chars + len; ++it) {
             if (IsRegExpMetaChar(*it)) {
-                if (!sb.append(ESCAPE_CHAR) || !sb.append(*it))
+                if (MOZ_UNLIKELY(!sb.append(ESCAPE_CHAR) || !sb.append(*it)))
                     return false;
             } else {
-                if (!sb.append(*it))
+                if (MOZ_UNLIKELY(!sb.append(*it)))
                     return false;
             }
         }
@@ -2111,7 +2111,7 @@ class MOZ_STACK_CLASS StringRegExpGuard
     flattenPattern(JSContext* cx, JSAtom* pat)
     {
         StringBuffer sb(cx);
-        if (!sb.reserve(pat->length()))
+        if (MOZ_UNLIKELY(!sb.reserve(pat->length())))
             return nullptr;
 
         if (pat->hasLatin1Chars()) {
@@ -2425,7 +2425,7 @@ DoMatchGlobal(JSContext* cx, const CallArgs& args, RegExpStatics* res, HandleLin
 
         // Step 8f(iii)(4-5).
         JSLinearString* str = NewDependentString(cx, input, match.start, match.length());
-        if (!str)
+        if (MOZ_UNLIKELY(!str))
             return false;
         if (!elements.append(StringValue(str)))
             return false;
@@ -2444,7 +2444,7 @@ DoMatchGlobal(JSContext* cx, const CallArgs& args, RegExpStatics* res, HandleLin
 
     // Steps 8b, 8f(iii)(5-6), 8h.
     JSObject* array = NewDenseCopiedArray(cx, elements.length(), elements.begin());
-    if (!array)
+    if (MOZ_UNLIKELY(!array))
         return false;
 
     args.rval().setObject(*array);
@@ -2465,7 +2465,7 @@ BuildFlatMatchArray(JSContext* cx, HandleString textstr, const FlatMatch& fm, Ca
         return false;
 
     RootedArrayObject arr(cx, NewDenseFullyAllocatedArrayWithTemplate(cx, 1, templateObject));
-    if (!arr)
+    if (MOZ_UNLIKELY(!arr))
         return false;
 
     /* Store a Value for each pair. */
@@ -2523,11 +2523,11 @@ js::str_match(JSContext* cx, unsigned argc, Value* vp)
         return false;
 
     RegExpStatics* res = cx->global()->getRegExpStatics(cx);
-    if (!res)
+    if (MOZ_UNLIKELY(!res))
         return false;
 
     RootedLinearString linearStr(cx, str->ensureLinear(cx));
-    if (!linearStr)
+    if (MOZ_UNLIKELY(!linearStr))
         return false;
 
     /* Steps 5-6, 7. */
@@ -2561,11 +2561,11 @@ js::str_search(JSContext* cx, unsigned argc, Value* vp)
         return false;
 
     RootedLinearString linearStr(cx, str->ensureLinear(cx));
-    if (!linearStr)
+    if (MOZ_UNLIKELY(!linearStr))
         return false;
 
     RegExpStatics* res = cx->global()->getRegExpStatics(cx);
-    if (!res)
+    if (MOZ_UNLIKELY(!res))
         return false;
 
     /* Per ECMAv5 15.5.4.12 (5) The last index property is ignored and left unchanged. */
@@ -2810,7 +2810,7 @@ FindReplaceLengthString(JSContext* cx, RegExpStatics* res, ReplaceData& rdata, s
         } while (dp);
     }
 
-    if (!replen.isValid()) {
+    if (MOZ_UNLIKELY(!replen.isValid())) {
         ReportAllocationOverflow(cx);
         return false;
     }
@@ -2843,7 +2843,7 @@ FindReplaceLength(JSContext* cx, RegExpStatics* res, ReplaceData& rdata, size_t*
         RootedValue v(cx);
         if (HasDataProperty(cx, rdata.elembase, AtomToId(atom), v.address()) && v.isString()) {
             rdata.repstr = v.toString()->ensureLinear(cx);
-            if (!rdata.repstr)
+            if (MOZ_UNLIKELY(!rdata.repstr))
                 return false;
             *sizep = rdata.repstr->length();
             return true;
@@ -2899,7 +2899,7 @@ FindReplaceLength(JSContext* cx, RegExpStatics* res, ReplaceData& rdata, size_t*
         if (!repstr)
             return false;
         rdata.repstr = repstr->ensureLinear(cx);
-        if (!rdata.repstr)
+        if (MOZ_UNLIKELY(!rdata.repstr))
             return false;
         *sizep = rdata.repstr->length();
         return true;
@@ -2970,7 +2970,7 @@ ReplaceRegExp(JSContext* cx, RegExpStatics* res, ReplaceData& rdata)
     CheckedInt<uint32_t> newlen(rdata.sb.length());
     newlen += leftlen;
     newlen += replen;
-    if (!newlen.isValid()) {
+    if (MOZ_UNLIKELY(!newlen.isValid())) {
         ReportAllocationOverflow(cx);
         return false;
     }
@@ -2981,11 +2981,11 @@ ReplaceRegExp(JSContext* cx, RegExpStatics* res, ReplaceData& rdata)
      */
     JSLinearString& str = rdata.str->asLinear();  /* flattened for regexp */
     if (str.hasTwoByteChars() || rdata.repstr->hasTwoByteChars()) {
-        if (!rdata.sb.ensureTwoByteChars())
+        if (MOZ_UNLIKELY(!rdata.sb.ensureTwoByteChars()))
             return false;
     }
 
-    if (!rdata.sb.reserve(newlen.value()))
+    if (MOZ_UNLIKELY(!rdata.sb.reserve(newlen.value())))
         return false;
 
     /* Append skipped-over portion of the search value. */
@@ -3033,9 +3033,9 @@ BuildFlatReplacement(JSContext* cx, HandleString textstr, HandleString repstr,
                      * replacement string here.
                      */
                     RootedString leftSide(cx, NewDependentString(cx, str, 0, match - pos));
-                    if (!leftSide ||
+                    if (MOZ_UNLIKELY(!leftSide ||
                         !builder.append(leftSide) ||
-                        !builder.append(repstr))
+                        !builder.append(repstr)))
                     {
                         return nullptr;
                     }
@@ -3048,11 +3048,11 @@ BuildFlatReplacement(JSContext* cx, HandleString textstr, HandleString repstr,
                 if (strEnd > matchEnd) {
                     RootedString rightSide(cx, NewDependentString(cx, str, matchEnd - pos,
                                                                   strEnd - matchEnd));
-                    if (!rightSide || !builder.append(rightSide))
+                    if (MOZ_UNLIKELY(!rightSide || !builder.append(rightSide)))
                         return nullptr;
                 }
             } else {
-                if (!builder.append(str))
+                if (MOZ_UNLIKELY(!builder.append(str)))
                     return nullptr;
             }
             pos += str->length();
@@ -3061,15 +3061,15 @@ BuildFlatReplacement(JSContext* cx, HandleString textstr, HandleString repstr,
         }
     } else {
         RootedString leftSide(cx, NewDependentString(cx, textstr, 0, match));
-        if (!leftSide)
+        if (MOZ_UNLIKELY(!leftSide))
             return nullptr;
         RootedString rightSide(cx);
         rightSide = NewDependentString(cx, textstr, match + fm.patternLength(),
                                        textstr->length() - match - fm.patternLength());
-        if (!rightSide ||
+        if (MOZ_UNLIKELY(!rightSide ||
             !builder.append(leftSide) ||
             !builder.append(repstr) ||
-            !builder.append(rightSide))
+            !builder.append(rightSide)))
         {
             return nullptr;
         }
@@ -3096,30 +3096,30 @@ AppendDollarReplacement(StringBuffer& newReplaceChars, size_t firstDollarIndex,
     const CharT* repLimit = repChars + repLength;
     for (const CharT* it = repChars + firstDollarIndex; it < repLimit; ++it) {
         if (*it != '$' || it == repLimit - 1) {
-            if (!newReplaceChars.append(*it))
+            if (MOZ_UNLIKELY(!newReplaceChars.append(*it)))
                 return false;
             continue;
         }
 
         switch (*(it + 1)) {
           case '$': /* Eat one of the dollars. */
-            if (!newReplaceChars.append(*it))
+            if (MOZ_UNLIKELY(!newReplaceChars.append(*it)))
                 return false;
             break;
           case '&':
-            if (!newReplaceChars.appendSubstring(text, matchStart, matchLimit - matchStart))
+            if (MOZ_UNLIKELY(!newReplaceChars.appendSubstring(text, matchStart, matchLimit - matchStart)))
                 return false;
             break;
           case '`':
-            if (!newReplaceChars.appendSubstring(text, 0, matchStart))
+            if (MOZ_UNLIKELY(!newReplaceChars.appendSubstring(text, 0, matchStart)))
                 return false;
             break;
           case '\'':
-            if (!newReplaceChars.appendSubstring(text, matchLimit, text->length() - matchLimit))
+            if (MOZ_UNLIKELY(!newReplaceChars.appendSubstring(text, matchLimit, text->length() - matchLimit)))
                 return false;
             break;
           default: /* The dollar we saw was not special (no matter what its mother told it). */
-            if (!newReplaceChars.append(*it))
+            if (MOZ_UNLIKELY(!newReplaceChars.append(*it)))
                 return false;
             continue;
         }
@@ -3140,7 +3140,7 @@ BuildDollarReplacement(JSContext* cx, JSString* textstrArg, JSLinearString* reps
                        uint32_t firstDollarIndex, const FlatMatch& fm)
 {
     RootedLinearString textstr(cx, textstrArg->ensureLinear(cx));
-    if (!textstr)
+    if (MOZ_UNLIKELY(!textstr))
         return nullptr;
 
     size_t matchStart = fm.match();
@@ -3154,10 +3154,10 @@ BuildDollarReplacement(JSContext* cx, JSString* textstrArg, JSLinearString* reps
      * Note that dollar vars _could_ make the resulting text smaller than this.
      */
     StringBuffer newReplaceChars(cx);
-    if (repstr->hasTwoByteChars() && !newReplaceChars.ensureTwoByteChars())
+    if (repstr->hasTwoByteChars() && MOZ_UNLIKELY(!newReplaceChars.ensureTwoByteChars()))
         return nullptr;
 
-    if (!newReplaceChars.reserve(textstr->length() - fm.patternLength() + repstr->length()))
+    if (MOZ_UNLIKELY(!newReplaceChars.reserve(textstr->length() - fm.patternLength() + repstr->length())))
         return nullptr;
 
     bool res;
@@ -3174,21 +3174,21 @@ BuildDollarReplacement(JSContext* cx, JSString* textstrArg, JSLinearString* reps
         return nullptr;
 
     RootedString leftSide(cx, NewDependentString(cx, textstr, 0, matchStart));
-    if (!leftSide)
+    if (MOZ_UNLIKELY(!leftSide))
         return nullptr;
 
     RootedString newReplace(cx, newReplaceChars.finishString());
-    if (!newReplace)
+    if (MOZ_UNLIKELY(!newReplace))
         return nullptr;
 
     MOZ_ASSERT(textstr->length() >= matchLimit);
     RootedString rightSide(cx, NewDependentString(cx, textstr, matchLimit,
                                                   textstr->length() - matchLimit));
-    if (!rightSide)
+    if (MOZ_UNLIKELY(!rightSide))
         return nullptr;
 
     RopeBuilder builder(cx);
-    if (!builder.append(leftSide) || !builder.append(newReplace) || !builder.append(rightSide))
+    if (MOZ_UNLIKELY(!builder.append(leftSide) || !builder.append(newReplace) || !builder.append(rightSide)))
         return nullptr;
 
     return builder.result();
@@ -3225,7 +3225,7 @@ FlattenSubstrings(JSContext* cx, HandleLinearString str, const StringRange* rang
                   size_t rangesLen, size_t outputLen)
 {
     JSFatInlineString* result = Allocate<JSFatInlineString>(cx);
-    if (!result)
+    if (MOZ_UNLIKELY(!result))
         return nullptr;
 
     AutoCheckCannotGC nogc;
@@ -3276,11 +3276,11 @@ AppendSubstrings(JSContext* cx, HandleLinearString str, const StringRange* range
             i = end;
         }
 
-        if (!part)
+        if (MOZ_UNLIKELY(!part))
             return nullptr;
 
         /* Appending to the rope permanently roots the substring. */
-        if (!rope.append(part))
+        if (MOZ_UNLIKELY(!rope.append(part)))
             return nullptr;
     }
 
@@ -3291,7 +3291,7 @@ static JSString*
 StrReplaceRegexpRemove(JSContext* cx, HandleString str, RegExpShared& re)
 {
     RootedLinearString linearStr(cx, str->ensureLinear(cx));
-    if (!linearStr)
+    if (MOZ_UNLIKELY(!linearStr))
         return nullptr;
 
     Vector<StringRange, 16, SystemAllocPolicy> ranges;
@@ -3318,7 +3318,7 @@ StrReplaceRegexpRemove(JSContext* cx, HandleString str, RegExpShared& re)
 
         /* Include the latest unmatched substring. */
         if (size_t(match.start) > lastIndex) {
-            if (!ranges.append(StringRange(lastIndex, match.start - lastIndex)))
+            if (MOZ_UNLIKELY(!ranges.append(StringRange(lastIndex, match.start - lastIndex))))
                 return nullptr;
         }
 
@@ -3340,7 +3340,7 @@ StrReplaceRegexpRemove(JSContext* cx, HandleString str, RegExpShared& re)
     if (!lastIndex) {
         if (startIndex > 0) {
             res = cx->global()->getRegExpStatics(cx);
-            if (!res)
+            if (MOZ_UNLIKELY(!res))
                 return nullptr;
             res->updateLazily(cx, linearStr, &re, lazyIndex);
         }
@@ -3350,14 +3350,14 @@ StrReplaceRegexpRemove(JSContext* cx, HandleString str, RegExpShared& re)
 
     /* The last successful match updates the RegExpStatics. */
     res = cx->global()->getRegExpStatics(cx);
-    if (!res)
+    if (MOZ_UNLIKELY(!res))
         return nullptr;
 
     res->updateLazily(cx, linearStr, &re, lazyIndex);
 
     /* Include any remaining part of the string. */
     if (lastIndex < charsLen) {
-        if (!ranges.append(StringRange(lastIndex, charsLen - lastIndex)))
+        if (MOZ_UNLIKELY(!ranges.append(StringRange(lastIndex, charsLen - lastIndex))))
             return nullptr;
     }
 
@@ -3375,7 +3375,7 @@ StrReplaceRegExp(JSContext* cx, ReplaceData& rdata)
     rdata.calledBack = false;
 
     RegExpStatics* res = cx->global()->getRegExpStatics(cx);
-    if (!res)
+    if (MOZ_UNLIKELY(!res))
         return nullptr;
 
     RegExpShared& re = rdata.g.regExp();
@@ -3396,7 +3396,7 @@ StrReplaceRegExp(JSContext* cx, ReplaceData& rdata)
     }
 
     RootedLinearString linearStr(cx, rdata.str->ensureLinear(cx));
-    if (!linearStr)
+    if (MOZ_UNLIKELY(!linearStr))
         return nullptr;
 
     size_t rightContextOffset = 0;
@@ -3415,7 +3415,7 @@ StrReplaceRegExp(JSContext* cx, ReplaceData& rdata)
 
     MOZ_ASSERT(rightContextOffset <= rdata.str->length());
     size_t length = rdata.str->length() - rightContextOffset;
-    if (!rdata.sb.appendSubstring(rdata.str, rightContextOffset, length))
+    if (MOZ_UNLIKELY(!rdata.sb.appendSubstring(rdata.str, rightContextOffset, length)))
         return nullptr;
 
     return rdata.sb.finishString();
@@ -3442,7 +3442,7 @@ js::str_replace_regexp_raw(JSContext* cx, HandleString string, Handle<RegExpObje
     /* Optimize removal, so we don't have to create ReplaceData */
     if (replacement->length() == 0) {
         StringRegExpGuard guard(cx);
-        if (!guard.initRegExp(cx, regexp))
+        if (MOZ_UNLIKELY(!guard.initRegExp(cx, regexp)))
             return nullptr;
 
         RegExpShared& re = guard.regExp();
@@ -3453,12 +3453,12 @@ js::str_replace_regexp_raw(JSContext* cx, HandleString string, Handle<RegExpObje
     rdata.str = string;
 
     JSLinearString* repl = replacement->ensureLinear(cx);
-    if (!repl)
+    if (MOZ_UNLIKELY(!repl))
         return nullptr;
 
     rdata.setReplacementString(repl);
 
-    if (!rdata.g.initRegExp(cx, regexp))
+    if (MOZ_UNLIKELY(!rdata.g.initRegExp(cx, regexp)))
         return nullptr;
 
     return StrReplaceRegExp(cx, rdata);
@@ -3493,12 +3493,12 @@ StrFlatReplaceGlobal(JSContext *cx, JSLinearString *str, JSLinearString *pat, JS
         CheckedInt<uint32_t> strLength(str->length());
         CheckedInt<uint32_t> repLength(rep->length());
         CheckedInt<uint32_t> length = repLength * (strLength - 1) + strLength;
-        if (!length.isValid()) {
+        if (MOZ_UNLIKELY(!length.isValid())) {
             ReportAllocationOverflow(cx);
             return false;
         }
 
-        if (!sb.reserve(length.value()))
+        if (MOZ_UNLIKELY(!sb.reserve(length.value())))
             return false;
 
         for (unsigned i = 0; i < str->length() - 1; ++i, ++strChars) {
@@ -3512,7 +3512,7 @@ StrFlatReplaceGlobal(JSContext *cx, JSLinearString *str, JSLinearString *pat, JS
     // If it's true, we are sure that the result's length is, at least, the same
     // length as |str->length()|.
     if (rep->length() >= pat->length()) {
-        if (!sb.reserve(str->length()))
+        if (MOZ_UNLIKELY(!sb.reserve(str->length())))
             return false;
     }
 
@@ -3521,14 +3521,14 @@ StrFlatReplaceGlobal(JSContext *cx, JSLinearString *str, JSLinearString *pat, JS
         int match = StringMatch(str, pat, start);
         if (match < 0)
             break;
-        if (!sb.append(strChars + start, match - start))
+        if (MOZ_UNLIKELY(!sb.append(strChars + start, match - start)))
             return false;
-        if (!sb.append(repChars, rep->length()))
+        if (MOZ_UNLIKELY(!sb.append(repChars, rep->length())))
             return false;
         start = match + pat->length();
     }
 
-    if (!sb.append(strChars + start, str->length() - start))
+    if (MOZ_UNLIKELY(!sb.append(strChars + start, str->length() - start)))
         return false;
 
     return true;
@@ -3548,20 +3548,20 @@ js::str_flat_replace_string(JSContext *cx, HandleString string, HandleString pat
         return string;
 
     RootedLinearString linearRepl(cx, replacement->ensureLinear(cx));
-    if (!linearRepl)
+    if (MOZ_UNLIKELY(!linearRepl))
         return nullptr;
 
     RootedLinearString linearPat(cx, pattern->ensureLinear(cx));
-    if (!linearPat)
+    if (MOZ_UNLIKELY(!linearPat))
         return nullptr;
 
     RootedLinearString linearStr(cx, string->ensureLinear(cx));
-    if (!linearStr)
+    if (MOZ_UNLIKELY(!linearStr))
         return nullptr;
 
     StringBuffer sb(cx);
     if (linearStr->hasTwoByteChars()) {
-        if (!sb.ensureTwoByteChars())
+        if (MOZ_UNLIKELY(!sb.ensureTwoByteChars()))
             return nullptr;
         if (linearRepl->hasTwoByteChars()) {
             if (!StrFlatReplaceGlobal<char16_t, char16_t>(cx, linearStr, linearPat, linearRepl, sb))
@@ -3572,7 +3572,7 @@ js::str_flat_replace_string(JSContext *cx, HandleString string, HandleString pat
         }
     } else {
         if (linearRepl->hasTwoByteChars()) {
-            if (!sb.ensureTwoByteChars())
+            if (MOZ_UNLIKELY(!sb.ensureTwoByteChars()))
                 return nullptr;
             if (!StrFlatReplaceGlobal<Latin1Char, char16_t>(cx, linearStr, linearPat, linearRepl, sb))
                 return nullptr;
@@ -3583,7 +3583,7 @@ js::str_flat_replace_string(JSContext *cx, HandleString string, HandleString pat
     }
 
     JSString *str = sb.finishString();
-    if (!str)
+    if (MOZ_UNLIKELY(!str))
         return nullptr;
 
     return str;
@@ -3599,11 +3599,11 @@ js::str_replace_string_raw(JSContext* cx, HandleString string, HandleString patt
 
     rdata.str = string;
     JSLinearString* repl = replacement->ensureLinear(cx);
-    if (!repl)
+    if (MOZ_UNLIKELY(!repl))
         return nullptr;
     rdata.setReplacementString(repl);
 
-    if (!rdata.g.init(cx, pattern))
+    if (MOZ_UNLIKELY(!rdata.g.init(cx, pattern)))
         return nullptr;
     const FlatMatch* fm = rdata.g.tryFlatMatch(cx, rdata.str, ReplaceOptArg, ReplaceOptArg, false);
 
@@ -3618,7 +3618,7 @@ str_replace_flat_lambda(JSContext* cx, const CallArgs& outerArgs, ReplaceData& r
                         const FlatMatch& fm)
 {
     RootedString matchStr(cx, NewDependentString(cx, rdata.str, fm.match(), fm.patternLength()));
-    if (!matchStr)
+    if (MOZ_UNLIKELY(!matchStr))
         return false;
 
     /* lambda(matchStr, matchStart, textstr) */
@@ -3643,19 +3643,19 @@ str_replace_flat_lambda(JSContext* cx, const CallArgs& outerArgs, ReplaceData& r
         return false;
 
     RootedString leftSide(cx, NewDependentString(cx, rdata.str, 0, fm.match()));
-    if (!leftSide)
+    if (MOZ_UNLIKELY(!leftSide))
         return false;
 
     size_t matchLimit = fm.match() + fm.patternLength();
     RootedString rightSide(cx, NewDependentString(cx, rdata.str, matchLimit,
                                                   rdata.str->length() - matchLimit));
-    if (!rightSide)
+    if (MOZ_UNLIKELY(!rightSide))
         return false;
 
     RopeBuilder builder(cx);
-    if (!(builder.append(leftSide) &&
+    if (MOZ_UNLIKELY(!(builder.append(leftSide) &&
           builder.append(repstr) &&
-          builder.append(rightSide))) {
+          builder.append(rightSide)))) {
         return false;
     }
 
@@ -3900,7 +3900,7 @@ SplitHelper(JSContext* cx, HandleLinearString str, uint32_t limit, const Matcher
         /* Steps 13(c)(iii)(1-3). */
         size_t subLength = size_t(endIndex - sepLength - lastEndIndex);
         JSString* sub = NewDependentString(cx, str, lastEndIndex, subLength);
-        if (!sub || !splits.append(StringValue(sub)))
+        if (MOZ_UNLIKELY(!sub || !splits.append(StringValue(sub))))
             return nullptr;
 
         /* Step 13(c)(iii)(4). */
@@ -3913,7 +3913,7 @@ SplitHelper(JSContext* cx, HandleLinearString str, uint32_t limit, const Matcher
         /* Step 13(c)(iii)(6-7). */
         if (Matcher::returnsCaptures) {
             RegExpStatics* res = cx->global()->getRegExpStatics(cx);
-            if (!res)
+            if (MOZ_UNLIKELY(!res))
                 return nullptr;
 
             const MatchPairs& matches = res->getMatches();
@@ -3923,10 +3923,10 @@ SplitHelper(JSContext* cx, HandleLinearString str, uint32_t limit, const Matcher
                     JSSubString parsub;
                     res->getParen(i + 1, &parsub);
                     sub = NewDependentString(cx, parsub.base, parsub.offset, parsub.length);
-                    if (!sub || !splits.append(StringValue(sub)))
+                    if (MOZ_UNLIKELY(!sub || !splits.append(StringValue(sub))))
                         return nullptr;
                 } else {
-                    if (!splits.append(UndefinedValue()))
+                    if (MOZ_UNLIKELY(!splits.append(UndefinedValue())))
                         return nullptr;
                 }
 
@@ -3942,7 +3942,7 @@ SplitHelper(JSContext* cx, HandleLinearString str, uint32_t limit, const Matcher
 
     /* Steps 14-15. */
     JSString* sub = NewDependentString(cx, str, lastEndIndex, strLength - lastEndIndex);
-    if (!sub || !splits.append(StringValue(sub)))
+    if (MOZ_UNLIKELY(!sub || !splits.append(StringValue(sub))))
         return nullptr;
 
     /* Step 16. */
@@ -3961,12 +3961,12 @@ CharSplitHelper(JSContext* cx, HandleLinearString str, uint32_t limit, HandleObj
     uint32_t resultlen = (limit < strLength ? limit : strLength);
 
     AutoValueVector splits(cx);
-    if (!splits.reserve(resultlen))
+    if (MOZ_UNLIKELY(!splits.reserve(resultlen)))
         return nullptr;
 
     for (size_t i = 0; i < resultlen; ++i) {
         JSString* sub = staticStrings.getUnitStringForElement(cx, str, i);
-        if (!sub)
+        if (MOZ_UNLIKELY(!sub))
             return nullptr;
         splits.infallibleAppend(StringValue(sub));
     }
@@ -4107,7 +4107,7 @@ js::str_split(JSContext* cx, unsigned argc, Value* vp)
         return true;
     }
     RootedLinearString linearStr(cx, str->ensureLinear(cx));
-    if (!linearStr)
+    if (MOZ_UNLIKELY(!linearStr))
         return false;
 
     /* Steps 11-15. */
@@ -4121,7 +4121,7 @@ js::str_split(JSContext* cx, unsigned argc, Value* vp)
         }
     } else {
         RegExpStatics* res = cx->global()->getRegExpStatics(cx);
-        if (!res)
+        if (MOZ_UNLIKELY(!res))
             return false;
         SplitRegExpMatcher matcher(*re, res);
         aobj = SplitHelper(cx, linearStr, limit, matcher, group, re->unicode());
@@ -4139,11 +4139,11 @@ JSObject*
 js::str_split_string(JSContext* cx, HandleObjectGroup group, HandleString str, HandleString sep)
 {
     RootedLinearString linearStr(cx, str->ensureLinear(cx));
-    if (!linearStr)
+    if (MOZ_UNLIKELY(!linearStr))
         return nullptr;
 
     RootedLinearString linearSep(cx, sep->ensureLinear(cx));
-    if (!linearSep)
+    if (MOZ_UNLIKELY(!linearSep))
         return nullptr;
 
     uint32_t limit = UINT32_MAX;
@@ -4304,7 +4304,7 @@ str_fromCharCode_few_args(JSContext* cx, const CallArgs& args)
         chars[i] = char16_t(code);
     }
     JSString* str = NewStringCopyN<CanGC>(cx, chars, args.length());
-    if (!str)
+    if (MOZ_UNLIKELY(!str))
         return false;
     args.rval().setString(str);
     return true;
@@ -4330,7 +4330,7 @@ js::str_fromCharCode(JSContext* cx, unsigned argc, Value* vp)
         return str_fromCharCode_few_args(cx, args);
 
     char16_t* chars = cx->pod_malloc<char16_t>(args.length() + 1);
-    if (!chars)
+    if (MOZ_UNLIKELY(!chars))
         return false;
     for (unsigned i = 0; i < args.length(); i++) {
         uint16_t code;
@@ -4366,7 +4366,7 @@ js::str_fromCharCode_one_arg(JSContext* cx, HandleValue code, MutableHandleValue
 
     char16_t c = char16_t(ucode);
     JSString* str = NewStringCopyN<CanGC>(cx, &c, 1);
-    if (!str)
+    if (MOZ_UNLIKELY(!str))
         return false;
 
     rval.setString(str);
@@ -4408,24 +4408,24 @@ js::InitStringClass(JSContext* cx, HandleObject obj)
 
     Rooted<JSString*> empty(cx, cx->runtime()->emptyString);
     RootedObject proto(cx, global->createBlankPrototype(cx, &StringObject::class_));
-    if (!proto || !proto->as<StringObject>().init(cx, empty))
+    if (MOZ_UNLIKELY(!proto || !proto->as<StringObject>().init(cx, empty)))
         return nullptr;
 
     /* Now create the String function. */
     RootedFunction ctor(cx);
     ctor = global->createConstructor(cx, StringConstructor, cx->names().String, 1,
                                      AllocKind::FUNCTION, &jit::JitInfo_String);
-    if (!ctor)
+    if (MOZ_UNLIKELY(!ctor))
         return nullptr;
 
-    if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_String, ctor, proto))
+    if (MOZ_UNLIKELY(!GlobalObject::initBuiltinConstructor(cx, global, JSProto_String, ctor, proto)))
         return nullptr;
 
-    if (!LinkConstructorAndPrototype(cx, ctor, proto))
+    if (MOZ_UNLIKELY(!LinkConstructorAndPrototype(cx, ctor, proto)))
         return nullptr;
 
-    if (!DefinePropertiesAndFunctions(cx, proto, nullptr, string_methods) ||
-        !DefinePropertiesAndFunctions(cx, ctor, nullptr, string_static_methods))
+    if (MOZ_UNLIKELY(!DefinePropertiesAndFunctions(cx, proto, nullptr, string_methods) ||
+        !DefinePropertiesAndFunctions(cx, ctor, nullptr, string_static_methods)))
     {
         return nullptr;
     }
@@ -4434,7 +4434,7 @@ js::InitStringClass(JSContext* cx, HandleObject obj)
      * Define escape/unescape, the URI encode/decode functions, and maybe
      * uneval on the global object.
      */
-    if (!JS_DefineFunctions(cx, global, string_functions))
+    if (MOZ_UNLIKELY(!JS_DefineFunctions(cx, global, string_functions)))
         return nullptr;
 
     return proto;
@@ -4613,10 +4613,10 @@ js::EqualStrings(JSContext* cx, JSString* str1, JSString* str2, bool* result)
     }
 
     JSLinearString* linear1 = str1->ensureLinear(cx);
-    if (!linear1)
+    if (MOZ_UNLIKELY(!linear1))
         return false;
     JSLinearString* linear2 = str2->ensureLinear(cx);
-    if (!linear2)
+    if (MOZ_UNLIKELY(!linear2))
         return false;
 
     *result = EqualChars(linear1, linear2);
@@ -4677,11 +4677,11 @@ js::CompareStrings(JSContext* cx, JSString* str1, JSString* str2, int32_t* resul
     }
 
     JSLinearString* linear1 = str1->ensureLinear(cx);
-    if (!linear1)
+    if (MOZ_UNLIKELY(!linear1))
         return false;
 
     JSLinearString* linear2 = str2->ensureLinear(cx);
-    if (!linear2)
+    if (MOZ_UNLIKELY(!linear2))
         return false;
 
     *result = CompareStringsImpl(linear1, linear2);
@@ -4762,7 +4762,7 @@ js::DuplicateString(const char16_t* s)
 {
     size_t n = js_strlen(s) + 1;
     UniquePtr<char16_t[], JS::FreePolicy> ret(js_pod_malloc<char16_t>(n));
-    if (!ret)
+    if (MOZ_UNLIKELY(!ret))
         return nullptr;
     PodCopy(ret.get(), s, n);
     return ret;
@@ -4809,7 +4809,7 @@ js::InflateString(ExclusiveContext* cx, const char* bytes, size_t* lengthp)
 
     nchars = nbytes;
     chars = cx->pod_malloc<char16_t>(nchars + 1);
-    if (!chars)
+    if (MOZ_UNLIKELY(!chars))
         goto bad;
     for (size_t i = 0; i < nchars; i++)
         chars[i] = (unsigned char) bytes[i];
@@ -4994,7 +4994,7 @@ static inline bool
 TransferBufferToString(StringBuffer& sb, MutableHandleValue rval)
 {
     JSString* str = sb.finishString();
-    if (!str)
+    if (MOZ_UNLIKELY(!str))
         return false;
     rval.setString(str);
     return true;
@@ -5068,7 +5068,7 @@ Encode(JSContext* cx, HandleLinearString str, const bool* unescapedSet,
     }
 
     StringBuffer sb(cx);
-    if (!sb.reserve(length))
+    if (MOZ_UNLIKELY(!sb.reserve(length)))
         return false;
 
     EncodeResult res;
