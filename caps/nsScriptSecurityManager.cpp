@@ -972,6 +972,20 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("tags.mathtag.com") ||
                 BLOK("pixel.mathtag.com") ||
+
+                BLOK("a.teads.tv") ||
+                BLOK("cdn.teads.tv") ||
+
+                BLOK("cdata.carambo.la") ||
+                BLOK("route.carambo.la") ||
+
+                BLOK("us-ads.openx.net") ||
+
+                BLOK("s-static.innovid.com") ||
+
+                // This is controversial, but I'm pretty sure we
+                // don't want this.
+                BLOK("coinhive.com") ||
                     0) {
 #undef BLOK
                 // Yup.
