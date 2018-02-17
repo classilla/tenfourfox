@@ -1185,7 +1185,7 @@ void MediaDecoderStateMachine::MaybeStartPlayback()
   MOZ_ASSERT(mState == DECODER_STATE_DECODING ||
              mState == DECODER_STATE_COMPLETED);
 
-  if (IsPlaying()) {
+  if (MOZ_LIKELY(IsPlaying())) {
     // Logging this case is really spammy - don't do it.
     return;
   }
@@ -2443,7 +2443,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
     }
 
     case DECODER_STATE_DECODING: {
-      if (IsDecodingFirstFrame()) {
+      if (MOZ_UNLIKELY(IsDecodingFirstFrame())) {
         // We haven't completed decoding our first frames, we can't start
         // playback yet.
         return NS_OK;
@@ -2623,7 +2623,7 @@ MediaDecoderStateMachine::CheckFrameValidity(VideoData* aData)
   MOZ_ASSERT(OnTaskQueue());
 
   // Update corrupt-frames statistics
-  if (aData->mImage && !aData->mImage->IsValid()) {
+  if (aData->mImage && MOZ_UNLIKELY(!aData->mImage->IsValid())) {
     FrameStatistics& frameStats = *mFrameStats;
     frameStats.NotifyCorruptFrame();
     // If more than 10% of the last 30 frames have been corrupted, then try disabling
@@ -2792,7 +2792,7 @@ MediaDecoderStateMachine::DropAudioUpToSeekTarget(MediaData* aSample)
          audio->mAudioData.get() + (framesToPrune.value() * channels),
          frames * channels * sizeof(AudioDataValue));
   CheckedInt64 duration = FramesToUsecs(frames, mInfo.mAudio.mRate);
-  if (!duration.isValid()) {
+  if (MOZ_UNLIKELY(!duration.isValid())) {
     return NS_ERROR_FAILURE;
   }
   RefPtr<AudioData> data(new AudioData(audio->mOffset,

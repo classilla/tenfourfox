@@ -88,24 +88,24 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
   AbstractMediaDecoder::AutoNotifyDecoded a(mReader->GetDecoder());
 
   RefPtr<NesteggPacketHolder> holder(mReader->NextPacket(WebMReader::VIDEO));
-  if (!holder) {
+  if (MOZ_UNLIKELY(!holder)) {
     return false;
   }
 
   nestegg_packet* packet = holder->Packet();
   unsigned int track = 0;
   int r = nestegg_packet_track(packet, &track);
-  if (r == -1) {
+  if (MOZ_UNLIKELY(r == -1)) {
     return false;
   }
 
   unsigned int count = 0;
   r = nestegg_packet_count(packet, &count);
-  if (r == -1) {
+  if (MOZ_UNLIKELY(r == -1)) {
     return false;
   }
 
-  if (count > 1) {
+  if (MOZ_UNLIKELY(count > 1)) {
     NS_WARNING("Packet contains more than one video frame");
     return false;
   }
@@ -130,7 +130,7 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
   unsigned char* data;
   size_t length;
   r = nestegg_packet_data(packet, 0, &data, &length);
-  if (r == -1) {
+  if (MOZ_UNLIKELY(r == -1)) {
     return false;
   }
 
@@ -153,7 +153,7 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
     aKeyframeSkip = false;
   }
 
-  if (vpx_codec_decode(&mVPX, data, length, nullptr, 0)) {
+  if (MOZ_UNLIKELY(vpx_codec_decode(&mVPX, data, length, nullptr, 0))) {
     return false;
   }
 
@@ -217,7 +217,7 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
                                               si.is_kf,
                                               -1,
                                               picture);
-    if (!v) {
+    if (MOZ_UNLIKELY(!v)) {
       return false;
     }
     a.mParsed++;
