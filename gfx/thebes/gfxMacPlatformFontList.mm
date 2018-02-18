@@ -481,7 +481,7 @@ MacOSFontEntry::GetFontTable(uint32_t aTag)
     ByteCount dataLength = 0;
     
     if (!mIsDataUserFont || mIsLocalUserFont) TryGlobalFontTableCache();
-
+    
     // See if we already know how long the table is. This saves a potentially
     // expensive call to ATSGetFontTable() to simply get the length.
     // Essentially a hardcoded form of FindTagInTableDir; see below.
