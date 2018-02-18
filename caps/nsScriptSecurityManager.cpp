@@ -693,7 +693,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     if (mIsTenFourFoxAdBlockEnabled &&
             (targetScheme.EqualsLiteral("http") || targetScheme.EqualsLiteral("https"))) {
         nsAutoCString hostname;
-        if (NS_SUCCEEDED(targetBaseURI->GetHost(hostname))) {
+        if (MOZ_LIKELY(NS_SUCCEEDED(targetBaseURI->GetHost(hostname)))) {
             ToLowerCase(hostname);
 #define BLOK(q) hostname.EqualsLiteral(q)
             if (0 ||

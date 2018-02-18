@@ -224,18 +224,30 @@ gfxPlatformMac::MakePlatformFont(const nsAString& aFontName,
 // Since HTTPS is becoming more common, check that first.
 #define HTTP_OR_HTTPS_SUBDIR(x) \
     { \
-       if (!failed) { \
            NS_NAMED_LITERAL_CSTRING(https_, "https://" x); \
            spec.Left(loc, https_.Length()); \
            if (loc.Equals(https_)) { \
                failed = true; \
+               goto halt_font; \
            } else { \
                NS_NAMED_LITERAL_CSTRING(http_, "http://" x); \
                spec.Left(loc, http_.Length()); \
-               if (loc.Equals(http_)) \
+               if (loc.Equals(http_)) { \
                    failed = true; \
+                   goto halt_font; \
+               } \
            } \
-       } \
+    }
+
+// TenFourFox issue 477: deal with changing infix version URLs, such as latimes.com
+#define HOST_AND_KEY(x, y) \
+    { \
+            if (hostname.Equals(x)) { \
+                 if (spec.Find(y) != kNotFound) { \
+                    failed = true; \
+                    goto halt_font; \
+                } \
+            } \
     }
 
 bool
@@ -246,40 +258,52 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                  "strange font format hint set");
 
     // TenFourFox issue 261. Prevent loading certain known bad font URIs.
+    // Our checks only know about HTTP, though, so don't check others (issue 477).
     nsAutoCString spec, loc;
     nsresult rv = aFontURI->GetAsciiSpec(spec);
     bool failed = false;
 
     if (MOZ_LIKELY(NS_SUCCEEDED(rv))) {
+        nsAutoCString scheme;
+        if (MOZ_LIKELY(NS_SUCCEEDED(aFontURI->GetScheme(scheme)))) {
+            if (scheme.Equals("http") || scheme.Equals("https")) {
 #if DEBUG
-	fprintf(stderr, "Font blacklist checking: %s\n", spec.get());
+                fprintf(stderr, "Font blacklist checking: %s\n", spec.get());
 #endif
-        HTTP_OR_HTTPS_SUBDIR("www.apple.com/wss/fonts/SF-Pro-Text/v1/");
-        HTTP_OR_HTTPS_SUBDIR("www.apple.com/wss/fonts/SF-Pro-Display/v1/");
+                // Do left-most URL checks first.
+
+                HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com/ea/notosansjapanese/v6/NotoSansJP-");
+
+                HTTP_OR_HTTPS_SUBDIR("www.icloud.com/fonts/SFNSText-");
+
+                HTTP_OR_HTTPS_SUBDIR("typeface.nyt.com/fonts/nyt-cheltenham-");
+                HTTP_OR_HTTPS_SUBDIR("typeface.nytimes.com/fonts/nyt-cheltenham-");
+
+                // Don't cut to SF-Pro-; there are some dingbat fonts that DO work.
+                HTTP_OR_HTTPS_SUBDIR("www.apple.com/wss/fonts/SF-Pro-Text/v1/");
+                HTTP_OR_HTTPS_SUBDIR("www.apple.com/wss/fonts/SF-Pro-Display/v1/");
+
+                HTTP_OR_HTTPS_SUBDIR("lib.intuitcdn.net/fonts/AvenirNext/1.0/");
+
+                // Check hostname and subpatterns (TenFourFox issue 477).
+                nsAutoCString hostname;
+                if (MOZ_LIKELY(NS_SUCCEEDED(aFontURI->GetHost(hostname)))) {
+                    ToLowerCase(hostname);
+
+                    HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");
+                } else
+                    failed = true; // Didn't get hostname, should have.
+            } // Must not be HTTP(S). We could catch others below.
+        } else
+            failed = true; // Didn't get scheme, should have.
     } else
-        failed = true;
+        failed = true; // Didn't get URL, should have.
+    halt_font:
     if (failed ||
-	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4dcd1b9d7833fcec708a/fonts/KisFBDisplay-Bold.woff") ||
-	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4dcd1b9d7833fcec708a/fonts/KisFBDisplay-Bold.woff2") ||
-	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4dcd1b9d7833fcec708a/fonts/KisFBDisplay-Roman.woff") ||
-	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4dcd1b9d7833fcec708a/fonts/KisFBDisplay-Roman.woff2") ||
-	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4b58868f482c8c9570aa/fonts/KisFBDisplay-Bold.woff") ||
-	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4b58868f482c8c9570aa/fonts/KisFBDisplay-Bold.woff2") ||
-	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4b58868f482c8c9570aa/fonts/KisFBDisplay-Roman.woff") ||
-	spec.Equals("http://www.latimes.com/pb/resources/dist/la/latest/4b58868f482c8c9570aa/fonts/KisFBDisplay-Roman.woff2") ||
+        // XXX: Reserve listing things here for one-offs that are too expensive to check otherwise,
+        // or if there is a non-HTTP(S) URL we need to block (!!).
+        // spec.Equals("URL") ||
 	spec.Equals("https://cdn-static-1.medium.com/_/fp/fonts/charter-nonlatin.b-nw7PXlIqmGHGmHvkDiTw.woff") ||
-	spec.Equals("http://typeface.nytimes.com/fonts/nyt-cheltenham-200-normal.woff") ||
-	spec.Equals("https://typeface.nyt.com/fonts/nyt-cheltenham-200-normal.woff") ||
-	spec.Equals("http://typeface.nytimes.com/fonts/nyt-cheltenham-300-normal.woff") ||
-	spec.Equals("https://typeface.nyt.com/fonts/nyt-cheltenham-300-normal.woff") ||
-	spec.Equals("http://typeface.nytimes.com/fonts/nyt-cheltenham-400-normal.woff") ||
-	spec.Equals("https://typeface.nyt.com/fonts/nyt-cheltenham-400-normal.woff") ||
-	spec.Equals("http://fonts.gstatic.com/ea/notosansjapanese/v6/NotoSansJP-Regular.woff") ||
-	spec.Equals("http://fonts.gstatic.com/ea/notosansjapanese/v6/NotoSansJP-Bold.woff") ||
-	spec.Equals("http://fonts.gstatic.com/ea/notosansjapanese/v6/NotoSansJP-Regular.otf") ||
-	spec.Equals("http://fonts.gstatic.com/ea/notosansjapanese/v6/NotoSansJP-Bold.otf") ||
-	spec.Equals("https://www.icloud.com/fonts/SFNSText-Light.woff") ||
-	spec.Equals("https://www.icloud.com/fonts/SFNSText-Medium.woff") ||
     0) {
 	if (MOZ_LIKELY(NS_SUCCEEDED(rv))) // Don't print if we couldn't get the URL.
 	    fprintf(stderr, "Warning: TenFourFox blocking ATSUI-incompatible webfont %s.\n", spec.get());
