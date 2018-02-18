@@ -786,6 +786,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdn.viglink.com") ||
                 
                 BLOK("xcp.go.sonobi.com") ||
+                BLOK("apex.go.sonobi.com") ||
                 
                 BLOK("s.ntv.io") ||
                 
@@ -826,6 +827,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 
                 BLOK("cdn.engine.4dsply.com") ||
                 
+                BLOK("as.casalemedia.com") ||
                 BLOK("as-sec.casalemedia.com") ||
                 
                 BLOK("loadm.exelator.com") ||
@@ -899,6 +901,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("sb.monetate.net") ||
                 BLOK("se.monetate.net") ||
                 
+                BLOK("ad.crwdcntrl.net") ||
                 BLOK("tags.crwdcntrl.net") ||
                 
                 BLOK("cdn.nsstatic.net") ||
@@ -986,6 +989,14 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 // This is controversial, but I'm pretty sure we
                 // don't want this.
                 BLOK("coinhive.com") ||
+
+                BLOK("ustatik.com") ||
+                BLOK("cdn.ustatik.com") ||
+
+                BLOK("adx.adform.net") ||
+
+                BLOK("s.spoutable.com") ||
+                BLOK("cdn.spoutable.com") ||
                     0) {
 #undef BLOK
                 // Yup.
