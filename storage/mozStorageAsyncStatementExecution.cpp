@@ -39,121 +39,28 @@ namespace storage {
 #define MAX_MILLISECONDS_BETWEEN_RESULTS 75
 #define MAX_ROWS_PER_RESULT 15
 
-////////////////////////////////////////////////////////////////////////////////
-//// Local Classes
+// It is not possible to use ESR52's nsProxyRelease.h without substantial and
+// unacceptable modification, so we use part of it here to simulate it and
+// fix bugs 1375217 and 1350752.
+//
+// XXX: If this is needed lots of places, we should move it to that header.
 
-namespace {
-
-typedef AsyncExecuteStatements::ExecutionState ExecutionState;
-typedef AsyncExecuteStatements::StatementDataArray StatementDataArray;
-
-/**
- * Notifies a callback with a result set.
- */
-class CallbackResultNotifier : public nsRunnable
+template<typename T>
+class ProxyReleaseEvent : public nsRunnable
 {
 public:
-  CallbackResultNotifier(mozIStorageStatementCallback *aCallback,
-                         mozIStorageResultSet *aResults,
-                         AsyncExecuteStatements *aEventStatus) :
-      mCallback(aCallback)
-    , mResults(aResults)
-    , mEventStatus(aEventStatus)
+  explicit ProxyReleaseEvent(already_AddRefed<T> aDoomed)
+  : mDoomed(aDoomed.take()) {}
+
+  NS_IMETHOD Run() override
   {
-  }
-
-  NS_IMETHOD Run()
-  {
-    NS_ASSERTION(mCallback, "Trying to notify about results without a callback!");
-
-    if (mEventStatus->shouldNotify()) {
-      // Hold a strong reference to the callback while notifying it, so that if
-      // it spins the event loop, the callback won't be released and freed out
-      // from under us.
-      nsCOMPtr<mozIStorageStatementCallback> callback = mCallback;
-
-      (void)callback->HandleResult(mResults);
-    }
-
+    NS_IF_RELEASE(mDoomed);
     return NS_OK;
   }
 
 private:
-  mozIStorageStatementCallback *mCallback;
-  nsCOMPtr<mozIStorageResultSet> mResults;
-  RefPtr<AsyncExecuteStatements> mEventStatus;
+  T* MOZ_OWNING_REF mDoomed;
 };
-
-/**
- * Notifies the calling thread that an error has occurred.
- */
-class ErrorNotifier : public nsRunnable
-{
-public:
-  ErrorNotifier(mozIStorageStatementCallback *aCallback,
-                mozIStorageError *aErrorObj,
-                AsyncExecuteStatements *aEventStatus) :
-      mCallback(aCallback)
-    , mErrorObj(aErrorObj)
-    , mEventStatus(aEventStatus)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    if (mEventStatus->shouldNotify() && mCallback) {
-      // Hold a strong reference to the callback while notifying it, so that if
-      // it spins the event loop, the callback won't be released and freed out
-      // from under us.
-      nsCOMPtr<mozIStorageStatementCallback> callback = mCallback;
-
-      (void)callback->HandleError(mErrorObj);
-    }
-
-    return NS_OK;
-  }
-
-private:
-  mozIStorageStatementCallback *mCallback;
-  nsCOMPtr<mozIStorageError> mErrorObj;
-  RefPtr<AsyncExecuteStatements> mEventStatus;
-};
-
-/**
- * Notifies the calling thread that the statement has finished executing.  Takes
- * ownership of the StatementData so it is released on the proper thread.
- */
-class CompletionNotifier : public nsRunnable
-{
-public:
-  /**
-   * This takes ownership of the callback and the StatementData.  They are
-   * released on the thread this is dispatched to (which should always be the
-   * calling thread).
-   */
-  CompletionNotifier(mozIStorageStatementCallback *aCallback,
-                     ExecutionState aReason)
-    : mCallback(aCallback)
-    , mReason(aReason)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    if (mCallback) {
-      (void)mCallback->HandleCompletion(mReason);
-      NS_RELEASE(mCallback);
-    }
-
-    return NS_OK;
-  }
-
-private:
-  mozIStorageStatementCallback *mCallback;
-  ExecutionState mReason;
-};
-
-} // namespace
 
 ////////////////////////////////////////////////////////////////////////////////
 //// AsyncExecuteStatements
@@ -208,16 +115,24 @@ AsyncExecuteStatements::AsyncExecuteStatements(StatementDataArray &aStatements,
 , mCancelRequested(false)
 , mMutex(aConnection->sharedAsyncExecutionMutex)
 , mDBMutex(aConnection->sharedDBMutex)
-  , mRequestStartDate(TimeStamp::Now())
+, mRequestStartDate(TimeStamp::Now())
 {
   (void)mStatements.SwapElements(aStatements);
   NS_ASSERTION(mStatements.Length(), "We weren't given any statements!");
-  NS_IF_ADDREF(mCallback);
 }
 
 AsyncExecuteStatements::~AsyncExecuteStatements()
 {
+  MOZ_ASSERT(!mCallback, "Never called the Completion callback!");
   MOZ_ASSERT(!mHasTransaction, "There should be no transaction at this point");
+  if (mCallback) {
+    // NS_ProxyRelease(mCallingThread, mCallback.forget());
+    nsCOMPtr<nsIRunnable> ev =
+        new ProxyReleaseEvent<mozIStorageStatementCallback>(mCallback.forget());
+    if (NS_FAILED(mCallingThread->Dispatch(ev, NS_DISPATCH_NORMAL))) {
+        NS_WARNING("AsyncExecuteStatements dtor failed proxy release");
+    }
+  }
 }
 
 bool
@@ -462,16 +377,30 @@ AsyncExecuteStatements::notifyComplete()
     mHasTransaction = false;
   }
 
-  // Always generate a completion notification; it is what guarantees that our
-  // destruction does not happen here on the async thread.
-  RefPtr<CompletionNotifier> completionEvent =
-    new CompletionNotifier(mCallback, mState);
+  // This will take ownership of mCallback and make sure its destruction will
+  // happen on the owner thread.
+  (void)mCallingThread->Dispatch(
+    NS_NewRunnableMethod(this, &AsyncExecuteStatements::notifyCompleteOnCallingThread),
+    NS_DISPATCH_NORMAL);
 
-  // We no longer own mCallback (the CompletionNotifier takes ownership).
-  mCallback = nullptr;
+  return NS_OK;
+}
 
-  (void)mCallingThread->Dispatch(completionEvent, NS_DISPATCH_NORMAL);
-
+nsresult
+AsyncExecuteStatements::notifyCompleteOnCallingThread() {
+#ifdef DEBUG
+  bool onCallingThread = false;
+  (void)mCallingThread->IsOnCurrentThread(&onCallingThread);
+  MOZ_ASSERT(onCallingThread);
+#endif
+  // Take ownership of mCallback and responsibility for freeing it when we
+  // release it.  Any notifyResultsOnCallingThread and notifyErrorOnCallingThread
+  // calls on the stack spinning the event loop have guaranteed their safety by
+  // creating their own strong reference before invoking the callback.
+  nsCOMPtr<mozIStorageStatementCallback> callback = mCallback.forget();
+  if (callback) {
+    (void)callback->HandleCompletion(mState);
+  }
   return NS_OK;
 }
 
@@ -500,27 +429,63 @@ AsyncExecuteStatements::notifyError(mozIStorageError *aError)
   if (!mCallback)
     return NS_OK;
 
-  RefPtr<ErrorNotifier> notifier =
-    new ErrorNotifier(mCallback, aError, this);
-  NS_ENSURE_TRUE(notifier, NS_ERROR_OUT_OF_MEMORY);
+  (void)mCallingThread->Dispatch(
+    NS_NewRunnableMethodWithArg<nsCOMPtr<mozIStorageError>>(this, &AsyncExecuteStatements::notifyErrorOnCallingThread, aError),
+    NS_DISPATCH_NORMAL);
 
-  return mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
+  return NS_OK;
+}
+
+nsresult
+AsyncExecuteStatements::notifyErrorOnCallingThread(mozIStorageError *aError) {
+#ifdef DEBUG
+  bool onCallingThread = false;
+  (void)mCallingThread->IsOnCurrentThread(&onCallingThread);
+  MOZ_ASSERT(onCallingThread);
+#endif
+  // Acquire our own strong reference so that if the callback spins a nested
+  // event loop and notifyCompleteOnCallingThread is executed, forgetting
+  // mCallback, we still have a valid/strong reference that won't be freed until
+  // we exit.
+  nsCOMPtr<mozIStorageStatementCallback> callback = mCallback;
+  if (shouldNotify() && callback) {
+    (void)callback->HandleError(aError);
+  }
+  return NS_OK;
 }
 
 nsresult
 AsyncExecuteStatements::notifyResults()
 {
   mMutex.AssertNotCurrentThreadOwns();
-  NS_ASSERTION(mCallback, "notifyResults called without a callback!");
+  MOZ_ASSERT(mCallback, "notifyResults called without a callback!");
 
-  RefPtr<CallbackResultNotifier> notifier =
-    new CallbackResultNotifier(mCallback, mResultSet, this);
-  NS_ENSURE_TRUE(notifier, NS_ERROR_OUT_OF_MEMORY);
+  // This takes ownership of mResultSet, a new one will be generated in
+  // buildAndNotifyResults() when further results will arrive.
+  (void)mCallingThread->Dispatch(
+    NS_NewRunnableMethodWithArg<RefPtr<ResultSet>>(this, &AsyncExecuteStatements::notifyResultsOnCallingThread, mResultSet.forget()),
+    NS_DISPATCH_NORMAL);
 
-  nsresult rv = mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
-  if (NS_SUCCEEDED(rv))
-    mResultSet = nullptr; // we no longer own it on success
-  return rv;
+  return NS_OK;
+}
+
+nsresult
+AsyncExecuteStatements::notifyResultsOnCallingThread(ResultSet *aResultSet)
+{
+#ifdef DEBUG
+  bool onCallingThread = false;
+  (void)mCallingThread->IsOnCurrentThread(&onCallingThread);
+  MOZ_ASSERT(onCallingThread);
+#endif
+  // Acquire our own strong reference so that if the callback spins a nested
+  // event loop and notifyCompleteOnCallingThread is executed, forgetting
+  // mCallback, we still have a valid/strong reference that won't be freed until
+  // we exit.
+  nsCOMPtr<mozIStorageStatementCallback> callback = mCallback;
+  if (shouldNotify() && callback) {
+    (void)callback->HandleResult(aResultSet);
+  }
+  return NS_OK;
 }
 
 NS_IMPL_ISUPPORTS(
