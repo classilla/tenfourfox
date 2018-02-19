@@ -39,6 +39,7 @@ public:
   virtual nsresult CreateStyleSet(nsIDocument* aDocument, nsStyleSet** aStyleSet) = 0;
 
   virtual void IncrementDestroyRefCount() = 0;
+  virtual void DecrementDestroyRefCount() = 0;
 
   virtual void ReturnToGalleyPresentation() = 0;
 
@@ -73,6 +74,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocumentViewerPrint,
   virtual bool     GetIsPrintPreview() override; \
   virtual nsresult CreateStyleSet(nsIDocument* aDocument, nsStyleSet** aStyleSet) override; \
   virtual void     IncrementDestroyRefCount() override; \
+  virtual void     DecrementDestroyRefCount() override; \
   virtual void     ReturnToGalleyPresentation() override; \
   virtual void     OnDonePrinting() override; \
   virtual bool     IsInitializedForPrintPreview() override; \
