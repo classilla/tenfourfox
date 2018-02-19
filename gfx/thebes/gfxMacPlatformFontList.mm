@@ -479,9 +479,9 @@ MacOSFontEntry::GetFontTable(uint32_t aTag)
     if (fontRef == kInvalidFont) return nullptr;
 
     ByteCount dataLength = 0;
-    
+
     if (!mIsDataUserFont || mIsLocalUserFont) TryGlobalFontTableCache();
-    
+
     // See if we already know how long the table is. This saves a potentially
     // expensive call to ATSGetFontTable() to simply get the length.
     // Essentially a hardcoded form of FindTagInTableDir; see below.
@@ -536,7 +536,7 @@ MacOSFontEntry::GetFontTable(uint32_t aTag)
     CFMutableDataRef dataRef = ::CFDataCreateMutable(kCFAllocatorDefault,
         dataLength);
     if (!dataRef) return nullptr;
-    
+
     ::CFDataIncreaseLength(dataRef, dataLength); // paranoia
     if(MOZ_UNLIKELY(::ATSFontGetTable(fontRef, aTag, 0, dataLength,
                 ::CFDataGetMutableBytePtr(dataRef),
@@ -544,7 +544,7 @@ MacOSFontEntry::GetFontTable(uint32_t aTag)
         ::CFRelease(dataRef);
         return nullptr;
     }
-    
+
     return hb_blob_create((const char*)::CFDataGetBytePtr(dataRef),
                           ::CFDataGetLength(dataRef),
                           HB_MEMORY_MODE_READONLY,
