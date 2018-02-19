@@ -1029,7 +1029,9 @@ CodeGenerator::visitValueToString(LValueToString* lir)
                                    StoreRegisterTo(output));
 
     Label done;
+#ifdef JS_CODEGEN_PPC_OSX
     BufferOffset bo_done1, bo_done2, bo_done3, bo_done4, bo_done5, bo_done6;
+#endif
     Register tag = masm.splitTagForTest(input);
     const JSAtomState& names = GetJitContext()->runtime->names();
 

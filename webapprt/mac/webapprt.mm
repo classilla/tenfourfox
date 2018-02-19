@@ -188,13 +188,22 @@ main(int argc, char **argv)
         }
       }
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_4)
+      [fileClerk removeFileAtPath: myWebRTPath handler:nil];
+#else
       [fileClerk removeItemAtPath: myWebRTPath error: &errorDesc];
+#endif
       if (errorDesc != nil) {
         NSLog(@"failed to unlink old binary file at path: %@ with error: %@", myWebRTPath, errorDesc);
         @throw MakeException(@"Unable To Update", @"Failed preparation for Web Runtime update");
       }
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_4)
+      [fileClerk copyPath: newWebRTPath toPath: myWebRTPath handler:nil];
+#else
       [fileClerk copyItemAtPath: newWebRTPath toPath: myWebRTPath error: &errorDesc];
+#endif
+
       [fileClerk release];
       if (errorDesc != nil) {
         NSLog(@"failed to copy new webrt file: %@", errorDesc);

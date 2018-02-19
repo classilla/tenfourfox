@@ -1109,11 +1109,19 @@ private:
             break;
           case Scalar::Int16:
           case Scalar::Uint16:
+#if defined(JS_CODEGEN_PPC_OSX)
             store16Swapped(value, dest);
+#elif defined(JS_CODEGEN_X86)
+            store16(value, dest);
+#endif
             break;
           case Scalar::Int32:
           case Scalar::Uint32:
+#if defined(JS_CODEGEN_PPC_OSX)
             store32ByteSwapped(value, dest);
+#elif defined(JS_CODEGEN_X86)
+            store32(value, dest);
+#endif
             break;
           default:
             MOZ_CRASH("Invalid typed array type");

@@ -479,16 +479,16 @@ MacOSFontEntry::GetFontTable(uint32_t aTag)
     if (fontRef == kInvalidFont) return nullptr;
 
     ByteCount dataLength = 0;
-    
+
     if (!mIsDataUserFont || mIsLocalUserFont) TryGlobalFontTableCache();
-    
+
     // See if we already know how long the table is. This saves a potentially
     // expensive call to ATSGetFontTable() to simply get the length.
     // Essentially a hardcoded form of FindTagInTableDir; see below.
     if (MOZ_LIKELY(mFontTableDirSize > 0)) {
-        // XXX: This assumes big endian (warning Intel)
+        uint32_t aTagHE = aTag;
 #ifndef __ppc__
-#warning needs GetFontTable fast path needs little endian version
+        aTagHE = __builtin_bswap32(aTag);
 #endif
 
 #ifdef DEBUG_X
@@ -500,19 +500,23 @@ MacOSFontEntry::GetFontTable(uint32_t aTag)
         uint32_t i;
         uint32_t *wtable = (reinterpret_cast<uint32_t *>(
                 mFontTableDir.Elements()));
+
         for (i=3; i<(mFontTableDirSize/4); i+=4) { // Skip header
 #ifdef DEBUG_X
                 char tag[5] = { table[j], table[j+1], table[j+2], table[j+3],
                         '\0' };
-                fprintf(stderr, "%s ", tag); // remember: big endian
+                fprintf(stderr, "%s ", tag); // remember: host endian
                 j += 16;
 #endif
-                // ASSUME THAT aTag is already big endian
-                if(wtable[i] == aTag) {
-#ifdef DEBUG_X
-                        fprintf(stderr, "MATCH: length %i\n", wtable[i+3]);
-#endif
+                // ASSUME THAT aTag is in host endianness
+                if(wtable[i] == aTagHE) {
                         dataLength = (ByteCount)wtable[i+3];
+#ifndef __ppc__
+                        dataLength = __builtin_bswap32(dataLength);
+#endif
+#ifdef DEBUG_X
+                        fprintf(stderr, "FF MATCH: length %u\n", dataLength);
+#endif
                         break;
                 }
         }
@@ -559,6 +563,11 @@ static bool FindTagInTableDir(FallibleTArray<uint8_t>& table,
   // corresponding to the tag, checksum, offset and length, with a
   // 96 bit header (three 32-bit words). One day we could even write
   // an AltiVec version ...
+  // aTableTag is expected to be Big Endian order
+#ifndef __ppc__
+  aTableTag = __builtin_bswap32(aTableTag);
+#endif
+
 #ifdef DEBUG_X
   fprintf(stderr, "Tables: ");
   uint32_t j = 12;
@@ -571,7 +580,7 @@ static bool FindTagInTableDir(FallibleTArray<uint8_t>& table,
     fprintf(stderr, "%s ", tag); // remember: big endian
     j+=16;
 #endif
-    // ASSUME THAT aTableTag is already big endian
+    // ASSUME THAT aTableTag is already big endian (we converted it in case)
     if(wtable[i] == aTableTag) {
 #ifdef DEBUG_X
       fprintf(stderr, "MATCH\n");
