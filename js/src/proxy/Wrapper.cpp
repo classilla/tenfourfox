@@ -149,6 +149,6 @@ bool Wrapper::finalizeInBackground(Value priv) const
      */
     if (IsInsideNursery(&priv.toObject()))
         return true;
-return false; // speculative fix
-    return IsBackgroundFinalized(priv.toObject().asTenured().getAllocKind());
+    return false; // See TenFourFox issue 479.
+    //return IsBackgroundFinalized(priv.toObject().asTenured().getAllocKind());
 }
