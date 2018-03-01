@@ -215,7 +215,7 @@ js::Nursery::allocateObject(JSContext* cx, size_t size, size_t numDynamic, const
 
     /* Make the object allocation. */
     JSObject* obj = static_cast<JSObject*>(allocate(size));
-    if (!obj)
+    if (MOZ_UNLIKELY(!obj))
         return nullptr;
 
     /* If we want external slots, add them. */
@@ -223,7 +223,7 @@ js::Nursery::allocateObject(JSContext* cx, size_t size, size_t numDynamic, const
     if (numDynamic) {
         MOZ_ASSERT(clasp->isNative());
         slots = static_cast<HeapSlot*>(allocateBuffer(cx->zone(), numDynamic * sizeof(HeapSlot)));
-        if (!slots) {
+        if (MOZ_UNLIKELY(!slots)) {
             /*
              * It is safe to leave the allocated object uninitialized, since we
              * do not visit unallocated things in the nursery.

@@ -233,7 +233,7 @@ js::Throw(JSContext* cx, jsid id, unsigned errorNumber)
     if (!idstr)
        return false;
     JSAutoByteString bytes(cx, idstr);
-    if (!bytes)
+    if (MOZ_UNLIKELY(!bytes))
         return false;
     JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, errorNumber, bytes.ptr());
     return false;
@@ -661,12 +661,12 @@ NewObject(ExclusiveContext* cx, HandleObjectGroup group, gc::AllocKind kind,
 
     RootedShape shape(cx, EmptyShape::getInitialShape(cx, clasp, group->proto(), nfixed,
                                                       initialShapeFlags));
-    if (!shape)
+    if (MOZ_UNLIKELY(!shape))
         return nullptr;
 
     gc::InitialHeap heap = GetInitialHeap(newKind, clasp);
     JSObject* obj = JSObject::create(cx, kind, heap, shape, group);
-    if (!obj)
+    if (MOZ_UNLIKELY(!obj))
         return nullptr;
 
     if (newKind == SingletonObject) {
@@ -723,11 +723,11 @@ js::NewObjectWithGivenTaggedProto(ExclusiveContext* cxArg, const Class* clasp,
     }
 
     RootedObjectGroup group(cxArg, ObjectGroup::defaultNewGroup(cxArg, clasp, proto, nullptr));
-    if (!group)
+    if (MOZ_UNLIKELY(!group))
         return nullptr;
 
     RootedObject obj(cxArg, NewObject(cxArg, group, allocKind, newKind, initialShapeFlags));
-    if (!obj)
+    if (MOZ_UNLIKELY(!obj))
         return nullptr;
 
     if (isCachable && !obj->as<NativeObject>().hasDynamicSlots()) {
@@ -790,11 +790,11 @@ js::NewObjectWithClassProtoCommon(ExclusiveContext* cxArg, const Class* clasp,
 
     Rooted<TaggedProto> taggedProto(cxArg, TaggedProto(proto));
     RootedObjectGroup group(cxArg, ObjectGroup::defaultNewGroup(cxArg, clasp, taggedProto));
-    if (!group)
+    if (MOZ_UNLIKELY(!group))
         return nullptr;
 
     JSObject* obj = NewObject(cxArg, group, allocKind, newKind);
-    if (!obj)
+    if (MOZ_UNLIKELY(!obj))
         return nullptr;
 
     if (isCachable && !obj->as<NativeObject>().hasDynamicSlots()) {
@@ -844,7 +844,7 @@ js::NewObjectWithGroupCommon(ExclusiveContext* cx, HandleObjectGroup group,
     }
 
     JSObject* obj = NewObject(cx, group, allocKind, newKind);
-    if (!obj)
+    if (MOZ_UNLIKELY(!obj))
         return nullptr;
 
     if (isCachable && !obj->as<NativeObject>().hasDynamicSlots()) {
@@ -957,7 +957,7 @@ js::CreateThisForFunctionWithProto(JSContext* cx, HandleObject callee, HandleObj
     if (proto) {
         RootedObjectGroup group(cx, ObjectGroup::defaultNewGroup(cx, nullptr, TaggedProto(proto),
                                                                  newTarget));
-        if (!group)
+        if (MOZ_UNLIKELY(!group))
             return nullptr;
 
         if (group->newScript() && !group->newScript()->analyzed()) {
@@ -980,7 +980,7 @@ js::CreateThisForFunctionWithProto(JSContext* cx, HandleObject callee, HandleObj
 
     if (res) {
         JSScript* script = callee->as<JSFunction>().getOrCreateScript(cx);
-        if (!script)
+        if (MOZ_UNLIKELY(!script))
             return nullptr;
         TypeScript::SetThis(cx, script, TypeSet::ObjectType(res));
     }
@@ -1145,7 +1145,7 @@ js::CloneObject(JSContext* cx, HandleObject obj, Handle<js::TaggedProto> proto)
     RootedObject clone(cx);
     if (obj->isNative()) {
         clone = NewObjectWithGivenTaggedProto(cx, obj->getClass(), proto);
-        if (!clone)
+        if (MOZ_UNLIKELY(!clone))
             return nullptr;
 
         if (clone->is<JSFunction>() && (obj->compartment() != clone->compartment())) {
@@ -1161,7 +1161,7 @@ js::CloneObject(JSContext* cx, HandleObject obj, Handle<js::TaggedProto> proto)
         options.setClass(obj->getClass());
 
         clone = ProxyObject::New(cx, GetProxyHandler(obj), JS::NullHandleValue, proto, options);
-        if (!clone)
+        if (MOZ_UNLIKELY(!clone))
             return nullptr;
 
         if (!CopyProxyObject(cx, obj.as<ProxyObject>(), clone.as<ProxyObject>()))
@@ -1345,13 +1345,13 @@ InitializePropertiesFromCompatibleNativeObject(JSContext* cx,
         // dst's object flags are 0.
         shape = EmptyShape::getInitialShape(cx, dst->getClass(), dst->getTaggedProto(),
                                             dst->numFixedSlots(), 0);
-        if (!shape)
+        if (MOZ_UNLIKELY(!shape))
             return false;
 
         // Get an in-order list of the shapes in the src object.
         Rooted<ShapeVector> shapes(cx, ShapeVector(cx));
         for (Shape::Range<NoGC> r(src->lastProperty()); !r.empty(); r.popFront()) {
-            if (!shapes.append(&r.front()))
+            if (MOZ_UNLIKELY(!shapes.append(&r.front())))
                 return false;
         }
         Reverse(shapes.begin(), shapes.end());
@@ -1442,7 +1442,7 @@ js::XDRObjectLiteral(XDRState<mode>* xdr, MutableHandleObject obj)
                                                   : ObjectGroup::NewArrayKind::Normal;
             obj.set(ObjectGroup::newArrayObject(cx, values.begin(), values.length(),
                                                 TenuredObject, arrayKind));
-            if (!obj)
+            if (MOZ_UNLIKELY(!obj))
                 return false;
         }
 
@@ -1551,18 +1551,20 @@ JSObject::fixDictionaryShapeAfterSwap()
 bool
 JSObject::swap(JSContext* cx, HandleObject a, HandleObject b)
 {
+#if(0) // See TenFourFox issue 479 for why we can get away with this.
     // Ensure swap doesn't cause a finalizer to not be run.
     MOZ_ASSERT(IsBackgroundFinalized(a->asTenured().getAllocKind()) ==
                IsBackgroundFinalized(b->asTenured().getAllocKind()));
+#endif
     MOZ_ASSERT(a->compartment() == b->compartment());
 
     AutoEnterOOMUnsafeRegion oomUnsafe;
 
     AutoCompartment ac(cx, a);
 
-    if (!a->getGroup(cx))
+    if (MOZ_UNLIKELY(!a->getGroup(cx)))
         oomUnsafe.crash("JSObject::swap");
-    if (!b->getGroup(cx))
+    if (MOZ_UNLIKELY(!b->getGroup(cx)))
         oomUnsafe.crash("JSObject::swap");
 
     /*
@@ -1644,9 +1646,9 @@ JSObject::swap(JSContext* cx, HandleObject a, HandleObject b)
         a->fixDictionaryShapeAfterSwap();
         b->fixDictionaryShapeAfterSwap();
 
-        if (na && !b->as<NativeObject>().fillInAfterSwap(cx, avals, apriv))
+        if (MOZ_UNLIKELY(na && !b->as<NativeObject>().fillInAfterSwap(cx, avals, apriv)))
             oomUnsafe.crash("fillInAfterSwap");
-        if (nb && !a->as<NativeObject>().fillInAfterSwap(cx, bvals, bpriv))
+        if (MOZ_UNLIKELY(nb && !a->as<NativeObject>().fillInAfterSwap(cx, bvals, bpriv)))
             oomUnsafe.crash("fillInAfterSwap");
     }
 
@@ -1758,7 +1760,7 @@ DefineConstructorAndPrototype(JSContext* cx, HandleObject obj, JSProtoKey key, H
      * used because it won't let us use protoProto as the proto.
      */
     RootedNativeObject proto(cx, NewNativeObjectWithClassProto(cx, clasp, protoProto, SingletonObject));
-    if (!proto)
+    if (MOZ_UNLIKELY(!proto))
         return nullptr;
 
     /* After this point, control must exit via label bad or out. */
@@ -1786,7 +1788,7 @@ DefineConstructorAndPrototype(JSContext* cx, HandleObject obj, JSProtoKey key, H
         ctor = proto;
     } else {
         RootedFunction fun(cx, NewNativeConstructor(cx, constructor, nargs, atom, ctorKind));
-        if (!fun)
+        if (MOZ_UNLIKELY(!fun))
             goto bad;
 
         /*
@@ -1960,7 +1962,7 @@ js::SetClassAndProto(JSContext* cx, HandleObject obj,
     }
 
     ObjectGroup* group = ObjectGroup::defaultNewGroup(cx, clasp, proto);
-    if (!group)
+    if (MOZ_UNLIKELY(!group))
         return false;
 
     /*
@@ -1987,7 +1989,7 @@ JSObject::changeToSingleton(JSContext* cx, HandleObject obj)
 
     ObjectGroup* group = ObjectGroup::lazySingletonGroup(cx, obj->getClass(),
                                                          obj->getTaggedProto());
-    if (!group)
+    if (MOZ_UNLIKELY(!group))
         return false;
 
     obj->group_ = group;
@@ -3656,12 +3658,12 @@ JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::ClassIn
     }
 
     // Other things may be measured in the future if DMD indicates it is worthwhile.
-    if (is<JSFunction>() ||
+    if (MOZ_LIKELY((is<JSFunction>() ||
         is<PlainObject>() ||
         is<ArrayObject>() ||
         is<CallObject>() ||
         is<RegExpObject>() ||
-        is<ProxyObject>())
+        is<ProxyObject>())))
     {
         // Do nothing.  But this function is hot, and we win by getting the
         // common cases out of the way early.  Some stats on the most common

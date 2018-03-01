@@ -189,7 +189,7 @@ GCRuntime::tryNewTenuredObject(ExclusiveContext* cx, AllocKind kind, size_t thin
 
     JSObject* obj = tryNewTenuredThing<JSObject, allowGC>(cx, kind, thingSize);
 
-    if (obj)
+    if (MOZ_LIKELY(obj))
         obj->setInitialSlotsMaybeNonNative(slots);
     else
         js_free(slots);
@@ -262,7 +262,7 @@ GCRuntime::tryNewTenuredThing(ExclusiveContext* cx, AllocKind kind, size_t thing
             rt->gc.waitBackgroundSweepOrAllocEnd();
 
             t = tryNewTenuredThing<T, NoGC>(cx, kind, thingSize);
-            if (!t)
+            if (MOZ_UNLIKELY(!t))
                 ReportOutOfMemory(cx);
         }
     }

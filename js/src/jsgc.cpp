@@ -2095,7 +2095,7 @@ AllocRelocatedCell(Zone* zone, AllocKind thingKind, size_t thingSize)
     void* dstAlloc = zone->arenas.allocateFromFreeList(thingKind, thingSize);
     if (!dstAlloc)
         dstAlloc = GCRuntime::refillFreeListInGC(zone, thingKind);
-    if (!dstAlloc) {
+    if (MOZ_UNLIKELY(!dstAlloc)) {
         // This can only happen in zeal mode or debug builds as we don't
         // otherwise relocate more cells than we have existing free space
         // for.
@@ -4313,7 +4313,7 @@ js::gc::MarkingValidator::nonIncrementalMark()
     for (auto chunk = gc->allNonEmptyChunks(); !chunk.done(); chunk.next()) {
         ChunkBitmap* bitmap = &chunk->bitmap;
 	ChunkBitmap* entry = js_new<ChunkBitmap>();
-        if (!entry)
+        if (MOZ_UNLIKELY(!entry))
             return;
 
         memcpy((void*)entry->bitmap, (void*)bitmap->bitmap, sizeof(bitmap->bitmap));

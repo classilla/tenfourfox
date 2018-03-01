@@ -417,7 +417,7 @@ bool WebMReader::DecodeAudioPacket(NesteggPacketHolder* aHolder)
   int r = 0;
   unsigned int count = 0;
   r = nestegg_packet_count(aHolder->Packet(), &count);
-  if (r == -1) {
+  if (MOZ_UNLIKELY(r == -1)) {
     return false;
   }
 
@@ -439,7 +439,7 @@ bool WebMReader::DecodeAudioPacket(NesteggPacketHolder* aHolder)
     return false;
   }
   decoded_frames += mAudioFrames;
-  if (!decoded_frames.isValid()) {
+  if (MOZ_UNLIKELY(!decoded_frames.isValid())) {
     NS_WARNING("Int overflow adding decoded_frames");
     return false;
   }
@@ -460,7 +460,7 @@ bool WebMReader::DecodeAudioPacket(NesteggPacketHolder* aHolder)
     unsigned char* data;
     size_t length;
     r = nestegg_packet_data(aHolder->Packet(), i, &data, &length);
-    if (r == -1) {
+    if (MOZ_UNLIKELY(r == -1)) {
       return false;
     }
     int64_t discardPadding = 0;
@@ -508,7 +508,7 @@ RefPtr<NesteggPacketHolder> WebMReader::NextPacket(TrackType aTrackType)
 
   do {
     RefPtr<NesteggPacketHolder> holder = DemuxPacket();
-    if (!holder) {
+    if (MOZ_UNLIKELY(!holder)) {
       return nullptr;
     }
 
@@ -530,13 +530,13 @@ WebMReader::DemuxPacket()
 {
   nestegg_packet* packet;
   int r = nestegg_read_packet(mContext, &packet);
-  if (r <= 0) {
+  if (MOZ_UNLIKELY(r <= 0)) {
     return nullptr;
   }
 
   unsigned int track = 0;
   r = nestegg_packet_track(packet, &track);
-  if (r == -1) {
+  if (MOZ_UNLIKELY(r == -1)) {
     return nullptr;
   }
 
@@ -548,7 +548,7 @@ WebMReader::DemuxPacket()
     unsigned char* data;
     size_t length;
     r = nestegg_packet_data(packet, 0, &data, &length);
-    if (r == -1) {
+    if (MOZ_UNLIKELY(r == -1)) {
       return nullptr;
     }
     vpx_codec_stream_info_t si;
@@ -576,7 +576,7 @@ bool WebMReader::DecodeAudioData()
   MOZ_ASSERT(OnTaskQueue());
 
   RefPtr<NesteggPacketHolder> holder(NextPacket(AUDIO));
-  if (!holder) {
+  if (MOZ_UNLIKELY(!holder)) {
     return false;
   }
 
@@ -589,7 +589,7 @@ bool WebMReader::FilterPacketByTime(int64_t aEndTime, WebMPacketQueue& aOutput)
   // than aEndTime.
   while (true) {
     RefPtr<NesteggPacketHolder> holder(NextPacket(VIDEO));
-    if (!holder) {
+    if (MOZ_UNLIKELY(!holder)) {
       break;
     }
     int64_t tstamp = holder->Timestamp();
@@ -622,7 +622,7 @@ int64_t WebMReader::GetNextKeyframeTime(int64_t aTimeThreshold)
   int64_t keyframeTime = -1;
   while (!foundKeyframe) {
     RefPtr<NesteggPacketHolder> holder(NextPacket(VIDEO));
-    if (!holder) {
+    if (MOZ_UNLIKELY(!holder)) {
       break;
     }
 

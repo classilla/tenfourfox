@@ -54,7 +54,7 @@ js::RegExpAlloc(ExclusiveContext* cx, HandleObject proto /* = nullptr */)
 
     regexp->initPrivate(nullptr);
 
-    if (!EmptyShape::ensureInitialCustomShape<RegExpObject>(cx, regexp))
+    if (MOZ_UNLIKELY(!EmptyShape::ensureInitialCustomShape<RegExpObject>(cx, regexp)))
         return nullptr;
 
     MOZ_ASSERT(regexp->lookupPure(cx->names().lastIndex)->slot() ==
@@ -70,7 +70,7 @@ MatchPairs::initArrayFrom(MatchPairs& copyFrom)
 {
     MOZ_ASSERT(copyFrom.pairCount() > 0);
 
-    if (!allocOrExpandArray(copyFrom.pairCount()))
+    if (MOZ_UNLIKELY(!allocOrExpandArray(copyFrom.pairCount())))
         return false;
 
     PodCopy(pairs_, copyFrom.pairs_, pairCount_);
@@ -90,7 +90,7 @@ ScopedMatchPairs::allocOrExpandArray(size_t pairCount)
 
     MOZ_ASSERT(!pairs_);
     pairs_ = (MatchPair*)lifoScope_.alloc().alloc(sizeof(MatchPair) * pairCount);
-    if (!pairs_)
+    if (MOZ_UNLIKELY(!pairs_))
         return false;
 
     pairCount_ = pairCount;
@@ -224,7 +224,7 @@ RegExpObject::createNoStatics(ExclusiveContext* cx, HandleAtom source, RegExpFla
         return nullptr;
 
     Rooted<RegExpObject*> regexp(cx, RegExpAlloc(cx));
-    if (!regexp)
+    if (MOZ_UNLIKELY(!regexp))
         return nullptr;
 
     regexp->initAndZeroLastIndex(source, flags, cx);
@@ -341,7 +341,7 @@ SetupBuffer(StringBuffer& sb, const CharT* oldChars, size_t oldLen, const CharT*
     if (mozilla::IsSame<CharT, char16_t>::value && !sb.ensureTwoByteChars())
         return false;
 
-    if (!sb.reserve(oldLen + 1))
+    if (MOZ_UNLIKELY(!sb.reserve(oldLen + 1)))
         return false;
 
     sb.infallibleAppend(oldChars, size_t(it - oldChars));
@@ -837,10 +837,10 @@ RegExpCompartment::get(JSContext* cx, JSAtom* source, RegExpFlag flags, RegExpGu
     }
 
     ScopedJSDeletePtr<RegExpShared> shared(cx->new_<RegExpShared>(source, flags));
-    if (!shared)
+    if (MOZ_UNLIKELY(!shared))
         return false;
 
-    if (!set_.add(p, shared)) {
+    if (MOZ_UNLIKELY(!set_.add(p, shared))) {
         ReportOutOfMemory(cx);
         return false;
     }
@@ -885,18 +885,18 @@ js::CloneRegExpObject(JSContext* cx, JSObject* obj_)
     // in the tenured heap to simplify embedding them in JIT code.
     RootedObjectGroup group(cx, regex->group());
     Rooted<RegExpObject*> clone(cx, NewObjectWithGroup<RegExpObject>(cx, group, TenuredObject));
-    if (!clone)
+    if (MOZ_UNLIKELY(!clone))
         return nullptr;
     clone->initPrivate(nullptr);
 
-    if (!EmptyShape::ensureInitialCustomShape<RegExpObject>(cx, clone))
+    if (MOZ_UNLIKELY(!EmptyShape::ensureInitialCustomShape<RegExpObject>(cx, clone)))
         return nullptr;
 
     Rooted<JSAtom*> source(cx, regex->getSource());
 
     // Check that the RegExpShared for |regex| is okay to reuse in the clone.
     RegExpStatics* currentStatics = regex->getProto()->global().getRegExpStatics(cx);
-    if (!currentStatics)
+    if (MOZ_UNLIKELY(!currentStatics))
         return nullptr;
 
     RegExpFlag origFlags = regex->getFlags();
@@ -969,7 +969,7 @@ bool
 js::ParseRegExpFlags(JSContext* cx, JSString* flagStr, RegExpFlag* flagsOut)
 {
     JSLinearString* linear = flagStr->ensureLinear(cx);
-    if (!linear)
+    if (MOZ_UNLIKELY(!linear))
         return false;
 
     size_t len = linear->length();
