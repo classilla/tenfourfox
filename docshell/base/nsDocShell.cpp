@@ -6630,9 +6630,17 @@ nsDocShell::ForceRefreshURI(nsIURI* aURI, int32_t aDelay, bool aMetaRefresh, nsI
    */
   loadInfo->SetReferrer(mCurrentURI);
 
-  /* Don't ever "guess" on which owner to use to avoid picking
-   * the current owner.
-   */
+  // Set the triggering pricipal to aPrincipal if available, or current
+  // document's principal otherwise.
+  nsCOMPtr<nsIPrincipal> principal = aPrincipal;
+  if (!principal) {
+    nsCOMPtr<nsIDocument> doc = GetDocument();
+    if (MOZ_UNLIKELY(!doc)) {
+      return NS_ERROR_FAILURE;
+    }
+    principal = doc->NodePrincipal();
+  }
+  loadInfo->SetOwner(principal); // equivalent for SetTriggeringPrincipal
   loadInfo->SetOwnerIsExplicit(true);
 
   /* Check if this META refresh causes a redirection
@@ -6658,13 +6666,6 @@ nsDocShell::ForceRefreshURI(nsIURI* aURI, int32_t aDelay, bool aMetaRefresh, nsI
     }
   } else {
     loadInfo->SetLoadType(nsIDocShellLoadInfo::loadRefresh);
-  }
-
-  // If the principal is null, the refresh will have a triggeringPrincipal
-  // derived from the referrer URI, or will be set to the system principal
-  // if there is no refererrer. See LoadURI()
-  if (aPrincipal) {
-    loadInfo->SetOwner(aPrincipal); // as called prior to bug 1286472
   }
 
   /*
