@@ -1824,6 +1824,12 @@ jit::ApplyTypeInformation(MIRGenerator* mir, MIRGraph& graph)
 bool
 jit::MakeMRegExpHoistable(MIRGraph& graph)
 {
+    // If we are compiling try blocks, regular expressions may be observable
+    // from catch blocks (which Ion does not compile). For now just disable the
+    // pass in this case.
+    if (graph.hasTryBlock())
+        return true;
+
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
         for (MDefinitionIterator iter(*block); iter; iter++) {
             if (!iter->isRegExp())

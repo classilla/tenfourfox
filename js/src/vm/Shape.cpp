@@ -1124,6 +1124,10 @@ JSObject::setFlags(ExclusiveContext* cx, BaseShape::Flag flags, GenerateShape ge
 
     RootedObject self(cx, this);
 
+    Shape* existingShape = self->ensureShape(cx);
+    if (!existingShape)
+        return false;
+
     if (isNative() && as<NativeObject>().inDictionaryMode()) {
         if (generateShape == GENERATE_SHAPE && !as<NativeObject>().generateOwnShape(cx))
             return false;
@@ -1136,10 +1140,6 @@ JSObject::setFlags(ExclusiveContext* cx, BaseShape::Flag flags, GenerateShape ge
         self->as<NativeObject>().lastProperty()->base()->adoptUnowned(nbase);
         return true;
     }
-
-    Shape* existingShape = self->ensureShape(cx);
-    if (!existingShape)
-        return false;
 
     Shape* newShape = Shape::setObjectFlags(cx, flags, self->getTaggedProto(), existingShape);
     if (!newShape)
