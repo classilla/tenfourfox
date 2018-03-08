@@ -705,6 +705,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 
                 // blocking zdbb.net seems to be problematic
                 // https://github.com/AdguardTeam/AdguardFilters/issues/1278
+                // this may also be true for adziff.com
 
                 BLOK("c.amazon-adsystem.com") ||
 
@@ -793,6 +794,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdn.segment.com") ||
                 
                 BLOK("cdn-gl.imrworldwide.com") ||
+                BLOK("secure-us.imrworldwide.com") ||
                 BLOK("secure-dcr.imrworldwide.com") ||
                 
                 BLOK("labs-cdn.revcontent.com") ||
@@ -997,6 +999,14 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("s.spoutable.com") ||
                 BLOK("cdn.spoutable.com") ||
+
+                BLOK("ads.pubmatic.com") ||
+
+                BLOK("track.netshelter.net") ||
+
+                BLOK("t.neodatagroup.com") ||
+
+                BLOK("ads.servebom.com") ||
                     0) {
 #undef BLOK
                 // Yup.
