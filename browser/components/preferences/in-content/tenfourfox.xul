@@ -18,6 +18,9 @@
   <preference id="tenfourfox.ua.template"
               name="tenfourfox.ua.template"
               type="string"/>
+  <preference id="tenfourfox.adblock.enabled"
+              name="tenfourfox.adblock.enabled"
+              type="bool"/>
 
 </preferences>
 
@@ -68,4 +71,13 @@
           </menupopup>
       </menulist>
   </hbox>
+</groupbox>
+
+<groupbox id="adBlockGroup" data-category="paneTenFourFox" hidden="true">
+  <caption><label>&TFFadBlock.title;</label></caption>
+  <vbox>
+      <checkbox id="tenFourFoxAdBlockCheckbox"
+                label="&TFFadBlock.prompt;"
+                preference="tenfourfox.adblock.enabled"/>
+  </vbox>
 </groupbox>

@@ -5137,4 +5137,4 @@ pref("toolkit.pageThumbs.minWidth", 0);
 pref("toolkit.pageThumbs.minHeight", 0);
 
 pref("tenfourfox.adblock.enabled", false);
-pref("tenfourfox.adblock.logging.enabled", true);
+pref("tenfourfox.adblock.logging.enabled", false);
