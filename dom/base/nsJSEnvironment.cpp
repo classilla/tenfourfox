@@ -93,16 +93,16 @@ const size_t gStackSize = 8192;
 
 // The amount of time we wait from the first request to GC to actually
 // doing the first GC.
-#define NS_FIRST_GC_DELAY           10000 // ms
+#define NS_FIRST_GC_DELAY           30000 // ms
 
-#define NS_FULL_GC_DELAY            60000 // ms
+#define NS_FULL_GC_DELAY            100000 // ms
 
 // The default amount of time to wait from the user being idle to starting a
 // shrinking GC.
 #define NS_DEAULT_INACTIVE_GC_DELAY 300000 // ms
 
 // Maximum amount of time that should elapse between incremental GC slices
-#define NS_INTERSLICE_GC_DELAY      100 // ms
+#define NS_INTERSLICE_GC_DELAY      1000 // ms
 
 // If we haven't painted in 100ms, we allow for a longer GC budget
 #define NS_INTERSLICE_GC_BUDGET     40 // ms
@@ -111,13 +111,13 @@ const size_t gStackSize = 8192;
 // and doing the actual CC.
 #define NS_CC_DELAY                 6000 // ms
 
-#define NS_CC_SKIPPABLE_DELAY       250 // ms
+#define NS_CC_SKIPPABLE_DELAY       2500 // ms
 
 // Maximum amount of time that should elapse between incremental CC slices
-static const int64_t kICCIntersliceDelay = 32; // ms
+static const int64_t kICCIntersliceDelay = 1000; // ms
 
 // Time budget for an incremental CC slice
-static const int64_t kICCSliceBudget = 5; // ms
+static const int64_t kICCSliceBudget = 100; // ms
 
 // Maximum total duration for an ICC
 static const uint32_t kMaxICCDuration = 2000; // ms
@@ -125,7 +125,7 @@ static const uint32_t kMaxICCDuration = 2000; // ms
 // Force a CC after this long if there's more than NS_CC_FORCED_PURPLE_LIMIT
 // objects in the purple buffer.
 #define NS_CC_FORCED                (2 * 60 * PR_USEC_PER_SEC) // 2 min
-#define NS_CC_FORCED_PURPLE_LIMIT   10
+#define NS_CC_FORCED_PURPLE_LIMIT   20
 
 // Don't allow an incremental GC to lock out the CC for too long.
 #define NS_MAX_CC_LOCKEDOUT_TIME    (30 * PR_USEC_PER_SEC) // 30 seconds
