@@ -705,6 +705,9 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
       /* } */
 #endif
     }
+    // Moving the below here so that we can keep partial work causes RTL
+    // to get munged. It seems we really do have to iterate through all the
+    // frames again from the beginning if any are RTL.
     if (!bpd.mRequiresBidi) {
       return NS_OK;
     }
