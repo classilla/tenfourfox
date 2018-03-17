@@ -707,6 +707,9 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 // https://github.com/AdguardTeam/AdguardFilters/issues/1278
                 // this may also be true for adziff.com
 
+                // don't block kxcdn
+                // https://github.com/EFForg/privacybadger/issues/1381
+
                 BLOK("c.amazon-adsystem.com") ||
 
                 BLOK("google-analytics.com") ||
@@ -802,6 +805,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdn.revcontent.com") ||
                 
                 BLOK("cas.criteo.com") ||
+                BLOK("rtax.criteo.com") ||
                 BLOK("static.criteo.net") ||
                 
                 BLOK("jsc.idealmedia.com") ||
@@ -1007,6 +1011,12 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("t.neodatagroup.com") ||
 
                 BLOK("ads.servebom.com") ||
+
+                BLOK("a.mailmunch.co") ||
+
+                BLOK("ads.adthrive.com") ||
+
+                BLOK("js.agkn.com") ||
                     0) {
 #undef BLOK
                 // Yup.
