@@ -60,6 +60,13 @@ interface nsIDatePicker : nsISupports
   attribute AString maxDate;
 
  /**
+  * The selected date.
+  *
+  * @return Returns the date currently selected.
+  */
+  readonly attribute AString selectedDate;
+
+ /**
   * Show date dialog. The dialog is displayed modally.
   *
   * @return returnOK if the user selects OK, returnCancel if the user selects cancel
