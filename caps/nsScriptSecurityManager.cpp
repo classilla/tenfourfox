@@ -915,6 +915,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("se.monetate.net") ||
                 
                 BLOK("ad.crwdcntrl.net") ||
+                BLOK("bcp.crwdcntrl.net") ||
                 BLOK("tags.crwdcntrl.net") ||
                 
                 BLOK("cdn.nsstatic.net") ||
@@ -930,6 +931,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("stats.cloudwp.io") ||
 
                 BLOK("ap.lijit.com") ||
+                BLOK("ce.lijit.com") ||
 
                 BLOK("tlx.3lift.com") ||
 

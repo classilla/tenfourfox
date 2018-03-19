@@ -1176,10 +1176,13 @@ GetStatesForPseudoClass(const nsAString& aStatePseudo)
 
   nsCOMPtr<nsIAtom> atom = do_GetAtom(aStatePseudo);
 
-  // Ignore :moz-any-link so we don't give the element simultaneous
+  // Ignore :any-link so we don't give the element simultaneous
   // visited and unvisited style state
   if (nsCSSPseudoClasses::GetPseudoType(atom) ==
-      nsCSSPseudoClasses::ePseudoClass_mozAnyLink) {
+      nsCSSPseudoClasses::ePseudoClass_mozAnyLink ||
+// XXX: this could be cleaned up. do it once it's building
+      nsCSSPseudoClasses::GetPseudoType(atom) ==
+      nsCSSPseudoClasses::ePseudoClass_anyLink) {
     return EventStates();
   }
   // Our array above is long enough that indexing into it with
