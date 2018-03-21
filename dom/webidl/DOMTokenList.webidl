@@ -22,4 +22,5 @@ interface DOMTokenList {
   [Throws]
   boolean toggle(DOMString token, optional boolean force);
   stringifier DOMString ();
+  iterable<DOMString?>;
 };
