@@ -25,11 +25,11 @@
 class ContentUnbinder;
 class nsContentList;
 class nsDOMAttributeMap;
-class nsDOMTokenList;
 class nsIControllers;
 class nsICSSDeclaration;
 class nsIDocument;
 class nsDOMStringMap;
+class nsDOMTokenList;
 class nsIURI;
 
 namespace mozilla {

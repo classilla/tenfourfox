@@ -10,7 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "nsGenericHTMLFrameElement.h"
 #include "nsIDOMHTMLIFrameElement.h"
-#include "nsDOMSettableTokenList.h"
+#include "nsDOMTokenList.h"
 
 namespace mozilla {
 namespace dom {
@@ -84,9 +84,9 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::name, aName, aError);
   }
-  nsDOMSettableTokenList* Sandbox()
+  nsDOMTokenList* Sandbox()
   {
-    return GetTokenList(nsGkAtoms::sandbox);
+    return GetTokenList(nsGkAtoms::sandbox, sSupportedSandboxTokens);
   }
   bool AllowFullscreen() const
   {
@@ -202,6 +202,8 @@ protected:
 private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
                                     nsRuleData* aData);
+
+  static const DOMTokenListSupportedToken sSupportedSandboxTokens[];
 };
 
 } // namespace dom
