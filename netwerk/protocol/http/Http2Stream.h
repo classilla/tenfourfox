@@ -47,6 +47,7 @@ public:
 
   uint32_t StreamID() { return mStreamID; }
   Http2PushedStream *PushSource() { return mPushSource; }
+  void ClearPushSource();
 
   stateType HTTPState() { return mState; }
   void SetHTTPState(stateType val) { mState = val; }

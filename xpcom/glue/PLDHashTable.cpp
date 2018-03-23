@@ -12,6 +12,7 @@
 #include "mozilla/HashFunctions.h"
 #include "mozilla/MathAlgorithms.h"
 #include "nsAlgorithm.h"
+#include "mozilla/HashFunctions.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/ChaosMode.h"
@@ -71,7 +72,7 @@ PLDHashTable::HashStringKey(PLDHashTable* aTable, const void* aKey)
 /* static */ PLDHashNumber
 PLDHashTable::HashVoidPtrKeyStub(PLDHashTable* aTable, const void* aKey)
 {
-  return (PLDHashNumber)(ptrdiff_t)aKey >> 2;
+  return mozilla::HashGeneric(aKey);
 }
 
 /* static */ bool
@@ -256,15 +257,38 @@ PLDHashTable::Hash1(PLDHashNumber aHash0)
   return aHash0 >> mHashShift;
 }
 
-// Double hashing needs the second hash code to be relatively prime to table
-// size, so we simply make hash2 odd.
 void
-PLDHashTable::Hash2(PLDHashNumber aHash,
+PLDHashTable::Hash2(PLDHashNumber aHash0,
                     uint32_t& aHash2Out, uint32_t& aSizeMaskOut)
 {
   uint32_t sizeLog2 = kHashBits - mHashShift;
-  aHash2Out = ((aHash << sizeLog2) >> mHashShift) | 1;
-  aSizeMaskOut = (PLDHashNumber(1) << sizeLog2) - 1;
+  uint32_t sizeMask = (PLDHashNumber(1) << sizeLog2) - 1;
+  aSizeMaskOut = sizeMask;
+
+  // The incoming aHash0 always has the low bit unset (since we leave it
+  // free for the collision flag), and should have reasonably random
+  // data in the other 31 bits.  We used the high bits of aHash0 for
+  // Hash1, so we use the low bits here.  If the table size is large,
+  // the bits we use may overlap, but that's still more random than
+  // filling with 0s.
+  //
+  // Since the result of Hash2 controls how far we jump around the table
+  // to build a chain after starting at a location determined by Hash1,
+  // we'd like to keep it small, to improve cache behavior.
+  // Keep the jumps from the second hash small, to improve cache behavior.
+  const uint32_t kHash2MaskMaxBits = 6;
+  uint32_t hash2Mask;
+  if (sizeLog2 >= kHash2MaskMaxBits) {
+    hash2Mask = (PLDHashNumber(1) << kHash2MaskMaxBits) - 1;
+  } else {
+    hash2Mask = sizeMask;
+  }
+  // Double hashing needs the second hash code to be relatively prime to table
+  // size, so we simply make hash2 odd.
+  //
+  // This also conveniently covers up the fact that we have the low bit
+  // unset since aHash0 has the low bit unset.
+  aHash2Out = (aHash0 & hash2Mask) | 1;
 }
 
 // Reserve mKeyHash 0 for free entries and 1 for removed-entry sentinels. Note

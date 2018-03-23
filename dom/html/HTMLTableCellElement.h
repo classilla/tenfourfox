@@ -47,7 +47,7 @@ public:
   {
     SetUnsignedIntAttr(nsGkAtoms::rowspan, aRowSpan, aError);
   }
-  //already_AddRefed<nsDOMSettableTokenList> Headers() const;
+  //already_AddRefed<nsDOMTokenList> Headers() const;
   void GetHeaders(DOMString& aHeaders)
   {
     GetHTMLAttr(nsGkAtoms::headers, aHeaders);

@@ -345,22 +345,22 @@ nsTextFragment::Append(const char16_t* aBuffer, uint32_t aLength, bool aUpdateBi
 
   // Should we optimize for aData.Length() == 0?
 
-  CheckedUint32 length = mState.mLength;
-  length += aLength;
-
-  if (!length.isValid()) {
-    return false;
+  // FYI: Don't use CheckedInt in this method since here is very hot path
+  //      in some performance tests.
+  if (MOZ_UNLIKELY(NS_MAX_TEXT_FRAGMENT_LENGTH - mState.mLength < aLength)) {
+    return false;  // Would be overflown if we'd keep handling.
   }
 
   if (mState.mIs2b) {
-    length *= sizeof(char16_t);
-    if (!length.isValid()) {
-      return false;
+    size_t size = mState.mLength + aLength;
+    if (MOZ_UNLIKELY(SIZE_MAX / sizeof(char16_t) < size)) {
+      return false;  // Would be overflown if we'd keep handling.
     }
+    size *= sizeof(char16_t);
 
     // Already a 2-byte string so the result will be too
-    char16_t* buff = static_cast<char16_t*>(realloc(m2b, length.value()));
-    if (!buff) {
+    char16_t* buff = static_cast<char16_t*>(realloc(m2b, size));
+    if (MOZ_UNLIKELY(!buff)) {
       return false;
     }
 
@@ -379,15 +379,16 @@ nsTextFragment::Append(const char16_t* aBuffer, uint32_t aLength, bool aUpdateBi
   int32_t first16bit = FirstNon8Bit(aBuffer, aBuffer + aLength);
 
   if (first16bit != -1) { // aBuffer contains no non-8bit character
-    length *= sizeof(char16_t);
-    if (!length.isValid()) {
-      return false;
+    size_t size = mState.mLength + aLength;
+    if (MOZ_UNLIKELY((SIZE_MAX / sizeof(char16_t)) < size)) {
+      return false;  // Would be overflown if we'd keep handling.
     }
+    size *= sizeof(char16_t);
 
     // The old data was 1-byte, but the new is not so we have to expand it
     // all to 2-byte
-    char16_t* buff = static_cast<char16_t*>(malloc(length.value()));
-    if (!buff) {
+    char16_t* buff = static_cast<char16_t*>(malloc(size));
+    if (MOZ_UNLIKELY(!buff)) {
       return false;
     }
 
@@ -414,16 +415,18 @@ nsTextFragment::Append(const char16_t* aBuffer, uint32_t aLength, bool aUpdateBi
   }
 
   // The new and the old data is all 1-byte
+  size_t size = mState.mLength + aLength;
+  MOZ_ASSERT(sizeof(char) == 1);
   char* buff;
   if (mState.mInHeap) {
-    buff = static_cast<char*>(realloc(const_cast<char*>(m1b), length.value()));
-    if (!buff) {
+    buff = static_cast<char*>(realloc(const_cast<char*>(m1b), size));
+    if (MOZ_UNLIKELY(!buff)) {
       return false;
     }
   }
   else {
-    buff = static_cast<char*>(malloc(length.value()));
-    if (!buff) {
+    buff = static_cast<char*>(malloc(size));
+    if (MOZ_UNLIKELY(!buff)) {
       return false;
     }
 
@@ -461,21 +464,8 @@ void
 nsTextFragment::UpdateBidiFlag(const char16_t* aBuffer, uint32_t aLength)
 {
   if (mState.mIs2b && !mState.mIsBidi) {
-    const char16_t* cp = aBuffer;
-    const char16_t* end = cp + aLength;
-    while (cp < end) {
-      char16_t ch1 = *cp++;
-      uint32_t utf32Char = ch1;
-      if (NS_IS_HIGH_SURROGATE(ch1) &&
-          cp < end &&
-          NS_IS_LOW_SURROGATE(*cp)) {
-        char16_t ch2 = *cp++;
-        utf32Char = SURROGATE_TO_UCS4(ch1, ch2);
-      }
-      if (UTF32_CHAR_IS_BIDI(utf32Char) || IsBidiControl(utf32Char)) {
-        mState.mIsBidi = true;
-        break;
-      }
+    if (HasRTLChars(aBuffer, aLength)) {
+      mState.mIsBidi = true;
     }
   }
 }

@@ -705,7 +705,17 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 
                 // blocking zdbb.net seems to be problematic
                 // https://github.com/AdguardTeam/AdguardFilters/issues/1278
+                // this may also be true for adziff.com
 
+                // don't block kxcdn
+                // https://github.com/EFForg/privacybadger/issues/1381
+
+                // miners
+                BLOK("coinhive.com") ||
+                BLOK("www.freecontent.stream") ||
+                BLOK("www.freecontent.stream.") ||
+
+                // other obnoxious things
                 BLOK("c.amazon-adsystem.com") ||
 
                 BLOK("google-analytics.com") ||
@@ -793,6 +803,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdn.segment.com") ||
                 
                 BLOK("cdn-gl.imrworldwide.com") ||
+                BLOK("secure-us.imrworldwide.com") ||
                 BLOK("secure-dcr.imrworldwide.com") ||
                 
                 BLOK("labs-cdn.revcontent.com") ||
@@ -800,6 +811,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdn.revcontent.com") ||
                 
                 BLOK("cas.criteo.com") ||
+                BLOK("rtax.criteo.com") ||
                 BLOK("static.criteo.net") ||
                 
                 BLOK("jsc.idealmedia.com") ||
@@ -848,6 +860,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 
                 BLOK("www.npttech.com") ||
                 
+                BLOK("fw.adsafeprotected.com") ||
                 BLOK("cdn.adsafeprotected.com") ||
                 BLOK("pixel.adsafeprotected.com") ||
                 BLOK("static.adsafeprotected.com") ||
@@ -902,6 +915,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("se.monetate.net") ||
                 
                 BLOK("ad.crwdcntrl.net") ||
+                BLOK("bcp.crwdcntrl.net") ||
                 BLOK("tags.crwdcntrl.net") ||
                 
                 BLOK("cdn.nsstatic.net") ||
@@ -917,6 +931,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("stats.cloudwp.io") ||
 
                 BLOK("ap.lijit.com") ||
+                BLOK("ce.lijit.com") ||
 
                 BLOK("tlx.3lift.com") ||
 
@@ -982,13 +997,11 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdata.carambo.la") ||
                 BLOK("route.carambo.la") ||
 
+                BLOK("us-u.openx.net") ||
+                BLOK("uk-ads.openx.net") ||
                 BLOK("us-ads.openx.net") ||
 
                 BLOK("s-static.innovid.com") ||
-
-                // This is controversial, but I'm pretty sure we
-                // don't want this.
-                BLOK("coinhive.com") ||
 
                 BLOK("ustatik.com") ||
                 BLOK("cdn.ustatik.com") ||
@@ -997,6 +1010,43 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("s.spoutable.com") ||
                 BLOK("cdn.spoutable.com") ||
+
+                BLOK("ads.pubmatic.com") ||
+
+                BLOK("track.netshelter.net") ||
+
+                BLOK("t.neodatagroup.com") ||
+
+                BLOK("ads.servebom.com") ||
+
+                BLOK("a.mailmunch.co") ||
+
+                BLOK("ads.adthrive.com") ||
+
+                BLOK("js.agkn.com") ||
+
+                BLOK("htl.bid") ||
+
+                BLOK("rtb.districtm.io") ||
+                BLOK("prebid.districtm.ca") ||
+
+                BLOK("speednetwork14.adk2.co") ||
+                BLOK("speednetwork14.adk2x.com") ||
+
+                BLOK("deloton.com") ||
+
+                BLOK("clickiocdn.com") ||
+                BLOK("clickioadve.com") ||
+
+                BLOK("cti.w55c.net") ||
+                BLOK("cdn.w55c.net") ||
+
+                BLOK("mobpushup.com") ||
+
+                BLOK("sc.iasds01.com") ||
+
+                BLOK("cdn.optimizely.com") ||
+                BLOK("cdn3.optimizely.com") ||
                     0) {
 #undef BLOK
                 // Yup.

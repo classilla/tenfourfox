@@ -176,7 +176,14 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsEditor)
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mEditorObservers)
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocStateListeners)
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mEventTarget)
- NS_IMPL_CYCLE_COLLECTION_UNLINK(mEventListener)
+
+ if (tmp->mEventListener) {
+   nsEditorEventListener* listener =
+    reinterpret_cast<nsEditorEventListener*>(tmp->mEventListener.get());
+   listener->Disconnect();
+   tmp->mEventListener = nullptr;
+ }
+
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsEditor)
