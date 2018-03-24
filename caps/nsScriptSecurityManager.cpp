@@ -757,6 +757,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("ad.doubleclick.net") ||
                 BLOK("static.doubleclick.net") ||
                 BLOK("stats.g.doubleclick.net") ||
+                BLOK("pubads.g.doubleclick.net") ||
                 BLOK("googleads.g.doubleclick.net") ||
                 BLOK("securepubads.g.doubleclick.net") ||
                 
@@ -897,6 +898,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdn.mediavoice.com") ||
                 BLOK("plugin.mediavoice.com") ||
                 
+                BLOK("api-us-east.zqtk.net") ||
                 BLOK("segment-data.zqtk.net") ||
                 
                 BLOK("d.turn.com") ||
@@ -1049,6 +1051,13 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("cdn.optimizely.com") ||
                 BLOK("cdn3.optimizely.com") ||
+
+                BLOK("p.d.emn0.com") ||
+                BLOK("p.w.emn0.com") ||
+
+                BLOK("api.b2c.com") ||
+
+                BLOK("bounceexchange.com") ||
                     0) {
 #undef BLOK
                 // Yup.
