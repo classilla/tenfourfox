@@ -222,21 +222,21 @@ gfxPlatformMac::MakePlatformFont(const nsAString& aFontName,
 
 // Automates a whole buncha boilerplate.
 // Since HTTPS is becoming more common, check that first.
-#define HTTP_OR_HTTPS_SUBDIR(x) \
+#define HTTP_OR_HTTPS_SUBDIR(x, y) \
     { \
-           NS_NAMED_LITERAL_CSTRING(https_, "https://" x); \
-           spec.Left(loc, https_.Length()); \
-           if (loc.Equals(https_)) { \
+      if (hostname.Equals(x)) { \
+           NS_NAMED_LITERAL_CSTRING(https_, "https://" x y); \
+           if (StringBeginsWith(spec, https_)) { \
                failed = true; \
                goto halt_font; \
            } else { \
-               NS_NAMED_LITERAL_CSTRING(http_, "http://" x); \
-               spec.Left(loc, http_.Length()); \
-               if (loc.Equals(http_)) { \
+               NS_NAMED_LITERAL_CSTRING(http_, "http://" x y); \
+               if (StringBeginsWith(spec, http_)) { \
                    failed = true; \
                    goto halt_font; \
                } \
            } \
+      } \
     }
 
 // TenFourFox issue 477: deal with changing infix version URLs, such as latimes.com
@@ -270,27 +270,30 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 #if DEBUG
                 fprintf(stderr, "Font blacklist checking: %s\n", spec.get());
 #endif
-                // Do left-most URL checks first.
-
-                HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com/ea/notosansjapanese/v6/NotoSansJP-");
-
-                HTTP_OR_HTTPS_SUBDIR("www.icloud.com/fonts/SFNSText-");
-
-                HTTP_OR_HTTPS_SUBDIR("typeface.nyt.com/fonts/nyt-cheltenham-");
-                HTTP_OR_HTTPS_SUBDIR("typeface.nytimes.com/fonts/nyt-cheltenham-");
-
-                // Don't cut to SF-Pro-; there are some dingbat fonts that DO work.
-                HTTP_OR_HTTPS_SUBDIR("www.apple.com/wss/fonts/SF-Pro-Text/v1/");
-                HTTP_OR_HTTPS_SUBDIR("www.apple.com/wss/fonts/SF-Pro-Display/v1/");
-
-                HTTP_OR_HTTPS_SUBDIR("lib.intuitcdn.net/fonts/AvenirNext/1.0/");
-
-                // Check hostname and subpatterns (TenFourFox issue 477).
+                // Get the hostname to eliminate creating unnecessary test strings.
                 nsAutoCString hostname;
                 if (MOZ_LIKELY(NS_SUCCEEDED(aFontURI->GetHost(hostname)))) {
                     ToLowerCase(hostname);
 
+                    // Start with leftmost, using hostname as a screen (TenFourFox issue 492).
+
+                    HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/ea/notosansjapanese/v6/NotoSansJP-");
+
+                    HTTP_OR_HTTPS_SUBDIR("www.icloud.com", "/fonts/SFNSText-");
+
+                    HTTP_OR_HTTPS_SUBDIR("typeface.nyt.com", "/fonts/nyt-cheltenham-");
+                    HTTP_OR_HTTPS_SUBDIR("typeface.nytimes.com", "/fonts/nyt-cheltenham-");
+
+                    // Don't cut to SF-Pro-; there are some dingbat fonts that DO work.
+                    HTTP_OR_HTTPS_SUBDIR("www.apple.com", "/wss/fonts/SF-Pro-Text/v1/");
+                    HTTP_OR_HTTPS_SUBDIR("www.apple.com", "/wss/fonts/SF-Pro-Display/v1/");
+
+                    HTTP_OR_HTTPS_SUBDIR("lib.intuitcdn.net", "/fonts/AvenirNext/1.0/");
+
+                    // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");
+                    HOST_AND_KEY("www.nerdwallet.com", "Gotham-Book--critical");
+                    HOST_AND_KEY("www.nerdwallet.com", "Gotham-Bold--critical");
                 } else
                     failed = true; // Didn't get hostname, should have.
             } // Must not be HTTP(S). We could catch others below.

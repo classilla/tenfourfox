@@ -714,6 +714,8 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("coinhive.com") ||
                 BLOK("www.freecontent.stream") ||
                 BLOK("www.freecontent.stream.") ||
+                BLOK("allfontshere.press") || // caused crashes on VCF
+                BLOK("www.allfontshere.press") ||
 
                 // other obnoxious things
                 BLOK("c.amazon-adsystem.com") ||

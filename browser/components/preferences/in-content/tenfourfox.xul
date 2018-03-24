@@ -63,7 +63,7 @@
                 preference="tenfourfox.ua.template">
           <menupopup>
               <menuitem label="&TFFuserAgent.default;" value=""/>
-              <menuitem label="Firefox 52ESR (Intel)" value="fx"/>
+              <menuitem label="Firefox 60ESR (Intel)" value="fx"/>
               <menuitem label="Classilla 9.3.x" value="classilla"/>
               <menuitem label="Internet Explorer 8" value="ie8"/>
               <menuitem label="Android Chrome" value="android"/>
