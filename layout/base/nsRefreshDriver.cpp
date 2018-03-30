@@ -935,7 +935,7 @@ nsRefreshDriver::GetThrottledTimerInterval()
   if (rate <= 0) {
     rate = DEFAULT_THROTTLED_FRAME_RATE;
   }
-  return 3000.0 / rate;
+  return 10000.0 / rate;
 }
 
 /* static */ mozilla::TimeDuration
