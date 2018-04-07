@@ -72,7 +72,7 @@ if CONFIG['HAVE_CLOCK_MONOTONIC']:
     OS_LIBS += CONFIG['REALTIME_LIBS']
 
 # we build only on Darwin anyway
-if CONFIG['OS_ARCH'] == 'Darwin' and CONFIG['CPU_TYPE'] == 'ppc':
+if CONFIG['OS_ARCH'] == 'Darwin' and CONFIG['CPU_ARCH'] == 'ppc':
     OS_LIBS += ['-Wl,-stack_size,0x40000000,-stack_addr,0xf0000000']
 
 if CONFIG['GNU_CXX']:
