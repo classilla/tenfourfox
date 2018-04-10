@@ -673,6 +673,9 @@ static const uint32_t EnabledCiphers[] = {
 // Anything outside this list is governed by the usual combination of policy
 // and user preferences.
 static const uint32_t DisabledCiphers[] = {
+  // ALL SHA384 ciphers are disabled per bug 1310061.
+  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+
   TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,
   TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
   TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,

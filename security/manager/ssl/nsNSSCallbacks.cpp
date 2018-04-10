@@ -1080,6 +1080,7 @@ AccumulateCipherSuite(Telemetry::ID probe, const SSLChannelInfo& channelInfo)
     case TLS_ECDHE_ECDSA_WITH_RC4_128_SHA: value = 9; break;
     case TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA: value = 10; break;
     case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256: value = 11; break; // just in case, issue 489
+    case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384: value = 14; break; // just in case, issue 480
     // DHE key exchange
     case TLS_DHE_RSA_WITH_AES_128_CBC_SHA: value = 21; break;
     case TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA: value = 22; break;
