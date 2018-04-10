@@ -48,6 +48,11 @@ using mozilla::gfx::SourceSurface;
 static const uint32_t kIconWidth = 16;
 static const uint32_t kIconHeight = 16;
 
+// The transparent placeholder gets used several places.
+// See TenFourFox issue 484.
+static bool sInitializedPlaceholder = false;
+static NSImage* sPlaceholderIconImage = nil;
+
 typedef NS_STDCALL_FUNCPROTO(nsresult, GetRectSideMethod, nsIDOMRect,
                              GetBottom, (nsIDOMCSSPrimitiveValue**));
 
@@ -296,8 +301,6 @@ nsMenuItemIconX::LoadIcon(nsIURI* aIconURI)
     // position that it will be displayed when the real icon is loaded, and
     // prevents it from jumping around or looking misaligned.
 
-    static bool sInitializedPlaceholder;
-    static NSImage* sPlaceholderIconImage;
     if (!sInitializedPlaceholder) {
       sInitializedPlaceholder = true;
 
@@ -411,7 +414,16 @@ nsMenuItemIconX::OnFrameComplete(imgIRequest* aRequest)
     imageContainer->GetFrame(imgIContainer::FRAME_CURRENT,
                              imgIContainer::FLAG_SYNC_DECODE);
   if (!surface) {
-    [mNativeMenuItem setImage:nil];
+    if (MOZ_UNLIKELY(!sInitializedPlaceholder)) {
+       NS_WARNING("Oddly, the placeholder image was not initialized yet");
+       [mNativeMenuItem setImage:nil];
+    } else {
+       // This can occur with SVG images. In that case, set a dummy icon
+       // so that the menu isn't distorted, but still return failure, since
+       // this is a fallback (TenFourFox issue 484).
+       mImageRegionRect.SetRect(0, 0, 16, 16);
+       [mNativeMenuItem setImage:sPlaceholderIconImage];
+    }
     return NS_ERROR_FAILURE;
   }
 
