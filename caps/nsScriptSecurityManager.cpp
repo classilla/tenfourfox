@@ -1058,6 +1058,18 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("api.b2c.com") ||
 
                 BLOK("bounceexchange.com") ||
+
+                BLOK("bullseye.backbeatmedia.com") ||
+                BLOK("adserver1.backbeatmedia.com") ||
+
+                BLOK("live.sekindo.com") ||
+
+                BLOK("cdn.spotxcdn.com") ||
+
+                BLOK("api.addmee.net") ||
+
+                BLOK("a.intentmedia.net") ||
+                BLOK("a.cdn.intentmedia.net") ||
                     0) {
 #undef BLOK
                 // Yup.

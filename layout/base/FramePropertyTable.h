@@ -123,6 +123,16 @@ public:
    */
   void DeleteAll();
 
+  /**
+   * Check if a property exists (added for TenFourFox issue 493).
+   */
+  bool Has(const nsIFrame* aFrame, const FramePropertyDescriptor* aProperty)
+  {
+    bool foundResult = false;
+    (void)Get(aFrame, aProperty, &foundResult);
+    return foundResult;
+  }
+
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 protected:
@@ -237,6 +247,13 @@ public:
   void Delete(const FramePropertyDescriptor* aProperty)
   {
     mTable->Delete(mFrame, aProperty);
+  }
+  // TenFourFox issue 493
+  bool Has(const FramePropertyDescriptor* aProperty)
+  {
+    bool foundResult;
+    (void)mTable->Get(mFrame, aProperty, &foundResult);
+    return foundResult;
   }
 
 private:

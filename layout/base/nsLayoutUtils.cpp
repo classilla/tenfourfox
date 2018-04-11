@@ -4489,6 +4489,43 @@ GetIntrinsicCoord(const nsStyleCoord& aStyle,
 static int32_t gNoiseIndent = 0;
 #endif
 
+// Return true for form controls whose minimum intrinsic inline-size
+// shrinks to 0 when they have a percentage inline-size (but not
+// percentage max-inline-size).  (Proper replaced elements, whose
+// intrinsic minimium inline-size shrinks to 0 for both percentage
+// inline-size and percentage max-inline-size, are handled elsewhere.)
+inline static bool
+FormControlShrinksForPercentISize(nsIFrame* aFrame)
+{
+  if (!aFrame->IsFrameOfType(nsIFrame::eReplaced)) {
+    // Quick test to reject most frames.
+    return false;
+  }
+
+  nsIAtom* fType = aFrame->GetType();
+  if (fType == nsGkAtoms::meterFrame || fType == nsGkAtoms::progressFrame) {
+    // progress and meter do have this shrinking behavior
+    // FIXME: Maybe these should be nsIFormControlFrame?
+    return true;
+  }
+
+  if (!static_cast<nsIFormControlFrame*>(do_QueryFrame(aFrame))) {
+    // Not a form control.  This includes fieldsets, which do not
+    // shrink.
+    return false;
+  }
+
+  if (fType == nsGkAtoms::gfxButtonControlFrame ||
+      fType == nsGkAtoms::HTMLButtonControlFrame) {
+    // Buttons don't have this shrinking behavior.  (Note that color
+    // inputs do, even though they inherit from button, so we can't use
+    // do_QueryFrame here.)
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * Add aOffsets which describes what to add on outside of the content box
  * aContentSize (controlled by 'box-sizing') and apply min/max properties.
@@ -4565,19 +4602,23 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
   pctTotal += pctOutsideSize;
 
   nscoord size;
-  if (GetAbsoluteCoord(aStyleSize, size) ||
-      GetIntrinsicCoord(aStyleSize, aRenderingContext, aFrame,
-                        PROP_WIDTH, size)) {
+  if (aType == nsLayoutUtils::MIN_ISIZE &&
+      (((aStyleSize.HasPercent() || aStyleMaxSize.HasPercent()) &&
+        aFrame->IsFrameOfType(nsIFrame::eReplacedSizing)) ||
+       (aStyleSize.HasPercent() &&
+        FormControlShrinksForPercentISize(aFrame)))) {
+    // A percentage width or max-width on replaced elements means they
+    // can shrink to 0.
+    // This is also true for percentage widths (but not max-widths) on
+    // text inputs.
+    // Note that if this is max-width, this overrides the fixed-width
+    // rule in the next condition.
+    result = 0; // let |min| handle padding/border/margin
+  } else if (GetAbsoluteCoord(aStyleSize, size) ||
+             GetIntrinsicCoord(aStyleSize, aRenderingContext, aFrame,
+                               PROP_WIDTH, size)) {
     result = nsLayoutUtils::AddPercents(aType, size + coordOutsideSize,
                                         pctOutsideSize);
-  } else if (aType == nsLayoutUtils::MIN_ISIZE &&
-             // The only cases of coord-percent-calc() units that
-             // GetAbsoluteCoord didn't handle are percent and calc()s
-             // containing percent.
-             aStyleSize.IsCoordPercentCalcUnit() &&
-             aFrame->IsFrameOfType(nsIFrame::eReplaced)) {
-    // A percentage width on replaced elements means they can shrink to 0.
-    result = 0; // let |min| handle padding/border/margin
   } else {
     // NOTE: We could really do a lot better for percents and for some
     // cases of calc() containing percent (certainly including any where
@@ -5124,33 +5165,58 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(WritingMode aWM,
   bool isFlexItem = aFrame->IsFlexItem();
   bool isInlineFlexItem = false;
 
+  Maybe<nsStyleCoord> imposedMainSizeStyleCoord;
+
+  // If this is a flex item, and we're measuring its cross size after flexing
+  // to resolve its main size, then we need to use the resolved main size
+  // that the container provides to us *instead of* the main-size coordinate
+  // from our style struct. (Otherwise, we'll be using an irrelevant value in
+  // the aspect-ratio calculations below.)
   if (isFlexItem) {
-    // Flex items use their "flex-basis" property in place of their main-size
-    // property (e.g. "width") for sizing purposes, *unless* they have
-    // "flex-basis:auto", in which case they use their main-size property after
-    // all.
     uint32_t flexDirection =
       aFrame->GetParent()->StylePosition()->mFlexDirection;
     isInlineFlexItem =
       flexDirection == NS_STYLE_FLEX_DIRECTION_ROW ||
       flexDirection == NS_STYLE_FLEX_DIRECTION_ROW_REVERSE;
 
-    // NOTE: The logic here should match the similar chunk for determining
-    // inlineStyleCoord and blockStyleCoord in nsFrame::ComputeSize().
-    const nsStyleCoord* flexBasis = &(stylePos->mFlexBasis);
-    if (flexBasis->GetUnit() != eStyleUnit_Auto) {
+    // If FlexItemMainSizeOverride frame-property is set, then that means the
+    // flex container is imposing a main-size on this flex item for it to use
+    // as its size in the container's main axis.
+    FrameProperties props = aFrame->Properties();
+    bool didImposeMainSize;
+    nscoord imposedMainSize =
+      props.Get(nsIFrame::FlexItemMainSizeOverride(), &didImposeMainSize);
+    if (didImposeMainSize) {
+      imposedMainSizeStyleCoord.emplace(imposedMainSize,
+                                        nsStyleCoord::CoordConstructor);
       if (isInlineFlexItem) {
-        inlineStyleCoord = flexBasis;
+        inlineStyleCoord = imposedMainSizeStyleCoord.ptr();
       } else {
-        // One caveat for vertical flex items: We don't support enumerated
-        // values (e.g. "max-content") for height properties yet. So, if our
-        // computed flex-basis is an enumerated value, we'll just behave as if
-        // it were "auto", which means "use the main-size property after all"
-        // (which is "height", in this case).
-        // NOTE: Once we support intrinsic sizing keywords for "height",
-        // we should remove this check.
-        if (flexBasis->GetUnit() != eStyleUnit_Enumerated) {
-          blockStyleCoord = flexBasis;
+        blockStyleCoord = imposedMainSizeStyleCoord.ptr();
+      }
+
+    } else {
+      // Flex items use their "flex-basis" property in place of their main-size
+      // property (e.g. "width") for sizing purposes, *unless* they have
+      // "flex-basis:auto", in which case they use their main-size property
+      // after all.
+      // NOTE: The logic here should match the similar chunk for determining
+      // inlineStyleCoord and blockStyleCoord in nsFrame::ComputeSize().
+      const nsStyleCoord* flexBasis = &(stylePos->mFlexBasis);
+      if (flexBasis->GetUnit() != eStyleUnit_Auto) {
+        if (isInlineFlexItem) {
+          inlineStyleCoord = flexBasis;
+        } else {
+          // One caveat for vertical flex items: We don't support enumerated
+          // values (e.g. "max-content") for height properties yet. So, if our
+          // computed flex-basis is an enumerated value, we'll just behave as if
+          // it were "auto", which means "use the main-size property after all"
+          // (which is "height", in this case).
+          // NOTE: Once we support intrinsic sizing keywords for "height",
+          // we should remove this check.
+          if (flexBasis->GetUnit() != eStyleUnit_Enumerated) {
+            blockStyleCoord = flexBasis;
+          }
         }
       }
     }

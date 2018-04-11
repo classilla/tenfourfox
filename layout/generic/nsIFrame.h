@@ -893,6 +893,12 @@ public:
 
   NS_DECLARE_FRAME_PROPERTY(LineBaselineOffset, nullptr)
 
+  // Temporary override for a flex item's main-size property (either width
+  // or height), imposed by its flex container.
+  // XXX: We don't have bug 1064843, so use the previous declaration system
+  // (see bug 1030952 part 3 and TenFourFox issue 493).
+  NS_DECLARE_FRAME_PROPERTY(FlexItemMainSizeOverride, nullptr)
+
   NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImage, ReleaseValue<gfxASurface>)
   NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImageDT,
                             ReleaseValue<mozilla::gfx::DrawTarget>)
@@ -2122,6 +2128,11 @@ public:
     // will be excluded during the construction of children. 
     eExcludesIgnorableWhitespace =      1 << 14,
     eSupportsCSSTransforms =            1 << 15,
+
+    // A replaced element that has replaced-element sizing
+    // characteristics (i.e., like images or iframes), as opposed to
+    // inline-block sizing characteristics (like form controls).
+    eReplacedSizing =                   1 << 16,
 
     // These are to allow nsFrame::Init to assert that IsFrameOfType
     // implementations all call the base class method.  They are only
