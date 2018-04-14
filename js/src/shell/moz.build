@@ -31,7 +31,7 @@ LOCAL_INCLUDES += [
 
 OS_LIBS += CONFIG['EDITLINE_LIBS']
 OS_LIBS += CONFIG['MOZ_ZLIB_LIBS']
-if CONFIG['OS_ARCH'] == 'Darwin' and CONFIG['CPU_TYPE'] == 'ppc':
+if CONFIG['OS_ARCH'] == 'Darwin' and CONFIG['CPU_ARCH'] == 'ppc':
     OS_LIBS += ['-Wl,-stack_size,0x10000000', '-framework Carbon']
 
 # Prepare module loader JS code for embedding
