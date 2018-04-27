@@ -1097,6 +1097,15 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdn.digitru.st") ||
 
                 BLOK("collector.cint.com") ||
+
+                BLOK("dpm.demdex.net") ||
+
+                BLOK("www.uciservice.com") ||
+
+                BLOK("f.cdn-net.com") ||
+                BLOK("uk.cdn-net.com") ||
+                BLOK("six.cdn-net.com") ||
+                BLOK("www.cdn-net.com") ||
                     0) {
 #undef BLOK
                 // Yup.
