@@ -270,7 +270,7 @@ AsmJSModule::lookupHeapAccess(void* pc) const
 bool
 AsmJSModule::finish(ExclusiveContext* cx, TokenStream& tokenStream, MacroAssembler& masm)
 {
-#if(0)
+#if !defined(JS_CODEGEN_PPC_OSX)
     MOZ_ASSERT(!isFinished());
 
     uint32_t endBeforeCurly = tokenStream.currentToken().pos.end;
@@ -1755,7 +1755,7 @@ AsmJSModule::heapLength() const
 void
 AsmJSModule::setProfilingEnabled(bool enabled, JSContext* cx)
 {
-#if(0)
+#if !defined(JS_CODEGEN_PPC_OSX)
     MOZ_ASSERT(isDynamicallyLinked());
 
     if (profilingEnabled_ == enabled)
