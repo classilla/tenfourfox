@@ -293,11 +293,12 @@ enum
   kCommandKeyCode     = 0x37,
   kShiftKeyCode       = 0x38,
   kCapsLockKeyCode    = 0x39,
-  kOptionkeyCode      = 0x3A,
+  kOptionKeyCode      = 0x3A,
   kControlKeyCode     = 0x3B,
   kRShiftKeyCode      = 0x3C, // right shift key
   kROptionKeyCode     = 0x3D, // right option key
   kRControlKeyCode    = 0x3E, // right control key
+  kFnKeyCode          = 0x3F, // fn key
   kClearKeyCode       = 0x47,
 
   // function keys
@@ -316,6 +317,11 @@ enum
   kF13KeyCode         = 0x69,
   kF14KeyCode         = 0x6B,
   kF15KeyCode         = 0x71,
+  kF16KeyCode         = 0x6A,
+  kF17KeyCode         = 0x40,
+  kF18KeyCode         = 0x4F,
+  kF19KeyCode         = 0x50,
+  kF20KeyCode         = 0x5A,
   
   kPrintScreenKeyCode = kF13KeyCode,
   kScrollLockKeyCode  = kF14KeyCode,
@@ -345,6 +351,12 @@ enum
   kVK_ANSI_8          = 0x1C,
   kVK_ANSI_9          = 0x19,
   kVK_ANSI_0          = 0x1D,
+  kVK_JIS_Yen         = 0x5D,
+  kVK_JIS_Underscore  = 0x5E,
+  kVK_JIS_KeypadComma = 0x5F,
+  kVK_JIS_Eisu        = 0x66,
+  kVK_JIS_Kana        = 0x68,
+  kVK_PC_ContextMenu  = 0x6E,
 #endif
 
   kKeypadMultiplyKeyCode  = 0x43,
@@ -352,7 +364,7 @@ enum
   kKeypadSubtractKeyCode  = 0x4E,
   kKeypadDecimalKeyCode   = 0x41,
   kKeypadDivideKeyCode    = 0x4B,
-  kKeypadEqualsKeyCode    = 0x51, // no correpsonding gecko key code
+  kKeypadEqualsKeyCode    = 0x51, // no corresponding gecko key code
   kEnterKeyCode           = 0x4C,
   kReturnKeyCode          = 0x24,
   kPowerbookEnterKeyCode  = 0x34, // Enter on Powerbook's keyboard is different
@@ -1512,11 +1524,12 @@ nsresult nsChildView::SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
     case kRCommandKeyCode:
     case kCommandKeyCode:
     case kShiftKeyCode:
-    case kOptionkeyCode:
+    case kOptionKeyCode:
     case kControlKeyCode:
     case kRShiftKeyCode:
     case kROptionKeyCode:
     case kRControlKeyCode:
+    // XXX: kFnKeyCode probably should NOT be here?
       sendFlagsChangedEvent = YES;
   }
   NSEventType eventType = sendFlagsChangedEvent ? NSFlagsChanged : NSKeyDown;
@@ -6218,8 +6231,283 @@ static uint32_t GetGeckoKeyCodeFromChar(char16_t aChar)
     }
 }
 
-// XXX: aKeyEvent isn't actually used
-static uint32_t ConvertMacToGeckoKeyCode(UInt32 keyCode, WidgetKeyboardEvent* aKeyEvent, NSString* characters)
+// Tabular functions for TenFourFox issue 497
+static uint32_t ConvertMacToGeckoKeyLocation(UInt32 keyCode)
+{
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
+
+  uint32_t location = nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD;
+
+  switch (keyCode)
+  {
+    case kCommandKeyCode:
+    case kShiftKeyCode:
+    case kOptionKeyCode:
+    case kControlKeyCode:
+    case kFnKeyCode:
+    case kVK_PC_ContextMenu:
+      location = nsIDOMKeyEvent::DOM_KEY_LOCATION_LEFT;
+      break;
+
+    case kRCommandKeyCode:
+    case kRShiftKeyCode:
+    case kROptionKeyCode:
+    case kRControlKeyCode:
+      location = nsIDOMKeyEvent::DOM_KEY_LOCATION_RIGHT;
+      break;
+
+    case kKeypad0KeyCode:
+    case kKeypad1KeyCode:
+    case kKeypad2KeyCode:
+    case kKeypad3KeyCode:
+    case kKeypad4KeyCode:
+    case kKeypad5KeyCode:
+    case kKeypad6KeyCode:
+    case kKeypad7KeyCode:
+    case kKeypad8KeyCode:
+    case kKeypad9KeyCode:
+    case kKeypadMultiplyKeyCode:
+    case kKeypadAddKeyCode:
+    case kKeypadSubtractKeyCode:
+    case kKeypadDecimalKeyCode:
+    case kKeypadDivideKeyCode:
+    case kKeypadEqualsKeyCode:
+    case kVK_JIS_KeypadComma:
+    case kEnterKeyCode:
+    case kClearKeyCode:
+      location = nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
+      break;
+  }
+
+  return location;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(0);
+}
+
+static KeyNameIndex ConvertMacToDOMKeyName(UInt32 keyCode)
+{
+#define K(y,x) case y: return KEY_NAME_INDEX_ ## x;
+
+  // This replaces the code in TextInputHandler that we don't use.
+  // Based on NativeKeyToDOMKeyName.h.
+  switch (keyCode)
+  {
+    K(kOptionKeyCode, Alt)
+    K(kROptionKeyCode, Alt)
+
+    K(kCapsLockKeyCode, CapsLock)
+
+    K(kFnKeyCode, Fn)
+    K(kVK_PC_ContextMenu, ContextMenu)
+
+    K(kControlKeyCode, Control)
+    K(kRControlKeyCode, Control)
+
+    K(kCommandKeyCode, Meta)
+    K(kRCommandKeyCode, Meta)
+
+    K(kShiftKeyCode, Shift)
+    K(kRShiftKeyCode, Shift)
+
+    case kReturnKeyCode:
+    case kEnterKeyCode:
+    case kPowerbookEnterKeyCode:
+      return KEY_NAME_INDEX_Enter;
+
+    K(kTabKeyCode, Tab)
+    K(kLeftArrowKeyCode, ArrowLeft)
+    K(kRightArrowKeyCode, ArrowRight)
+    K(kDownArrowKeyCode, ArrowDown)
+    K(kUpArrowKeyCode, ArrowUp)
+    K(kEndKeyCode, End)
+    K(kHomeKeyCode, Home)
+    K(kPageDownKeyCode, PageDown)
+    K(kPageUpKeyCode, PageUp)
+
+    K(kBackspaceKeyCode, Backspace)
+    K(kDeleteKeyCode, Delete)
+    K(kClearKeyCode, Clear)
+
+    K(kEscapeKeyCode, Escape)
+
+    K(kInsertKeyCode, Help) // XXX?!
+
+    K(kF1KeyCode, F1)
+    K(kF2KeyCode, F2)
+    K(kF3KeyCode, F3)
+    K(kF4KeyCode, F4)
+    K(kF5KeyCode, F5)
+    K(kF6KeyCode, F6)
+    K(kF7KeyCode, F7)
+    K(kF8KeyCode, F8)
+    K(kF9KeyCode, F9)
+    K(kF10KeyCode, F10)
+    K(kF11KeyCode, F11)
+    K(kF12KeyCode, F12)
+    K(kF13KeyCode, F13)
+    K(kF14KeyCode, F14)
+    K(kF15KeyCode, F15)
+    K(kF16KeyCode, F16)
+    K(kF17KeyCode, F17)
+    K(kF18KeyCode, F18)
+    K(kF19KeyCode, F19)
+    K(kF20KeyCode, F20)
+
+    K(kVK_JIS_Eisu, Eisu)
+    K(kVK_JIS_Kana, KanjiMode)
+
+    // We are missing volume and media keys,
+    // but the OS seems to intercept these, so I
+    // didn't bother assigning them symbols.
+  }
+
+  return KEY_NAME_INDEX_Unidentified;
+
+#undef K
+}
+
+#define K(x) CODE_NAME_INDEX_ ## x ,
+static const CodeNameIndex MacKeyCodeToDOMCode[] = {
+/* It is not at all clear if all of these keys actually work! */
+    K(KeyA) // 0x00
+    K(KeyS)
+    K(KeyD)
+    K(KeyF)
+    K(KeyH)
+    K(KeyG)
+    K(KeyZ)
+    K(KeyX)
+    K(KeyC) // 0x08
+    K(KeyV)
+    K(IntlBackslash) // XXX: 0x0a
+    K(KeyB)
+    K(KeyQ)
+    K(KeyW)
+    K(KeyE)
+    K(KeyR)
+    K(KeyY) // 0x10
+    K(KeyT)
+    K(Digit1)
+    K(Digit2)
+    K(Digit3)
+    K(Digit4)
+    K(Digit6)
+    K(Digit5)
+    K(Equal) // 0x18
+    K(Digit9)
+    K(Digit7)
+    K(Minus)
+    K(Digit8)
+    K(Digit0)
+    K(BracketRight)
+    K(KeyO)
+    K(KeyU) // 0x20
+    K(BracketLeft)
+    K(KeyI)
+    K(KeyP)
+    K(Enter)
+    K(KeyL)
+    K(KeyJ)
+    K(Quote)
+    K(KeyK) // 0x28
+    K(Semicolon)
+    K(Backslash)
+    K(Comma)
+    K(Slash)
+    K(KeyN)
+    K(KeyM)
+    K(Period)
+    K(Tab) // 0x30
+    K(Space)
+    K(Backquote)
+    K(Backspace)
+    K(NumpadEnter) // XXX: 0x34, kPowerbookEnterKeyCode. Just a guess.
+    K(Escape)
+    K(OSRight)
+    K(OSLeft)
+    K(ShiftLeft) // 0x38
+    K(CapsLock)
+    K(AltLeft)
+    K(ControlLeft)
+    K(ShiftRight)
+    K(AltRight) // huhuhu
+    K(ControlRight)
+    K(Fn)
+    K(F17) // 0x40
+    K(NumpadDecimal)
+    K(UNKNOWN) // 0x42
+    K(NumpadMultiply)
+    K(UNKNOWN) // 0x44
+    K(NumpadAdd)
+    K(UNKNOWN) // 0x46
+    K(NumpadClear)
+    K(VolumeUp) // 0x48
+    K(VolumeDown)
+    K(VolumeMute)
+    K(NumpadDivide)
+    K(NumpadEnter)
+    K(UNKNOWN) // 0x4d
+    K(NumpadSubtract)
+    K(F18)
+    K(F19) // 0x50
+    K(NumpadEqual)
+    K(Numpad0)
+    K(Numpad1)
+    K(Numpad2)
+    K(Numpad3)
+    K(Numpad4)
+    K(Numpad5)
+    K(Numpad6) // 0x58
+    K(Numpad7)
+    K(F20)
+    K(Numpad8)
+    K(Numpad9)
+    K(IntlYen)
+    K(IntlRo)
+    K(NumpadComma)
+    K(F5)     // 0x60
+    K(F6)
+    K(F7)
+    K(F3)
+    K(F8)
+    K(F9)
+    K(Lang2) // Eisu
+    K(F11)
+    K(Lang1) // 0x68 // Kana
+    K(F13)
+    K(F16)
+    K(F14)
+    K(UNKNOWN) // 0x6c
+    K(F10)
+    K(ContextMenu)
+    K(F12)
+    K(UNKNOWN) // 0x70
+    K(F15)
+    K(Help)
+    K(Home)
+    K(PageUp)
+    K(Delete)
+    K(F4)
+    K(End)
+    K(F2) // 0x78
+    K(PageDown)
+    K(F1)
+    K(ArrowLeft)
+    K(ArrowRight)
+    K(ArrowDown)
+    K(ArrowUp)
+    K(UNKNOWN) // 0x7f
+};
+#undef K
+
+inline static CodeNameIndex ConvertMacToDOMCode(UInt32 keyCode)
+{
+  MOZ_ASSERT(keyCode < 0x80);
+  return MacKeyCodeToDOMCode[keyCode];
+}
+// End issue 497
+
+static uint32_t ConvertMacToGeckoKeyCode(UInt32 keyCode, NSString* characters)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
 
@@ -6237,8 +6525,7 @@ static uint32_t ConvertMacToGeckoKeyCode(UInt32 keyCode, WidgetKeyboardEvent* aK
     case kRControlKeyCode:
     case kControlKeyCode:       geckoKeyCode = NS_VK_CONTROL;        break;
     case kROptionKeyCode:
-    case kOptionkeyCode:        geckoKeyCode = NS_VK_ALT;            break;
-    case kClearKeyCode:         geckoKeyCode = NS_VK_CLEAR;          break;
+    case kOptionKeyCode:        geckoKeyCode = NS_VK_ALT;            break;
 
     // function keys
     case kF1KeyCode:            geckoKeyCode = NS_VK_F1;             break;
@@ -6253,10 +6540,11 @@ static uint32_t ConvertMacToGeckoKeyCode(UInt32 keyCode, WidgetKeyboardEvent* aK
     case kF10KeyCode:           geckoKeyCode = NS_VK_F10;            break;
     case kF11KeyCode:           geckoKeyCode = NS_VK_F11;            break;
     case kF12KeyCode:           geckoKeyCode = NS_VK_F12;            break;
+    // these three are aliases for the ones below, so use the canonical ones.
     // case kF13KeyCode:           geckoKeyCode = NS_VK_F13;            break; 
-   // clash with the 3 below
     // case kF14KeyCode:           geckoKeyCode = NS_VK_F14;            break;
     // case kF15KeyCode:           geckoKeyCode = NS_VK_F15;            break;
+    // XXX: F16 through F20?
     case kPauseKeyCode:         geckoKeyCode = NS_VK_PAUSE;          break;
     case kScrollLockKeyCode:    geckoKeyCode = NS_VK_SCROLL_LOCK;    break;
     case kPrintScreenKeyCode:   geckoKeyCode = NS_VK_PRINTSCREEN;    break;
@@ -6273,6 +6561,7 @@ static uint32_t ConvertMacToGeckoKeyCode(UInt32 keyCode, WidgetKeyboardEvent* aK
     case kKeypad8KeyCode:       geckoKeyCode = NS_VK_NUMPAD8;        break;
     case kKeypad9KeyCode:       geckoKeyCode = NS_VK_NUMPAD9;        break;
 
+    case kClearKeyCode:           geckoKeyCode = NS_VK_CLEAR;        break;
     case kKeypadMultiplyKeyCode:  geckoKeyCode = NS_VK_MULTIPLY;     break;
     case kKeypadAddKeyCode:       geckoKeyCode = NS_VK_ADD;          break;
     case kKeypadSubtractKeyCode:  geckoKeyCode = NS_VK_SUBTRACT;     break;
@@ -6331,9 +6620,10 @@ static bool IsSpecialGeckoKey(UInt32 macKeyCode)
     case kCapsLockKeyCode:
     case kControlKeyCode:
     case kRControlKeyCode:
-    case kOptionkeyCode:
+    case kOptionKeyCode:
     case kROptionKeyCode:
     case kClearKeyCode:
+    case kFnKeyCode:
       
     // function keys
     case kF1KeyCode:
@@ -6348,9 +6638,18 @@ static bool IsSpecialGeckoKey(UInt32 macKeyCode)
     case kF10KeyCode:
     case kF11KeyCode:
     case kF12KeyCode:
+    // case kF13KeyCode: // clashes with PrintScreen
+    // case kF14KeyCode: // clashes with ScrollLock
+    // case kF15KeyCode: // clashes with Pause
+    case kF16KeyCode:
+    case kF17KeyCode:
+    case kF18KeyCode:
+    case kF19KeyCode:
+    case kF20KeyCode:
     case kPauseKeyCode:
     case kScrollLockKeyCode:
     case kPrintScreenKeyCode:
+    case kVK_PC_ContextMenu:
       
     case kInsertKeyCode:
     case kDeleteKeyCode:
@@ -6609,6 +6908,7 @@ GetUSLayoutCharFromKeyTranslate(UInt32 aKeyCode, UInt32 aModifiers)
   if (!aKeyEvent || !outGeckoEvent)
     return;
 
+  unsigned short keyCode = nsCocoaUtils::GetCocoaEventKeyCode(aKeyEvent);
   nsCocoaUtils::InitInputEvent(*outGeckoEvent, aKeyEvent);
 
   // coords for key events are always 0,0
@@ -6619,12 +6919,15 @@ GetUSLayoutCharFromKeyTranslate(UInt32 aKeyCode, UInt32 aModifiers)
 
   // Check to see if the message is a key press that does not involve
   // one of our special key codes.
+  // (This can also be generated by insertText:, so look there for a similar
+  // but abbreviated pathway.)
   if (outGeckoEvent->mMessage == eKeyPress &&
-      !IsSpecialGeckoKey(nsCocoaUtils::GetCocoaEventKeyCode(aKeyEvent))) {
+      !IsSpecialGeckoKey(keyCode)) {
     outGeckoEvent->isChar = true; // this is not a special key
     
     outGeckoEvent->charCode = 0;
     outGeckoEvent->keyCode  = 0; // not set for key press events
+    outGeckoEvent->location = ConvertMacToGeckoKeyLocation(keyCode);
     
     NSString* chars = [aKeyEvent characters];
     if ([chars length] > 0)
@@ -6855,16 +7158,39 @@ GetUSLayoutCharFromKeyTranslate(UInt32 aKeyCode, UInt32 aModifiers)
         outGeckoEvent->alternativeCharCodes.AppendElement(altCharCodes);
       }
     }
+
+    // Now that we have a charCode defined, use that as a KeyNameIndex
+    // for TenFourFox issue 497.
+    outGeckoEvent->mKeyNameIndex = KEY_NAME_INDEX_USE_STRING;
+    outGeckoEvent->mKeyValue = (uint32_t)outGeckoEvent->charCode;
   }
   else {
     NSString* characters = nil;
     if ([aKeyEvent type] != NSFlagsChanged)
       characters = [aKeyEvent charactersIgnoringModifiers];
     
-    outGeckoEvent->keyCode =
-      ConvertMacToGeckoKeyCode([aKeyEvent keyCode], outGeckoEvent, characters);
+    outGeckoEvent->keyCode = ConvertMacToGeckoKeyCode(keyCode, characters);
     outGeckoEvent->charCode = 0;
-  } 
+
+    // Add extra DOM fields for TenFourFox issue 497.
+    // XXX: Should this be based on the Gecko key code for consistency?
+    outGeckoEvent->location = ConvertMacToGeckoKeyLocation(keyCode);
+    outGeckoEvent->mKeyNameIndex = ConvertMacToDOMKeyName(keyCode);
+
+    // If the KeyNameIndex is still Unidentified, look at [characters] to see if
+    // we can maybe extract it from there.
+    if (outGeckoEvent->mKeyNameIndex == KEY_NAME_INDEX_Unidentified &&
+         characters &&
+        [characters length]) {
+        outGeckoEvent->mKeyNameIndex = KEY_NAME_INDEX_USE_STRING;
+        outGeckoEvent->mKeyValue = (uint32_t)[characters characterAtIndex:0];
+    }
+  }
+
+  // Convert the KeyName to a CodeName. We don't use CODE_NAME_INDEX_STRING; every
+  // key has a code, or else it's CODE_NAME_INDEX_UNKNOWN.
+  // This concludes TenFourFox issue 497.
+  outGeckoEvent->mCodeNameIndex = ConvertMacToDOMCode(keyCode);
 
   // For NativeKeyBindings
   outGeckoEvent->mNativeKeyEvent = aKeyEvent;
@@ -7099,10 +7425,16 @@ GetUSLayoutCharFromKeyTranslate(UInt32 aKeyCode, UInt32 aModifiers)
       return;
 
     // dispatch keypress event with char instead of textEvent
+    // this is mostly the same as in convertCocoaKeyEvent:
     WidgetKeyboardEvent geckoEvent(true, eKeyPress, mGeckoChild);
     geckoEvent.charCode  = bufPtr[0]; // gecko expects OS-translated unicode
     geckoEvent.keyCode   = 0;
     geckoEvent.isChar    = true;
+
+    // TenFourFox issue 497
+    geckoEvent.mKeyNameIndex = KEY_NAME_INDEX_USE_STRING;
+    geckoEvent.mKeyValue     = (uint32_t)bufPtr[0];
+
     if (mKeyDownHandled)
       geckoEvent.mFlags.mDefaultPrevented = true;
 
@@ -7112,6 +7444,7 @@ GetUSLayoutCharFromKeyTranslate(UInt32 aKeyCode, UInt32 aModifiers)
         
     if (mCurKeyEvent) {
       nsCocoaUtils::InitInputEvent(geckoEvent, mCurKeyEvent);
+      uint32_t keyCode = nsCocoaUtils::GetCocoaEventKeyCode(mCurKeyEvent);
 
       // XXX The ASCII characters inputting mode of egbridge (Japanese IME)
       // might send the keyDown event with wrong keyboard layout if other
@@ -7119,16 +7452,26 @@ GetUSLayoutCharFromKeyTranslate(UInt32 aKeyCode, UInt32 aModifiers)
       // doesn't match to this gecko event...
 
       if (!IsPrintableChar(geckoEvent.charCode)) {
-        geckoEvent.keyCode = ConvertMacToGeckoKeyCode(nsCocoaUtils::GetCocoaEventKeyCode(mCurKeyEvent), &geckoEvent, [mCurKeyEvent charactersIgnoringModifiers]);
+        geckoEvent.keyCode = ConvertMacToGeckoKeyCode(keyCode, [mCurKeyEvent charactersIgnoringModifiers]);
         geckoEvent.charCode = 0;
+        geckoEvent.mKeyValue = (uint32_t)geckoEvent.keyCode;
       }
+      geckoEvent.mCodeNameIndex = ConvertMacToDOMCode(keyCode);
+      geckoEvent.location = ConvertMacToGeckoKeyLocation(keyCode);
     } else {
       nsCocoaUtils::InitInputEvent(geckoEvent, static_cast<NSEvent*>(nullptr));
       // Note that insertText is not called only at key pressing.
       if (!IsPrintableChar(geckoEvent.charCode)) {
         geckoEvent.keyCode = GetGeckoKeyCodeFromChar(geckoEvent.charCode);
         geckoEvent.charCode = 0;
+        geckoEvent.mKeyValue = (uint32_t)geckoEvent.keyCode;
       }
+      // If the event does not have a native key event, we can't determine the
+      // actual scan code. In that case, hope for the best -- it would be worse
+      // if we weren't using a QWERTY layout and guessed the wrong key instead
+      // of just saying we don't know.
+      geckoEvent.mCodeNameIndex = CODE_NAME_INDEX_UNKNOWN;
+      geckoEvent.location       = nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD;
     }
 
     // Remove basic modifiers from keypress event because if they are included,

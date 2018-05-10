@@ -125,7 +125,7 @@ static const uint32_t kMaxICCDuration = 2000; // ms
 // Force a CC after this long if there's more than NS_CC_FORCED_PURPLE_LIMIT
 // objects in the purple buffer.
 #define NS_CC_FORCED                (2 * 60 * PR_USEC_PER_SEC) // 2 min
-#define NS_CC_FORCED_PURPLE_LIMIT   9
+#define NS_CC_FORCED_PURPLE_LIMIT   20
 
 // Don't allow an incremental GC to lock out the CC for too long.
 #define NS_MAX_CC_LOCKEDOUT_TIME    (30 * PR_USEC_PER_SEC) // 30 seconds

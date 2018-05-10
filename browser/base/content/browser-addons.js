@@ -459,15 +459,15 @@ var LightWeightThemeWebInstaller = {
 
     switch (message.name) {
       case "LightWeightThemeWebInstaller:Install": {
-        this._installRequest(data.themeData, data.baseURI);
+        this._installRequest(data.themeData, data.principal, data.baseURI);
         break;
       }
       case "LightWeightThemeWebInstaller:Preview": {
-        this._preview(data.themeData, data.baseURI);
+        this._preview(data.themeData, data.principal, data.baseURI);
         break;
       }
       case "LightWeightThemeWebInstaller:ResetPreview": {
-        this._resetPreview(data && data.baseURI);
+        this._resetPreview(data && data.principal);
         break;
       }
     }
@@ -489,14 +489,19 @@ var LightWeightThemeWebInstaller = {
     return this._manager = temp.LightweightThemeManager;
   },
 
-  _installRequest: function (dataString, baseURI) {
+  _installRequest: function (dataString, principal, baseURI) {
+    // Don't allow installing off null principals.
+    if (!principal.URI) {
+      return;
+    }
+
     let data = this._manager.parseTheme(dataString, baseURI);
 
     if (!data) {
       return;
     }
 
-    if (this._isAllowed(baseURI)) {
+    if (this._isAllowed(principal)) {
       this._install(data);
       return;
     }
@@ -507,7 +512,7 @@ var LightWeightThemeWebInstaller = {
       gNavigatorBundle.getString("lwthemeInstallRequest.allowButton.accesskey");
     let message =
       gNavigatorBundle.getFormattedString("lwthemeInstallRequest.message",
-                                          [makeURI(baseURI).host]);
+                                          [makeURI(principal.URI).host]);
     let buttons = [{
       label: allowButtonText,
       accessKey: allowButtonAccesskey,
@@ -608,8 +613,8 @@ var LightWeightThemeWebInstaller = {
       });
   },
 
-  _preview: function (dataString, baseURI) {
-    if (!this._isAllowed(baseURI))
+  _preview: function (dataString, principal, baseURI) {
+    if (!this._isAllowed(principal))
       return;
 
     let data = this._manager.parseTheme(dataString, baseURI);
@@ -621,29 +626,20 @@ var LightWeightThemeWebInstaller = {
     this._manager.previewTheme(data);
   },
 
-  _resetPreview: function (baseURI) {
-    if (baseURI && !this._isAllowed(baseURI))
+  _resetPreview: function (principal) {
+    if (!this._isAllowed(principal))
       return;
     gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
     this._manager.resetPreview();
   },
 
-  _isAllowed: function (srcURIString) {
-    let uri;
-    try {
-      uri = makeURI(srcURIString);
-    }
-    catch(e) {
-      //makeURI fails if srcURIString is a nonsense URI
-      return false;
-    }
-
-    if (!uri.schemeIs("https")) {
+  _isAllowed: function (principal) {
+    if (!principal || !principal.URI || !principal.URI.schemeIs("https")) {
       return false;
     }
 
     let pm = Services.perms;
-    return pm.testPermission(uri, "install") == pm.ALLOW_ACTION;
+    return pm.testPermission(principal.URI, "install") == pm.ALLOW_ACTION;
   }
 };
 

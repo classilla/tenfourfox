@@ -373,6 +373,7 @@ void nsCocoaUtils::CleanUpAfterNativeAppModalDialog()
 
 unsigned short nsCocoaUtils::GetCocoaEventKeyCode(NSEvent *theEvent)
 {
+#if(0)
   unsigned short keyCode = [theEvent keyCode];
   if (nsCocoaFeatures::OnLeopardOrLater())
     return keyCode;
@@ -395,6 +396,24 @@ unsigned short nsCocoaUtils::GetCocoaEventKeyCode(NSEvent *theEvent)
     if ([unmodchars characterAtIndex:0] == 0x1b)
       keyCode = 0x35;
   }
+#else
+  // Clean this up a bit for faster calls.
+  unsigned short keyCode = [theEvent keyCode];
+  // If there is a keyCode (likely), or this is Leopard, return keyCode.
+  if (MOZ_LIKELY(keyCode) || nsCocoaFeatures::OnLeopardOrLater())
+    return keyCode;
+  // Tiger kludge from above.
+  // If the type is not NSKeyDown or KeyUp (unlikely), return keyCode.
+  NSEventType type = [theEvent type];
+  if (MOZ_UNLIKELY((type != NSKeyDown) && (type != NSKeyUp)))
+    return keyCode;
+  NSString *unmodchars = [theEvent charactersIgnoringModifiers];
+  if ([unmodchars length] == 1) {
+    if ([unmodchars characterAtIndex:0] == 0x1b)
+      keyCode = 0x35;
+  }
+#endif
+
   return keyCode;
 }
 

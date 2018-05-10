@@ -57,6 +57,26 @@ LazyLogModule gMediaStreamGraphLog("MediaStreamGraph");
 #  define LIFECYCLE_LOG(...)
 #endif
 
+// Fix for bug 1452416, since we don't have the proper form of
+// NS_ReleaseOnMainThread(). This is based on our fix for M1348955
+// et al. as demonstrated in TenFourFox issue 478.
+template<typename T>
+class ProxyReleaseEvent : public nsRunnable
+{
+public:
+  explicit ProxyReleaseEvent(already_AddRefed<T> aDoomed)
+  : mDoomed(aDoomed.take()) {}
+
+  NS_IMETHOD Run() override
+  {
+    NS_IF_RELEASE(mDoomed);
+    return NS_OK;
+  }
+
+private:
+  T* MOZ_OWNING_REF mDoomed;
+};
+
 /**
  * A hash table containing the graph instances, one per AudioChannel.
  */
@@ -1497,6 +1517,12 @@ MediaStreamGraphImpl::RunInStableState(bool aSourceIsMSG)
         RefPtr<GraphDriver> driver = CurrentDriver();
         MonitorAutoUnlock unlock(mMonitor);
         driver->Start();
+        // It's not safe to Shutdown() a thread from StableState, and
+        // releasing this may shutdown a SystemClockDriver thread.
+        // Proxy the release to outside of StableState.
+        // NS_ReleaseOnMainThread(driver.forget(), true); // always proxy
+        nsCOMPtr<nsIRunnable> event = new ProxyReleaseEvent<GraphDriver>(driver.forget());
+        NS_DispatchToMainThread(event.forget());
       }
     }
 
