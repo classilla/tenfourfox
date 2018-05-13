@@ -170,7 +170,7 @@ static void
 GenerateProfilingPrologue(MacroAssembler& masm, unsigned framePushed, ExitReason reason,
                           AsmJSProfilingOffsets* offsets, Label* maybeEntry = nullptr)
 {
-#if(0)
+#if !defined(JS_CODEGEN_PPC_OSX)
 #if !defined (JS_CODEGEN_ARM)
     Register scratch = ABIArgGenerator::NonArg_VolatileReg;
 #else
@@ -225,7 +225,7 @@ static void
 GenerateProfilingEpilogue(MacroAssembler& masm, unsigned framePushed, ExitReason reason,
                           AsmJSProfilingOffsets* offsets)
 {
-#if(0)
+#if !defined(JS_CODEGEN_PPC_OSX)
     Register scratch = ABIArgGenerator::NonReturn_VolatileReg0;
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64) || \
     defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
@@ -500,7 +500,7 @@ AsmJSProfilingFrameIterator::AsmJSProfilingFrameIterator(const AsmJSActivation& 
     exitReason_(ExitReason::None),
     codeRange_(nullptr)
 {
-#if(0)
+#if !defined(JS_CODEGEN_PPC_OSX)
     // If profiling hasn't been enabled for this module, then CallerFPFromFP
     // will be trash, so ignore the entire activation. In practice, this only
     // happens if profiling is enabled while module->active() (in this case,

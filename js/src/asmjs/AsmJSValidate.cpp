@@ -53,7 +53,7 @@ using mozilla::UniquePtr;
 using JS::AsmJSOption;
 using JS::GenericNaN;
 
-#if(0) // bug 881882
+#if !defined(JS_CODEGEN_PPC_OSX) // bug 881882
 
 /*****************************************************************************/
 // ParseNode utilities
@@ -6871,7 +6871,7 @@ Warn(AsmJSParser& parser, int errorNumber, const char* str)
     return false;
 }
 
-#if(0)
+#if !defined(JS_CODEGEN_PPC_OSX)
 static bool
 EstablishPreconditions(ExclusiveContext* cx, AsmJSParser& parser)
 {
@@ -6918,9 +6918,11 @@ bool
 js::ValidateAsmJS(ExclusiveContext* cx, AsmJSParser& parser, ParseNode* stmtList, bool* validated)
 {
     *validated = false;
+
+#if defined(JS_CODEGEN_PPC_OSX) // bug 881882
 Warn(parser, JSMSG_USE_ASM_TYPE_FAIL, "AsmJS not currently supported on PowerPC; downgrading to IonPower");
 return NoExceptionPending(cx);
-#if(0) // bug 881882
+#else
 
     // Various conditions disable asm.js optimizations.
     if (!EstablishPreconditions(cx, parser))
@@ -6989,7 +6991,7 @@ js::IsAsmJSCompilationAvailable(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-#if(0)
+#if !defined(JS_CODEGEN_PPC_OSX)
     // See EstablishPreconditions.
 #ifdef JS_CODEGEN_NONE
     bool available = false;

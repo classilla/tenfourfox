@@ -307,7 +307,11 @@ AtomicOperations::isLockfree(int32_t size)
     || defined(__ppc__) || defined(__PPC__)
 # include "jit/none/AtomicOperations-ppc.h"
 #elif defined(JS_CODEGEN_NONE)
+#if defined(__i386__) || defined(__x86_64__)
+# include "jit/x86-shared/AtomicOperations-x86-shared.h"
+#else
 # include "jit/none/AtomicOperations-none.h"
+#endif
 #elif defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
 # include "jit/x86-shared/AtomicOperations-x86-shared.h"
 #else

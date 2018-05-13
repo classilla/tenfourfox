@@ -54,7 +54,7 @@ using namespace js::wasm;
 using mozilla::IsNaN;
 using mozilla::PodZero;
 
-#if(0) // bug 881882
+#if !defined(JS_CODEGEN_PPC_OSX) // bug 881882
 
 static bool
 CloneModule(JSContext* cx, MutableHandle<AsmJSModuleObject*> moduleObj)
@@ -1273,7 +1273,7 @@ js::IsAsmJSFunction(JSContext *cx, unsigned argc, Value *vp)
 bool
 js::IsAsmJSFunction(HandleFunction fun)
 {
-#if(0)
+#if !defined(JS_CODEGEN_PPC_OSX)
     return fun->isNative() && fun->maybeNative() == CallAsmJS;
 #else
 	return false;
@@ -1283,7 +1283,7 @@ js::IsAsmJSFunction(HandleFunction fun)
 JSString*
 js::AsmJSFunctionToString(JSContext* cx, HandleFunction fun)
 {
-#if(0)
+#if !defined(JS_CODEGEN_PPC_OSX)
     AsmJSModule& module = FunctionToEnclosingModule(fun);
     const AsmJSModule::ExportedFunction& f = FunctionToExportedFunction(fun, module);
     uint32_t begin = module.srcStart() + f.startOffsetInModule();
