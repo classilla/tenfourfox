@@ -697,6 +697,18 @@ bool NS_GetOriginAttributes(nsIChannel *aChannel,
  */
 bool NS_HasBeenCrossOrigin(nsIChannel* aChannel, bool aReport = false);
 
+/**
+ * Returns true if the channel is a safe top-level navigation.
+ */
+bool NS_IsSafeTopLevelNav(nsIChannel* aChannel);
+
+/**
+ * Returns true if the channel is a foreign with respect to the host-uri.
+ * For loads of TYPE_DOCUMENT, this function returns true if it's a
+ * cross origin navigation.
+ */
+bool NS_IsSameSiteForeign(nsIChannel* aChannel, nsIURI* aHostURI);
+
 // Constants duplicated from nsIScriptSecurityManager so we avoid having necko
 // know about script security manager.
 #define NECKO_NO_APP_ID 0

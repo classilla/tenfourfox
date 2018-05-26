@@ -15,6 +15,14 @@ const promise = require("promise");
 const {isWindowIncluded} = require("devtools/shared/layout/utils");
 const {setTimeout, clearTimeout} = require("sdk/timers");
 
+// "Lax", "Strict" and "Unset" are special values of the sameSite property
+// that should not be translated.
+const COOKIE_SAMESITE = {
+  LAX: "Lax",
+  STRICT: "Strict",
+  UNSET: "Unset"
+};
+
 loader.lazyImporter(this, "OS", "resource://gre/modules/osfile.jsm");
 loader.lazyImporter(this, "Sqlite", "resource://gre/modules/Sqlite.jsm");
 loader.lazyImporter(this, "Task", "resource://gre/modules/Task.jsm", "Task");
@@ -83,7 +91,8 @@ types.addDictType("cookieobject", {
   isHttpOnly: "boolean",
   creationTime: "number",
   lastAccessed: "number",
-  expires: "number"
+  expires: "number",
+  sameSite: "string"
 });
 
 // Array of cookie store objects
@@ -546,8 +555,20 @@ StorageActors.createActor({
       value: new LongStringActor(this.conn, cookie.value || ""),
       isDomain: cookie.isDomain,
       isSecure: cookie.isSecure,
-      isHttpOnly: cookie.isHttpOnly
+      isHttpOnly: cookie.isHttpOnly,
+      sameSite: this.getSameSiteStringFromCookie(cookie)
     };
+  },
+
+  getSameSiteStringFromCookie(cookie) {
+    switch (cookie.sameSite) {
+      case cookie.SAMESITE_LAX:
+        return COOKIE_SAMESITE.LAX;
+      case cookie.SAMESITE_STRICT:
+        return COOKIE_SAMESITE.STRICT;
+    }
+    // cookie.SAMESITE_UNSET
+    return COOKIE_SAMESITE.UNSET;
   },
 
   populateStoresForHost: function(host) {
