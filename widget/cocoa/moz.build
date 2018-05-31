@@ -66,6 +66,7 @@ SOURCES += [
     'nsChildView.mm',
     'nsClipboard.mm',
     'nsCocoaDebugUtils.mm',
+    'nsDatePicker.mm',
     'nsDragService.mm',
     'nsNativeThemeCocoa.mm',
 ]
