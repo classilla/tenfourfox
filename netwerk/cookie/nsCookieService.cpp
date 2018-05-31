@@ -69,13 +69,17 @@ using namespace mozilla::net;
  ******************************************************************************/
 
 static nsCookieService *gCookieService;
+bool nsCookieService::sSameSiteEnabled = false;
 
 // XXX_hack. See bug 178993.
 // This is a hack to hide HttpOnly cookies from older browsers
 #define HTTP_ONLY_PREFIX "#HttpOnly_"
 
 #define COOKIES_FILE "cookies.sqlite"
-#define COOKIES_SCHEMA_VERSION 7
+/* XXX: Our schema version diverges from mainline Firefox.
+   v8 here is for SameSite (TenFourFox issue 499), not v9.
+   We don't need nor implement OriginAttributes. */
+#define COOKIES_SCHEMA_VERSION 8
 
 // parameter indexes; see EnsureReadDomain, EnsureReadComplete and
 // ReadCookieDBListener::HandleResult
@@ -90,6 +94,7 @@ static nsCookieService *gCookieService;
 #define IDX_HTTPONLY 8
 #define IDX_BASE_DOMAIN 9
 #define IDX_ORIGIN_ATTRIBUTES 10
+#define IDX_SAME_SITE 11
 
 static const int64_t kCookiePurgeAge =
   int64_t(30 * 24 * 60 * 60) * PR_USEC_PER_SEC; // 30 days in microseconds
@@ -134,6 +139,7 @@ struct nsCookieAttributes
   bool isSession;
   bool isSecure;
   bool isHttpOnly;
+  int32_t sameSite;
 };
 
 // stores the nsCookieEntry entryclass and an index into the cookie array
@@ -258,6 +264,7 @@ LogCookie(nsCookie *aCookie)
 
     MOZ_LOG(gCookieLog, LogLevel::Debug,("is secure: %s\n", aCookie->IsSecure() ? "true" : "false"));
     MOZ_LOG(gCookieLog, LogLevel::Debug,("is httpOnly: %s\n", aCookie->IsHttpOnly() ? "true" : "false"));
+    MOZ_LOG(gCookieLog, LogLevel::Debug,("sameSite: %d\n", aCookie->SameSite()));
   }
 }
 
@@ -1317,6 +1324,16 @@ nsCookieService::TryInitDB(bool aRecreateDB)
           ("Upgraded database to schema version 7"));
       }
 
+    case 7:
+      {
+        // Add the sameSite column to the table.
+        rv = mDefaultDBState->dbConn->ExecuteSimpleSQL(
+          NS_LITERAL_CSTRING("ALTER TABLE moz_cookies ADD sameSite INTEGER DEFAULT 0;"));
+        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+        COOKIE_LOGSTRING(LogLevel::Debug,
+          ("Upgraded database to schema version 8"));
+      }
+
       // No more upgrades. Update the schema version.
       rv = mDefaultDBState->dbConn->SetSchemaVersion(COOKIES_SCHEMA_VERSION);
       NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
@@ -1361,7 +1378,8 @@ nsCookieService::TryInitDB(bool aRecreateDB)
             "lastAccessed, "
             "creationTime, "
             "isSecure, "
-            "isHttpOnly "
+            "isHttpOnly, "
+            "sameSite "
           "FROM moz_cookies"), getter_AddRefs(stmt));
         if (NS_SUCCEEDED(rv))
           break;
@@ -1402,7 +1420,8 @@ nsCookieService::TryInitDB(bool aRecreateDB)
       "lastAccessed, "
       "creationTime, "
       "isSecure, "
-      "isHttpOnly"
+      "isHttpOnly, "
+      "sameSite"
     ") VALUES ("
       ":baseDomain, "
       ":originAttributes, "
@@ -1414,7 +1433,8 @@ nsCookieService::TryInitDB(bool aRecreateDB)
       ":lastAccessed, "
       ":creationTime, "
       ":isSecure, "
-      ":isHttpOnly"
+      ":isHttpOnly, "
+      ":sameSite"
     ")"),
     getter_AddRefs(mDefaultDBState->stmtInsert));
   NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
@@ -1486,6 +1506,7 @@ nsCookieService::CreateTable()
       "isHttpOnly INTEGER, "
       "appId INTEGER DEFAULT 0, "
       "inBrowserElement INTEGER DEFAULT 0, "
+      "sameSite INTEGER DEFAULT 0, "
       "CONSTRAINT moz_uniqueid UNIQUE (name, host, path, originAttributes)"
     ")"));
   if (NS_FAILED(rv)) return rv;
@@ -1903,8 +1924,11 @@ nsCookieService::GetCookieStringCommon(nsIURI *aHostURI,
   bool isPrivate = aChannel && NS_UsePrivateBrowsing(aChannel);
 
   nsAutoCString result;
-  GetCookieStringInternal(aHostURI, isForeign, aHttpBound, attrs,
-                          isPrivate, result);
+  bool isSafeTopLevelNav = NS_IsSafeTopLevelNav(aChannel);
+  bool isSameSiteForeign = NS_IsSameSiteForeign(aChannel, aHostURI);
+  GetCookieStringInternal(aHostURI, isForeign, aHttpBound,
+                          isSafeTopLevelNav, isSameSiteForeign,
+                          attrs, isPrivate, result);
   *aCookie = result.IsEmpty() ? nullptr : ToNewCString(result);
   return NS_OK;
 }
@@ -2262,7 +2286,8 @@ nsCookieService::Add(const nsACString &aHost,
                      bool              aIsSecure,
                      bool              aIsHttpOnly,
                      bool              aIsSession,
-                     int64_t           aExpiry)
+                     int64_t           aExpiry,
+                     int32_t           aSameSite)
 {
   if (!mDBState) {
     NS_WARNING("No DBState! Profile already closed?");
@@ -2289,7 +2314,8 @@ nsCookieService::Add(const nsACString &aHost,
                      nsCookie::GenerateUniqueCreationTime(currentTimeInUsec),
                      aIsSession,
                      aIsSecure,
-                     aIsHttpOnly);
+                     aIsHttpOnly,
+                     aSameSite);
   if (!cookie) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -2386,7 +2412,8 @@ nsCookieService::Read()
       "isSecure, "
       "isHttpOnly, "
       "baseDomain, "
-      "originAttributes "
+      "originAttributes, "
+      "sameSite "
     "FROM moz_cookies "
     "WHERE baseDomain NOTNULL"), getter_AddRefs(stmtRead));
   NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
@@ -2447,6 +2474,7 @@ nsCookieService::GetCookieFromRow(T &aRow)
   int64_t creationTime = aRow->AsInt64(IDX_CREATION_TIME);
   bool isSecure = 0 != aRow->AsInt32(IDX_SECURE);
   bool isHttpOnly = 0 != aRow->AsInt32(IDX_HTTPONLY);
+  int32_t sameSite = aRow->AsInt32(IDX_SAME_SITE);
 
   // Create a new nsCookie and assign the data.
   return nsCookie::Create(name, value, host, path,
@@ -2455,7 +2483,8 @@ nsCookieService::GetCookieFromRow(T &aRow)
                           creationTime,
                           false,
                           isSecure,
-                          isHttpOnly);
+                          isHttpOnly,
+                          sameSite);
 }
 
 void
@@ -2555,7 +2584,10 @@ nsCookieService::EnsureReadDomain(const nsCookieKey &aKey)
         "lastAccessed, "
         "creationTime, "
         "isSecure, "
-        "isHttpOnly "
+        "isHttpOnly, "
+        "baseDomain, "
+        "originAttributes, "
+        "sameSite "
       "FROM moz_cookies "
       "WHERE baseDomain = :baseDomain "
       "  AND originAttributes = :originAttributes"),
@@ -2648,7 +2680,8 @@ nsCookieService::EnsureReadComplete()
       "isSecure, "
       "isHttpOnly, "
       "baseDomain, "
-      "originAttributes  "
+      "originAttributes, "
+      "sameSite "
     "FROM moz_cookies "
     "WHERE baseDomain NOTNULL"), getter_AddRefs(stmt));
 
@@ -2846,7 +2879,8 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
                        nsCookie::GenerateUniqueCreationTime(currentTimeInUsec),
                        false,
                        Substring(buffer, secureIndex, expiresIndex - secureIndex - 1).EqualsLiteral(kTrue),
-                       isHttpOnly);
+                       isHttpOnly,
+                       nsICookie2::SAMESITE_UNSET);
     if (!newCookie) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -2922,6 +2956,8 @@ void
 nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
                                          bool aIsForeign,
                                          bool aHttpBound,
+                                         bool aIsSafeTopLevelNav,
+                                         bool aIsSameSiteForeign,
                                          const NeckoOriginAttributes aOriginAttrs,
                                          bool aIsPrivate,
                                          nsCString &aCookieString)
@@ -3003,6 +3039,21 @@ nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
     // if the cookie is secure and the host scheme isn't, we can't send it
     if (cookie->IsSecure() && !isSecure)
       continue;
+
+    int32_t sameSiteAttr = 0;
+    cookie->GetSameSite(&sameSiteAttr);
+    if (aIsSameSiteForeign && IsSameSiteEnabled()) {
+      // it if's a cross origin request and the cookie is same site only (strict)
+      // don't send it
+      if (sameSiteAttr == nsICookie2::SAMESITE_STRICT) {
+        continue;
+      }
+      // if it's a cross origin request, the cookie is same site lax, but it's not
+      // a top-level navigation, don't send it
+      if (sameSiteAttr == nsICookie2::SAMESITE_LAX && !aIsSafeTopLevelNav) {
+        continue;
+      }
+    }
 
     // if the cookie is httpOnly and it's not going directly to the HTTP
     // connection, don't send it
@@ -3220,9 +3271,29 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
                      nsCookie::GenerateUniqueCreationTime(currentTimeInUsec),
                      cookieAttributes.isSession,
                      cookieAttributes.isSecure,
-                     cookieAttributes.isHttpOnly);
+                     cookieAttributes.isHttpOnly,
+                     cookieAttributes.sameSite);
   if (!cookie)
     return newCookie;
+
+  // If the new cookie is same-site but in a cross site context,
+  // browser must ignore the cookie.
+  if (IsSameSiteEnabled() &&
+      cookieAttributes.sameSite != nsICookie2::SAMESITE_UNSET) {
+    bool isThirdParty = false;
+    nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
+      do_GetService(THIRDPARTYUTIL_CONTRACTID);
+    if (thirdPartyUtil) {
+      thirdPartyUtil->IsThirdPartyChannel(aChannel, aHostURI, &isThirdParty);
+    } else {
+      NS_WARNING("failed to get third party service with same-site cookie");
+    }
+    if (isThirdParty) {
+      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+                        "failed the samesite tests");
+      return newCookie;
+    }
+  }
 
   // check permissions from site permission list, or ask the user,
   // to determine if we can set the cookie
@@ -3439,6 +3510,8 @@ nsCookieService::AddInternal(const nsCookieKey             &aKey,
     6. Attribute "HttpOnly", not covered in the RFCs, is supported
        (see bug 178993).
 
+    7. Attribute "sameSite" is supported (TenFourFox issue 499).
+
  ** Begin BNF:
     token         = 1*<any allowed-chars except separators>
     value         = 1*<any allowed-chars except value-sep>
@@ -3460,6 +3533,7 @@ nsCookieService::AddInternal(const nsCookieKey             &aKey,
     NAME          = token                                ; cookie name
     VALUE         = value                                ; cookie value
     cookie-av     = token ["=" value]
+    same-site-val = "lax" | "strict"
 
     valid values for cookie-av (checked post-parsing) are:
     cookie-av     = "Path"    "=" value
@@ -3470,6 +3544,7 @@ nsCookieService::AddInternal(const nsCookieKey             &aKey,
                   | "Version" "=" value
                   | "Secure"
                   | "HttpOnly"
+                  | "SameSite" "=" same-site-val
 
 ******************************************************************************/
 
@@ -3556,6 +3631,9 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
   static const char kMaxage[]  = "max-age";
   static const char kSecure[]  = "secure";
   static const char kHttpOnly[]  = "httponly";
+  static const char kSameSite[]     = "samesite";
+  static const char kSameSiteLax[]  = "lax";
+  static const char kSameSiteStrict[]    = "strict";
 
   nsASingleFragmentCString::const_char_iterator tempBegin, tempEnd;
   nsASingleFragmentCString::const_char_iterator cookieStart, cookieEnd;
@@ -3564,6 +3642,7 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
 
   aCookieAttributes.isSecure = false;
   aCookieAttributes.isHttpOnly = false;
+  aCookieAttributes.sameSite = nsICookie2::SAMESITE_UNSET;
   
   nsDependentCSubstring tokenString(cookieStart, cookieStart);
   nsDependentCSubstring tokenValue (cookieStart, cookieStart);
@@ -3612,6 +3691,16 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
     // just set the boolean
     else if (tokenString.LowerCaseEqualsLiteral(kHttpOnly))
       aCookieAttributes.isHttpOnly = true;
+
+    else if (tokenString.LowerCaseEqualsLiteral(kSameSite)) {
+      if (tokenValue.LowerCaseEqualsLiteral(kSameSiteLax)) {
+        aCookieAttributes.sameSite = nsICookie2::SAMESITE_LAX;
+      } else if (tokenValue.LowerCaseEqualsLiteral(kSameSiteStrict)) {
+        aCookieAttributes.sameSite = nsICookie2::SAMESITE_STRICT;
+      } else {
+        NS_WARNING("unknown sameSite attribute on cookie, dropped");
+      }
+    }
   }
 
   // rebind aCookieHeader, in case we need to process another cookie
@@ -3697,6 +3786,18 @@ nsCookieService::GetBaseDomainFromHost(const nsACString &aHost,
     return NS_OK;
   }
   return rv;
+}
+
+bool
+nsCookieService::IsSameSiteEnabled()
+{
+  static bool prefInitialized = false;
+  if (!prefInitialized) {
+    Preferences::AddBoolVarCache(&sSameSiteEnabled,
+                                 "network.cookie.same-site.enabled", false);
+    prefInitialized = true;
+  }
+  return sSameSiteEnabled;
 }
 
 // Normalizes the given hostname, component by component. ASCII/ACE
@@ -4499,6 +4600,10 @@ bindCookieParameters(mozIStorageBindingParamsArray *aParamsArray,
 
   rv = params->BindInt32ByName(NS_LITERAL_CSTRING("isHttpOnly"),
                                aCookie->IsHttpOnly());
+  NS_ASSERT_SUCCESS(rv);
+
+  rv = params->BindInt32ByName(NS_LITERAL_CSTRING("sameSite"),
+                               aCookie->SameSite());
   NS_ASSERT_SUCCESS(rv);
 
   // Bind the params to the array.

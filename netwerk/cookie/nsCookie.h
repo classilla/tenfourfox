@@ -43,7 +43,8 @@ class nsCookie : public nsICookie2
              int64_t         aCreationTime,
              bool            aIsSession,
              bool            aIsSecure,
-             bool            aIsHttpOnly)
+             bool            aIsHttpOnly,
+             int32_t         aSameSite)
      : mName(aName)
      , mValue(aValue)
      , mHost(aHost)
@@ -55,6 +56,7 @@ class nsCookie : public nsICookie2
      , mIsSession(aIsSession != false)
      , mIsSecure(aIsSecure != false)
      , mIsHttpOnly(aIsHttpOnly != false)
+     , mSameSite(aSameSite)
     {
     }
 
@@ -74,7 +76,8 @@ class nsCookie : public nsICookie2
                              int64_t           aCreationTime,
                              bool              aIsSession,
                              bool              aIsSecure,
-                             bool              aIsHttpOnly);
+                             bool              aIsHttpOnly,
+                             int32_t           aSameSite);
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -91,6 +94,7 @@ class nsCookie : public nsICookie2
     inline bool IsDomain()                const { return *mHost == '.'; }
     inline bool IsSecure()                const { return mIsSecure; }
     inline bool IsHttpOnly()              const { return mIsHttpOnly; }
+    inline int32_t SameSite()             const { return mSameSite; }
 
     // setters
     inline void SetExpiry(int64_t aExpiry)        { mExpiry = aExpiry; }
@@ -123,6 +127,7 @@ class nsCookie : public nsICookie2
     bool mIsSession;
     bool mIsSecure;
     bool mIsHttpOnly;
+    int32_t mSameSite;
 };
 
 #endif // nsCookie_h__

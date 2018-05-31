@@ -140,8 +140,23 @@ CookieServiceParent::RecvGetCookieString(const URIParams& aHost,
     return false;
   }
 
-  mCookieService->GetCookieStringInternal(hostURI, aIsForeign, aFromHttp, attrs,
-                                          isPrivate, *aResult);
+  // To support same-site cookies, we need a similar dummy channel
+  // as in RecvSetCookieString (see below), and implement a similar
+  // "gross hack" for TenFourFox issue 499. Again, only isPrivate is
+  // relevant here.
+  nsCOMPtr<nsIChannel> dummyChannel;
+  CreateDummyChannel(hostURI, attrs, isPrivate, getter_AddRefs(dummyChannel));
+
+  // XXX: This is wrong, and should crash if enabled. The dummy
+  // channel can never be nsIContentPolicy::TYPE_DOCUMENT and is not
+  // an HTTP channel, so the headers cannot be inspected. Once the
+  // channel is hooked up to the actual HTTP channel, this should
+  // "just work" as it does in nsCookieService.
+  MOZ_CRASH("RecvGetCookieString NYI");
+  mCookieService->GetCookieStringInternal(hostURI, aIsForeign, aFromHttp,
+                                          NS_IsSafeTopLevelNav(dummyChannel),
+                                          NS_IsSameSiteForeign(dummyChannel, hostURI),
+                                          attrs, isPrivate, *aResult);
   return true;
 }
 

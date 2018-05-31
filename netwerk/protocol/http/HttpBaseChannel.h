@@ -47,6 +47,11 @@ class nsPerformance;
 class nsISecurityConsoleMessage;
 class nsIPrincipal;
 
+#define HTTP_BASE_CHANNEL_IID \
+{ 0x9d5cde03, 0xe6e9, 0x4612, \
+    { 0xbf, 0xef, 0xbb, 0x66, 0xf3, 0xbb, 0x74, 0x46 } }
+
+
 namespace mozilla {
 
 class LogCollector;
@@ -85,6 +90,8 @@ public:
   NS_DECL_NSIUPLOADCHANNEL2
   NS_DECL_NSITRACEABLECHANNEL
   NS_DECL_NSITIMEDCHANNEL
+
+  NS_DECLARE_STATIC_IID_ACCESSOR(HTTP_BASE_CHANNEL_IID)
 
   HttpBaseChannel();
 
@@ -496,6 +503,8 @@ protected:
 
   bool mForceMainDocumentChannel;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(HttpBaseChannel, HTTP_BASE_CHANNEL_IID)
 
 // Share some code while working around C++'s absurd inability to handle casting
 // of member functions between base/derived types.
