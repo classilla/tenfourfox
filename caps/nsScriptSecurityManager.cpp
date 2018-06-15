@@ -800,6 +800,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 
                 BLOK("xcp.go.sonobi.com") ||
                 BLOK("apex.go.sonobi.com") ||
+                BLOK("mtrx.go.sonobi.com") ||
                 
                 BLOK("s.ntv.io") ||
                 
@@ -1106,6 +1107,10 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("uk.cdn-net.com") ||
                 BLOK("six.cdn-net.com") ||
                 BLOK("www.cdn-net.com") ||
+
+                BLOK("bob.dmpxs.com") ||
+
+                BLOK("api.traq.li") ||
                     0) {
 #undef BLOK
                 // Yup.
