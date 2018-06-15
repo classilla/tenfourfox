@@ -968,9 +968,9 @@ StructuredCloneHolder::CustomReadHandler(JSContext* aCx,
     return ReadFormData(aCx, aReader, aIndex, this);
   }
 
-  if (aTag == SCTAG_DOM_IMAGEBITMAP) {
-    MOZ_ASSERT(mSupportedContext == SameProcessSameThread ||
-               mSupportedContext == SameProcessDifferentThread);
+  if (aTag == SCTAG_DOM_IMAGEBITMAP &&
+      (mSupportedContext == SameProcessSameThread ||
+       mSupportedContext == SameProcessDifferentThread)) {
 
     // Get the current global object.
     // This can be null.
@@ -1067,9 +1067,9 @@ StructuredCloneHolder::CustomReadTransferHandler(JSContext* aCx,
     return true;
   }
 
-  if (aTag == SCTAG_DOM_CANVAS) {
-    MOZ_ASSERT(mSupportedContext == SameProcessSameThread ||
-               mSupportedContext == SameProcessDifferentThread);
+  if (aTag == SCTAG_DOM_CANVAS &&
+      (mSupportedContext == SameProcessSameThread ||
+       mSupportedContext == SameProcessDifferentThread)) {
     MOZ_ASSERT(aContent);
     OffscreenCanvasCloneData* data =
       static_cast<OffscreenCanvasCloneData*>(aContent);
@@ -1155,9 +1155,9 @@ StructuredCloneHolder::CustomFreeTransferHandler(uint32_t aTag,
     return;
   }
 
-  if (aTag == SCTAG_DOM_CANVAS) {
-    MOZ_ASSERT(mSupportedContext == SameProcessSameThread ||
-               mSupportedContext == SameProcessDifferentThread);
+  if (aTag == SCTAG_DOM_CANVAS &&
+      (mSupportedContext == SameProcessSameThread ||
+       mSupportedContext == SameProcessDifferentThread)) {
     MOZ_ASSERT(aContent);
     OffscreenCanvasCloneData* data =
       static_cast<OffscreenCanvasCloneData*>(aContent);
