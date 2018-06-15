@@ -364,6 +364,10 @@ public:
                            const int16_t& aMode) override;
     virtual bool DeallocPFilePickerParent(PFilePickerParent* actor) override;
 
+    virtual PDatePickerParent*
+    AllocPDatePickerParent(const nsString& aTitle) override;
+    virtual bool DeallocPDatePickerParent(PDatePickerParent* actor) override;
+
     virtual PIndexedDBPermissionRequestParent*
     AllocPIndexedDBPermissionRequestParent(const Principal& aPrincipal)
                                            override;

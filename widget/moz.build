@@ -198,9 +198,12 @@ if CONFIG['MOZ_X11']:
         'GfxInfoX11.cpp'
     ]
 
+# Do not put nsDatePickerProxy.cpp into the unified sources, or we get weird
+# build problems due to an inexplicable dependency in nsPrimitiveHelpers.cpp.
 if toolkit == 'cocoa':
     SOURCES += [
         'nsBaseDatePicker.cpp',
+        'nsDatePickerProxy.cpp',
     ]
 
 if toolkit in ('cocoa', 'windows'):

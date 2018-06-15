@@ -1256,6 +1256,10 @@ protected:
   nsresult InitFilePicker(FilePickerType aType);
   nsresult InitColorPicker();
 
+  // TenFourFox issue 405
+  nsresult InitDatePicker();
+  nsresult InitTimePicker();
+
   /**
    * Use this function before trying to open a picker.
    * It checks if the page is allowed to open a new pop-up.

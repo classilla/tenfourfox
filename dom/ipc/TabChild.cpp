@@ -53,6 +53,7 @@
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #endif
+#include "nsDatePickerProxy.h"
 #include "nsFilePickerProxy.h"
 #include "mozilla/dom/Element.h"
 #include "nsIBaseWindow.h"
@@ -2133,6 +2134,21 @@ TabChild::DeallocPFilePickerChild(PFilePickerChild* actor)
 {
   nsFilePickerProxy* filePicker = static_cast<nsFilePickerProxy*>(actor);
   NS_RELEASE(filePicker);
+  return true;
+}
+
+PDatePickerChild*
+TabChild::AllocPDatePickerChild(const nsString&)
+{
+  NS_RUNTIMEABORT("unused");
+  return nullptr;
+}
+
+bool
+TabChild::DeallocPDatePickerChild(PDatePickerChild* actor)
+{
+  nsDatePickerProxy* datePicker = static_cast<nsDatePickerProxy*>(actor);
+  NS_RELEASE(datePicker);
   return true;
 }
 

@@ -112,6 +112,7 @@
 #include <limits>
 
 #include "nsIColorPicker.h"
+#include "nsIDatePicker.h" // TenFourFox issue 405
 #include "nsIStringEnumerator.h"
 #include "HTMLSplitOnSpacesTokenizer.h"
 #include "nsIController.h"
@@ -563,6 +564,22 @@ HTMLInputElement::IsPopupBlocked() const
   uint32_t permission;
   pm->TestPermission(OwnerDoc()->NodePrincipal(), &permission);
   return permission == nsIPopupWindowManager::DENY_POPUP;
+}
+
+/* Time and date picker implementations from TenFourFox issue 405. */
+
+nsresult
+HTMLInputElement::InitTimePicker()
+{
+  NS_WARNING("InitTimePicker NYI");
+  return NS_ERROR_FAILURE;
+}
+
+nsresult
+HTMLInputElement::InitDatePicker()
+{
+  NS_WARNING("InitDatePicker NYI");
+  return NS_ERROR_FAILURE;
 }
 
 nsresult
@@ -3608,6 +3625,12 @@ HTMLInputElement::MaybeInitPickers(EventChainPostVisitor& aVisitor)
   if (mType == NS_FORM_INPUT_COLOR) {
     return InitColorPicker();
   }
+  if (mType == NS_FORM_INPUT_DATE) {
+    return InitDatePicker();
+  }
+  if (mType == NS_FORM_INPUT_TIME) {
+    return InitTimePicker();
+  }
   return NS_OK;
 }
 
@@ -3831,6 +3854,8 @@ HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
               case NS_FORM_INPUT_SUBMIT:
               case NS_FORM_INPUT_IMAGE: // Bug 34418
               case NS_FORM_INPUT_COLOR:
+              case NS_FORM_INPUT_DATE: // TenFourFox issue 405
+              case NS_FORM_INPUT_TIME: // ditto
               {
                 WidgetMouseEvent event(aVisitor.mEvent->mFlags.mIsTrusted,
                                        eMouseClick, nullptr,
@@ -4732,6 +4757,10 @@ HTMLInputElement::ParseAttribute(int32_t aNamespaceID,
         newType = aResult.GetEnumValue();
         if ((IsExperimentalMobileType(newType) &&
              !Preferences::GetBool("dom.experimental_forms", false)) ||
+            (newType == NS_FORM_INPUT_DATE &&
+             !Preferences::GetBool("tenfourfox.dom.forms.date", false)) ||
+            (newType == NS_FORM_INPUT_TIME &&
+             !Preferences::GetBool("tenfourfox.dom.forms.time", false)) ||
             (newType == NS_FORM_INPUT_NUMBER &&
              !Preferences::GetBool("dom.forms.number", false)) ||
             (newType == NS_FORM_INPUT_COLOR &&
