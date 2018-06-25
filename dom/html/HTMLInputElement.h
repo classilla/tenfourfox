@@ -21,6 +21,7 @@
 #include "mozilla/dom/HTMLInputElementBinding.h"
 #include "mozilla/dom/Promise.h"
 #include "nsIFilePicker.h"
+#include "nsIDatePicker.h"
 #include "nsIContentPrefService2.h"
 #include "mozilla/Decimal.h"
 #include "nsContentUtils.h"
@@ -1459,6 +1460,24 @@ private:
 
   private:
     nsCOMPtr<nsIFilePicker> mFilePicker;
+    RefPtr<HTMLInputElement> mInput;
+  };
+
+  class nsDatePickerShownCallback
+    : public nsIDatePickerShownCallback
+  {
+    virtual ~nsDatePickerShownCallback()
+    { }
+
+  public:
+    nsDatePickerShownCallback(HTMLInputElement* aInput,
+                              nsIDatePicker* aDatePicker);
+    NS_DECL_ISUPPORTS
+
+    NS_IMETHOD Done(int16_t aResult) override;
+
+  private:
+    nsCOMPtr<nsIDatePicker> mDatePicker;
     RefPtr<HTMLInputElement> mInput;
   };
 };

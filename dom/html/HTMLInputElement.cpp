@@ -542,6 +542,39 @@ nsColorPickerShownCallback::Done(const nsAString& aColor)
 
 NS_IMPL_ISUPPORTS(nsColorPickerShownCallback, nsIColorPickerShownCallback)
 
+HTMLInputElement::nsDatePickerShownCallback::nsDatePickerShownCallback(
+  HTMLInputElement* aInput, nsIDatePicker* aDatePicker)
+  : mDatePicker(aDatePicker)
+  , mInput(aInput)
+{
+}
+
+NS_IMETHODIMP
+HTMLInputElement::nsDatePickerShownCallback::Done(int16_t aResult)
+{
+  mInput->PickerClosed();
+
+  if (aResult == nsIDatePicker::returnCancel) {
+    return NS_OK;
+  }
+
+  nsAutoString date;
+  nsresult rv = mDatePicker->GetSelectedDate(date);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // The text control frame (if there is one) isn't going to send a change
+  // event because it will think this is done by a script.
+  // So, we can safely send one by ourself.
+  mInput->SetValue(date); // set value
+  return nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                              static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                              NS_LITERAL_STRING("change"), true,
+                                              false);
+}
+
+NS_IMPL_ISUPPORTS(HTMLInputElement::nsDatePickerShownCallback,
+                  nsIDatePickerShownCallback)
+
 bool
 HTMLInputElement::IsPopupBlocked() const
 {
@@ -578,8 +611,43 @@ HTMLInputElement::InitTimePicker()
 nsresult
 HTMLInputElement::InitDatePicker()
 {
-  NS_WARNING("InitDatePicker NYI");
-  return NS_ERROR_FAILURE;
+  if (mPickerRunning) {
+    NS_WARNING("Just one nsIDatePicker is allowed");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIDocument> doc = OwnerDoc();
+
+  nsCOMPtr<nsPIDOMWindow> win = doc->GetWindow();
+  if (!win) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (IsPopupBlocked()) {
+    win->FirePopupBlockedEvent(doc, nullptr, EmptyString(), EmptyString());
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIDatePicker> datePicker = do_CreateInstance("@mozilla.org/datepicker;1");
+  if (!datePicker) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsAutoString initialValue;
+  GetValueInternal(initialValue);
+  nsresult rv = datePicker->Init(win, EmptyString()); // title NYI
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = datePicker->SetDefaultDate(initialValue);
+
+  nsCOMPtr<nsIDatePickerShownCallback> callback =
+    new nsDatePickerShownCallback(this, datePicker);
+
+  rv = datePicker->Open(callback);
+  if (NS_SUCCEEDED(rv)) {
+    mPickerRunning = true;
+  }
+
+  return rv;
 }
 
 nsresult
