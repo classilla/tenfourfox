@@ -41,7 +41,9 @@ protected:
   bool                   mHasDefault;
   nsString               mDefault;
   nsString               mMinDate;
+  bool                   mHasMin;
   nsString               mMaxDate;
+  bool                   mHasMax;
 };
 
 #endif // nsDatePicker_h_

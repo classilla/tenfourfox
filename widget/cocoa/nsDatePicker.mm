@@ -28,37 +28,76 @@
 - (id)buildAlertStyle:(int)fp8 title:(id)fp12 message:(id)fp16 first:(id)fp20 second:(id)fp24 third:(id)fp28 oldStyle:(BOOL)fp32 args:(char *)fp36;
 @end
 
-////// NSPopUpDatePicker
+@class NSDoubleDatePicker; // forward declaration
+
+@interface NSDoubleDateDelegate : NSObject {
+  NSDoubleDatePicker *_parentAlert;
+  NSDatePicker *_source;
+}
+
+- (void)datePickerCell:(NSDatePickerCell *)aDatePickerCell
+  validateProposedDateValue:(NSDate **)proposedDateValue
+  timeInterval:(NSTimeInterval *)proposedTimeInterval;
+- (void)setParentAlert:(NSDoubleDatePicker *)parentAlert
+  withSource:(NSDatePicker *)source;
+@end
+
+@implementation NSDoubleDateDelegate
+- (void)datePickerCell:(NSDatePickerCell *)aDatePickerCell
+  validateProposedDateValue:(NSDate **)proposedDateValue
+  timeInterval:(NSTimeInterval *)proposedTimeInterval
+{
+  //NSLog(@"validate");
+  [_parentAlert onSwitchControl:_source newDate:proposedDateValue];
+}
+
+- (void)setParentAlert:(NSDoubleDatePicker *)parentAlert
+  withSource:(NSDatePicker *)source
+{
+  _parentAlert = parentAlert;
+  _source = source;
+}
+@end
+
+////// NSDoubleDatePicker
 ////// based on NSAlertCheckbox, http://cocoadev.github.io/NSAlertCheckbox/
 
-@interface NSPopUpDatePicker : NSAlert {
-  NSDatePicker *_picker;
+@interface NSDoubleDatePicker : NSAlert {
+  NSDatePicker *_pickertop;
+  NSDatePicker *_pickerbottom;
+  NSDoubleDateDelegate *_topdelegate;
+  NSDoubleDateDelegate *_bottomdelegate;
 }
 
 - (void)dealloc;
-- (NSPopUpDatePicker *)datePicker:(NSString *)message
+- (NSDoubleDatePicker *)datePicker:(NSString *)message
   defaultButton:(NSString *)defaultButton
   alternateButton:(NSString *)alternateButton
   otherButton:(NSString *)otherButton
   informativeTextWithFormat:(NSString *)format;
+- (void)onSwitchControl:(NSDatePicker *)which newDate:(NSDate **)newDate;
 - (NSDate *)date;
 - (void)setDate:(NSDate *)date;
 @end
 
-@interface NSPopUpDatePicker(Private)
-- (void)_ensureDatePicker;
-- (void)_addDatePickerToAlert;
+@interface NSDoubleDatePicker(Private)
+- (void)_ensureDatePickers;
+- (void)_addDatePickersToAlert;
 @end
 
-@implementation NSPopUpDatePicker
+@implementation NSDoubleDatePicker
 
 - (void)dealloc
 {
-  [_picker release];
+//NSLog(@"dealloc");
+  [_pickertop release];
+  [_pickerbottom release];
+  [_topdelegate release];
+  [_bottomdelegate release];
   [super dealloc];
 }
 
-- (NSPopUpDatePicker *)datePicker:(NSString *)message
+- (NSDoubleDatePicker *)datePicker:(NSString *)message
   defaultButton:(NSString *)defaultButton
   alternateButton:(NSString *)alternateButton
   otherButton:(NSString *)otherButton
@@ -69,7 +108,7 @@
                                alternateButton:alternateButton
                                    otherButton:otherButton
                      informativeTextWithFormat:format];
-  return (NSPopUpDatePicker *)alert;
+  return (NSDoubleDatePicker *)alert;
 }
 
 - (id)buildAlertStyle:(int)fp8
@@ -87,7 +126,7 @@
                           second:fp24
                            third:fp28
                         oldStyle:fp32];
-  [self _addDatePickerToAlert];
+  [self _addDatePickersToAlert];
   return rv;
 }
 
@@ -108,46 +147,92 @@
                            third:fp28
                         oldStyle:fp32
                             args:fp36];
-  [self _addDatePickerToAlert];
+  [self _addDatePickersToAlert];
   return rv;
+}
+
+- (void)onSwitchControl:(NSDatePicker *)which newDate:(NSDate **)newDate
+{
+  // Halt the delegate on the one we're setting first.
+  if (which == _pickertop) {
+    //NSLog(@"control event: top");
+    [_pickerbottom setDelegate:nil];
+    [_pickerbottom setDateValue:*newDate];
+    [_pickerbottom setDelegate:_bottomdelegate];
+  } else if (which == _pickerbottom) {
+    //NSLog(@"control event: bottom");
+    [_pickertop setDelegate:nil];
+    [_pickertop setDateValue:*newDate];
+    [_pickertop setDelegate:_topdelegate];
+  } else
+    NSLog(@"wtf");
 }
 
 - (NSDate *)date
 {
-  [self _ensureDatePicker];
-  return [_picker dateValue];
+  [self _ensureDatePickers];
+  return [_pickertop dateValue];
 }
 
 - (void)setDate:(NSDate *)date
 {
-  [self _ensureDatePicker];
-  [_picker setDateValue:date];
+  [self _ensureDatePickers];
+  [_pickertop setDateValue:date];
+  [_pickerbottom setDateValue:date];
+}
+
+- (void)setMinDate:(NSDate *)date
+{
+  [self _ensureDatePickers];
+  [_pickertop setMinDate:date];
+  [_pickerbottom setMinDate:date];
+}
+
+- (void)setMaxDate:(NSDate *)date
+{
+  [self _ensureDatePickers];
+  [_pickertop setMaxDate:date];
+  [_pickerbottom setMaxDate:date];
 }
 @end
 
-@implementation NSPopUpDatePicker(Private)
-- (void)_ensureDatePicker
+@implementation NSDoubleDatePicker(Private)
+- (void)_ensureDatePickers
 {
-  if (!_picker) {
-    _picker = [[NSDatePicker alloc] initWithFrame:NSMakeRect(10,10,295,154)];
-    [_picker setDatePickerStyle:NSClockAndCalendarDatePickerStyle];
-    [_picker setDatePickerElements:NSYearMonthDayDatePickerElementFlag];
+  if (!_pickertop) {
+//  NSLog(@"picker init");
+    _pickertop = [[NSDatePicker alloc] initWithFrame:NSMakeRect(10,10,295,154)];
+    [_pickertop setDatePickerStyle:NSClockAndCalendarDatePickerStyle];
+    [_pickertop setDatePickerElements:NSYearMonthDayDatePickerElementFlag];
+
+    _topdelegate = [[NSDoubleDateDelegate alloc] init];
+    [_topdelegate setParentAlert:self withSource:_pickertop];
+    [_pickertop setDelegate:_topdelegate];
+
+    _pickerbottom = [[NSDatePicker alloc] initWithFrame:NSMakeRect(10,10,295,154)];
+    [_pickerbottom setDatePickerStyle:NSTextFieldAndStepperDatePickerStyle];
+    [_pickerbottom setDatePickerElements:NSYearMonthDayDatePickerElementFlag];
+
+    _bottomdelegate = [[NSDoubleDateDelegate alloc] init];
+    [_bottomdelegate setParentAlert:self withSource:_pickerbottom];
+    [_pickerbottom setDelegate:_bottomdelegate];
   }
 }
-- (void)_addDatePickerToAlert
+
+- (void)_addDatePickersToAlert
 {
   NSWindow *window = [self window];
   NSView *content = [window contentView];
   float padding = 14.0f;
-	
+
   NSArray *subviews = [content subviews];
   NSEnumerator *en = [subviews objectEnumerator];
   NSView *subview = nil;
   NSTextField *messageText = nil;
   int count = 0;
-	
-  [self _ensureDatePicker];
-	
+
+  [self _ensureDatePickers];
+
   // Find the main text field.
   while (subview = [en nextObject]) {
     if ([subview isKindOfClass:[NSTextField class]]) {
@@ -156,24 +241,35 @@
     }
   }
   if (messageText) {
-    [content addSubview:_picker];
-    [_picker sizeToFit];
-		
+    [content addSubview:_pickertop];
+    [_pickertop sizeToFit];
+    [content addSubview:_pickerbottom];
+    [_pickerbottom sizeToFit];
+
     // Expand the alert window.
     NSRect windowFrame = [window frame];
-    NSRect pickerFrame = [_picker frame];
-		
-    windowFrame.size.height += pickerFrame.size.height + padding;
+    NSRect topPickerFrame = [_pickertop frame];
+    NSRect bottomPickerFrame = [_pickerbottom frame];
+
+    windowFrame.size.height += topPickerFrame.size.height + padding +
+      bottomPickerFrame.size.height + padding;
     [window setFrame:windowFrame display:YES];
-		
-    // Insert the picker below the main text field.
-    pickerFrame.origin.y = [messageText frame].origin.y -
-                            pickerFrame.size.height - padding;
-    pickerFrame.origin.x = [messageText frame].origin.x;
-		
-    [_picker setFrame:pickerFrame];
+
+    // Insert the pickers below the main text field.
+    topPickerFrame.origin.y = [messageText frame].origin.y -
+      bottomPickerFrame.size.height - padding -
+      topPickerFrame.size.height - padding;
+    topPickerFrame.origin.x = [messageText frame].origin.x;
+
+    bottomPickerFrame.origin.y = topPickerFrame.origin.y +
+      topPickerFrame.size.height + padding;
+    bottomPickerFrame.origin.x = topPickerFrame.origin.x;
+
+    [_pickertop setFrame:topPickerFrame];
+    [_pickerbottom setFrame:bottomPickerFrame];
+    //NSLog(@"Picker installed");
   } else
-    fprintf(stderr, "Could not insinuate modal NSDatePicker.\n");
+    NSLog(@"Couldn't find message text, did not add pickers");
 }
 @end
 
@@ -215,37 +311,46 @@ int16_t
 nsDatePicker::GetDate()
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
-  int16_t retVal = returnCancel;
-  
   NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
   [formatter setFormatterBehavior:NSDateFormatterBehavior10_4];
   [formatter setDateFormat:@"yyyy-MM-dd"];
-  NSPopUpDatePicker *alert = [NSPopUpDatePicker
-    alertWithMessageText:@"One"
-           defaultButton:@"OK"
-         alternateButton:@"Cancel"
-             otherButton:nil
-    informativeTextWithFormat:@"Blah blah"];
+  NSDoubleDatePicker *alert = [NSDoubleDatePicker
+    alertWithMessageText:@" "// XXX: localize this eventually
+           defaultButton:nil // "OK"
+         alternateButton:nil // "Cancel"
+             otherButton:nil // nothin'
+    informativeTextWithFormat:@""];
   if (mHasDefault) {
     NSDate *newDate = [formatter dateFromString:nsCocoaUtils::ToNSString(mDefault)];
-    [alert setDate:newDate];
+    if (newDate)
+      [alert setDate:newDate];
   } else
     [alert setDate:[NSDate date]];
+  if (mHasMin) {
+    NSDate *newDate = [formatter dateFromString:nsCocoaUtils::ToNSString(mMinDate)];
+    if (newDate)
+      [alert setMinDate:newDate];
+  }
+  if (mHasMax) {
+    NSDate *newDate = [formatter dateFromString:nsCocoaUtils::ToNSString(mMaxDate)];
+    if (newDate)
+      [alert setMaxDate:newDate];
+  }
 
   nsCocoaUtils::PrepareForNativeAppModalDialog();
-  int result = [alert runModal]; //[NSApp runModalForWindow:pwin];
+  int result = [alert runModal];
   nsCocoaUtils::CleanUpAfterNativeAppModalDialog();
-  if (result == NSFileHandlingPanelCancelButton)
-    return retVal;
+  if (result == NSAlertAlternateReturn) // cancel
+    return returnCancel;
 
   nsCocoaUtils::GetStringForNSString([formatter stringFromDate:[alert date]],
     mDate);
 
-  return retVal;
+  return returnOK;
   NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(returnCancel);
 }
 
-// XXX Not used
+// XXX Not used currently, needs localization
 // Sets the dialog title to whatever it should be.  If it fails, eh,
 // the OS will provide a sensible default.
 void
@@ -272,6 +377,7 @@ NS_IMETHODIMP nsDatePicker::GetDefaultDate(nsAString& aString)
 
 NS_IMETHODIMP nsDatePicker::SetMinDate(const nsAString& aString)
 {
+  mHasMin = true;
   mMinDate = aString;
   return NS_OK;
 }
@@ -283,6 +389,7 @@ NS_IMETHODIMP nsDatePicker::GetMinDate(nsAString& aString)
 
 NS_IMETHODIMP nsDatePicker::SetMaxDate(const nsAString& aString)
 {
+  mHasMax = true;
   mMaxDate = aString;
   return NS_OK;
 }

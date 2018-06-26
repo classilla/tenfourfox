@@ -638,6 +638,20 @@ HTMLInputElement::InitDatePicker()
   nsresult rv = datePicker->Init(win, EmptyString()); // title NYI
   NS_ENSURE_SUCCESS(rv, rv);
   rv = datePicker->SetDefaultDate(initialValue);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::min)) {
+    nsAutoString minStr;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
+    rv = datePicker->SetMinDate(minStr);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::max)) {
+    nsAutoString maxStr;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr);
+    rv = datePicker->SetMaxDate(maxStr);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   nsCOMPtr<nsIDatePickerShownCallback> callback =
     new nsDatePickerShownCallback(this, datePicker);
@@ -2279,10 +2293,12 @@ HTMLInputElement::MozSetFileNameArray(const char16_t** aFileNames, uint32_t aLen
 bool
 HTMLInputElement::MozIsTextField(bool aExcludePassword)
 {
+/*
   // TODO: temporary until bug 773205 is fixed.
   if (IsExperimentalMobileType(mType)) {
     return false;
   }
+*/
 
   return IsSingleLineTextControl(aExcludePassword);
 }
@@ -4824,8 +4840,8 @@ HTMLInputElement::ParseAttribute(int32_t aNamespaceID,
       bool success = aResult.ParseEnumValue(aValue, kInputTypeTable, false);
       if (success) {
         newType = aResult.GetEnumValue();
-        if ((IsExperimentalMobileType(newType) &&
-             !Preferences::GetBool("dom.experimental_forms", false)) ||
+        if (/* (IsExperimentalMobileType(newType) &&
+             !Preferences::GetBool("dom.experimental_forms", false)) || */
             (newType == NS_FORM_INPUT_DATE &&
              !Preferences::GetBool("tenfourfox.dom.forms.date", false)) ||
             (newType == NS_FORM_INPUT_TIME &&
@@ -6328,10 +6344,12 @@ HTMLInputElement::PlaceholderApplies() const
 bool
 HTMLInputElement::DoesPatternApply() const
 {
+/*
   // TODO: temporary until bug 773205 is fixed.
   if (IsExperimentalMobileType(mType)) {
     return false;
   }
+*/
 
   return IsSingleLineTextControl(false);
 }
