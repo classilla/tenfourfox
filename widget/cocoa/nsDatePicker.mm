@@ -12,6 +12,8 @@
 #include "nsReadableUtils.h"
 #include "nsNetUtil.h"
 #include "nsIComponentManager.h"
+#include "nsQueryObject.h"
+#include "nsServiceManagerUtils.h"
 #include "nsIStringBundle.h"
 #include "nsCocoaFeatures.h"
 #include "nsCocoaUtils.h"
@@ -280,6 +282,8 @@ NS_IMPL_ISUPPORTS(nsDatePicker, nsIDatePicker)
 nsDatePicker::nsDatePicker()
 {
   mHasDefault = false;
+  mHasMin = false;
+  mHasMax = false;
 }
 
 nsDatePicker::~nsDatePicker()
@@ -311,13 +315,28 @@ int16_t
 nsDatePicker::GetDate()
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
+  nsCOMPtr<nsIStringBundle> stringBundle;
+  NSString *cancelString = @"Cancel";
+  nsXPIDLString intlString;
+  nsresult rv;
+
   NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
   [formatter setFormatterBehavior:NSDateFormatterBehavior10_4];
   [formatter setDateFormat:@"yyyy-MM-dd"];
+
+  nsCOMPtr<nsIStringBundleService> bundleSvc = do_GetService(NS_STRINGBUNDLE_CONTRACTID);
+  rv = bundleSvc->CreateBundle("chrome://global/locale/commonDialogs.properties", getter_AddRefs(stringBundle));
+  if (NS_SUCCEEDED(rv)) {
+    stringBundle->GetStringFromName(MOZ_UTF16("Cancel"), getter_Copies(intlString));
+    if (intlString)
+      cancelString = [NSString stringWithCharacters:reinterpret_cast<const unichar*>(intlString.get())
+                               length:intlString.Length()];
+  }
+
   NSDoubleDatePicker *alert = [NSDoubleDatePicker
     alertWithMessageText:@" "// XXX: localize this eventually
            defaultButton:nil // "OK"
-         alternateButton:nil // "Cancel"
+         alternateButton:cancelString // "Cancel"
              otherButton:nil // nothin'
     informativeTextWithFormat:@""];
   if (mHasDefault) {
