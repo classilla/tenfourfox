@@ -602,14 +602,14 @@ HTMLInputElement::IsPopupBlocked() const
 /* Time and date picker implementations from TenFourFox issue 405. */
 
 nsresult
-HTMLInputElement::InitTimePicker()
+HTMLInputElement::InitTimePicker(bool aNoMatterWhat)
 {
   NS_WARNING("InitTimePicker NYI");
   return NS_ERROR_FAILURE;
 }
 
 nsresult
-HTMLInputElement::InitDatePicker()
+HTMLInputElement::InitDatePicker(bool aNoMatterWhat)
 {
   if (mPickerRunning) {
     NS_WARNING("Just one nsIDatePicker is allowed");
@@ -623,7 +623,7 @@ HTMLInputElement::InitDatePicker()
     return NS_ERROR_FAILURE;
   }
 
-  if (IsPopupBlocked()) {
+  if (!aNoMatterWhat && IsPopupBlocked()) {
     win->FirePopupBlockedEvent(doc, nullptr, EmptyString(), EmptyString());
     return NS_OK;
   }
@@ -2293,13 +2293,6 @@ HTMLInputElement::MozSetFileNameArray(const char16_t** aFileNames, uint32_t aLen
 bool
 HTMLInputElement::MozIsTextField(bool aExcludePassword)
 {
-/*
-  // TODO: temporary until bug 773205 is fixed.
-  if (IsExperimentalMobileType(mType)) {
-    return false;
-  }
-*/
-
   return IsSingleLineTextControl(aExcludePassword);
 }
 
@@ -3183,6 +3176,28 @@ HTMLInputElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
     return NS_OK;
   }
 
+  // Do not process keyboard events on a date or time picker
+  // text field, except for TAB, DELETE, BACKSPACE, RETURN/ENTER or
+  // SPACE, or Command/FN keys. Because such a field is actually a
+  // "hopped up" text field with special handling, we need to preempt
+  // the line editor here before it has a chance to handle the key.
+  // TenFourFox issue 405
+  if (mType == NS_FORM_INPUT_DATE || mType == NS_FORM_INPUT_TIME) {
+    if (aVisitor.mEvent->mMessage == eKeyPress && aVisitor.mEvent->mFlags.mIsTrusted) {
+      WidgetKeyboardEvent* keyEvent = aVisitor.mEvent->AsKeyboardEvent();
+        if (!(keyEvent->IsMeta() ||
+              keyEvent->IsFn() ||
+              keyEvent->IsOS()) &&
+            keyEvent->keyCode != NS_VK_TAB &&
+            keyEvent->keyCode != NS_VK_BACK &&
+            keyEvent->keyCode != NS_VK_SPACE &&
+            keyEvent->keyCode != NS_VK_DELETE &&
+            keyEvent->keyCode != NS_VK_RETURN) {
+              return NS_OK;
+        }
+     }
+  }
+
   // Initialize the editor if needed.
   if (NeedToInitializeEditorForEvent(aVisitor)) {
     nsITextControlFrame* textControlFrame = do_QueryFrame(GetPrimaryFrame());
@@ -3861,6 +3876,22 @@ HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 
   if (NS_SUCCEEDED(rv)) {
     WidgetKeyboardEvent* keyEvent = aVisitor.mEvent->AsKeyboardEvent();
+
+    if ((mType == NS_FORM_INPUT_DATE || mType == NS_FORM_INPUT_TIME) &&
+        keyEvent && keyEvent->mMessage == eKeyPress &&
+        aVisitor.mEvent->mFlags.mIsTrusted &&
+        (keyEvent->keyCode == NS_VK_BACK || keyEvent->keyCode == NS_VK_DELETE) &&
+        !(keyEvent->IsShift() || keyEvent->IsControl() ||
+          keyEvent->IsAlt() || keyEvent->IsMeta() ||
+          keyEvent->IsAltGraph() || keyEvent->IsFn() ||
+          keyEvent->IsOS())) {
+      // Backspace/delete on a date or time picker field should
+      // just clear it. TenFourFox issue 405. Otherwise, defer
+      // to the handler in PreHandleEvent.
+      aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
+      SetValue(EmptyString());
+    }
+
     if (mType ==  NS_FORM_INPUT_NUMBER &&
         keyEvent && keyEvent->mMessage == eKeyPress &&
         aVisitor.mEvent->mFlags.mIsTrusted &&
@@ -6344,13 +6375,6 @@ HTMLInputElement::PlaceholderApplies() const
 bool
 HTMLInputElement::DoesPatternApply() const
 {
-/*
-  // TODO: temporary until bug 773205 is fixed.
-  if (IsExperimentalMobileType(mType)) {
-    return false;
-  }
-*/
-
   return IsSingleLineTextControl(false);
 }
 

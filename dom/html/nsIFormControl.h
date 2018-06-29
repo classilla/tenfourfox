@@ -250,7 +250,8 @@ nsIFormControl::IsSingleLineTextControl(bool aExcludePassword, uint32_t aType)
          aType == NS_FORM_INPUT_SEARCH ||
          aType == NS_FORM_INPUT_TEL ||
          aType == NS_FORM_INPUT_URL ||
-         // TODO: those are temporary until bug 773205 is fixed.
+         // This is used as a hack. There is special handling in
+         // HTMLInputElement.cpp. TenFourFox issue 405.
          aType == NS_FORM_INPUT_DATE ||
          aType == NS_FORM_INPUT_TIME ||
          (!aExcludePassword && aType == NS_FORM_INPUT_PASSWORD);

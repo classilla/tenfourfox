@@ -1258,8 +1258,8 @@ protected:
   nsresult InitColorPicker();
 
   // TenFourFox issue 405
-  nsresult InitDatePicker();
-  nsresult InitTimePicker();
+  nsresult InitDatePicker(bool aNoMatterWhat = false);
+  nsresult InitTimePicker(bool aNoMatterWhat = false);
 
   /**
    * Use this function before trying to open a picker.
