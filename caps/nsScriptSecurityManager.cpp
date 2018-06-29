@@ -1111,6 +1111,8 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("bob.dmpxs.com") ||
 
                 BLOK("api.traq.li") ||
+
+                BLOK("s.zkcdn.net") ||
                     0) {
 #undef BLOK
                 // Yup.
