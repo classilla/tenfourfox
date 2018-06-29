@@ -608,6 +608,34 @@ HTMLInputElement::InitTimePicker(bool aNoMatterWhat)
   return NS_ERROR_FAILURE;
 }
 
+static bool
+IsDateInRightFormat(const nsAutoString& aDate)
+{
+  // Avoid exposing web-defined date strings to OS X, since I have
+  // no idea what crap lurks in there. Instead, ensure the string
+  // is in nnnn-nn-nn format, and assume that OS X can handle days
+  // and months that are out of range and reject those as long as
+  // the basic format is acceptable.
+  if (aDate.Length() != 10)
+    return false;
+
+  const char16_t *cur = aDate.BeginReading();
+  const char16_t *end = aDate.EndReading();
+  size_t nchar = 0;
+  for (; cur < end; ++cur) {
+    nchar++;
+    if (nchar == 5 || nchar == 8) {
+      if (char16_t('-') == *cur)
+        continue;
+      return false;
+    }
+    if (char16_t('0') > *cur || char16_t('9') < *cur)
+      return false;
+  }
+
+  return true;
+}
+
 nsresult
 HTMLInputElement::InitDatePicker(bool aNoMatterWhat)
 {
@@ -637,20 +665,27 @@ HTMLInputElement::InitDatePicker(bool aNoMatterWhat)
   GetValueInternal(initialValue);
   nsresult rv = datePicker->Init(win, EmptyString()); // title NYI
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = datePicker->SetDefaultDate(initialValue);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (IsDateInRightFormat(initialValue)) {
+    // Sanitized, therefore safe to give to the Cocoa date formatter.
+    rv = datePicker->SetDefaultDate(initialValue);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::min)) {
     nsAutoString minStr;
     GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
-    rv = datePicker->SetMinDate(minStr);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (IsDateInRightFormat(minStr)) {
+      rv = datePicker->SetMinDate(minStr);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
   }
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::max)) {
     nsAutoString maxStr;
     GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr);
-    rv = datePicker->SetMaxDate(maxStr);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (IsDateInRightFormat(maxStr)) {
+      rv = datePicker->SetMaxDate(maxStr);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
   }
 
   nsCOMPtr<nsIDatePickerShownCallback> callback =
