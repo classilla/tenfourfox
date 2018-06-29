@@ -1005,6 +1005,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdata.carambo.la") ||
                 BLOK("route.carambo.la") ||
 
+                // Avoid blocking specific tags
                 BLOK("us-u.openx.net") ||
                 BLOK("uk-ads.openx.net") ||
                 BLOK("us-ads.openx.net") ||
@@ -1113,6 +1114,17 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("api.traq.li") ||
 
                 BLOK("s.zkcdn.net") ||
+
+                BLOK("s1.listrakbi.com") ||
+                BLOK("at1.listrakbi.com") ||
+                BLOK("cdn.listrakbi.com") ||
+                BLOK("onescript-recscont.listrakbi.com") ||
+
+                BLOK("js.matheranalytics.com") ||
+
+                BLOK("secure-cdn.mplxtms.com") ||
+
+                BLOK("usadmm.dotomi.com") ||
                     0) {
 #undef BLOK
                 // Yup.
