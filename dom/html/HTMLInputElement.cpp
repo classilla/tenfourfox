@@ -113,6 +113,7 @@
 
 #include "nsIColorPicker.h"
 #include "nsIDatePicker.h" // TenFourFox issue 405
+#include "nsITimePicker.h" // TenFourFox issue 405
 #include "nsIStringEnumerator.h"
 #include "HTMLSplitOnSpacesTokenizer.h"
 #include "nsIController.h"

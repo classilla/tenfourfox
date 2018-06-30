@@ -368,6 +368,10 @@ public:
     AllocPDatePickerParent(const nsString& aTitle) override;
     virtual bool DeallocPDatePickerParent(PDatePickerParent* actor) override;
 
+    virtual PTimePickerParent*
+    AllocPTimePickerParent(const nsString& aTitle) override;
+    virtual bool DeallocPTimePickerParent(PTimePickerParent* actor) override;
+
     virtual PIndexedDBPermissionRequestParent*
     AllocPIndexedDBPermissionRequestParent(const Principal& aPrincipal)
                                            override;

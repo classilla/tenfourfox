@@ -3,11 +3,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Date Picker widget for TenFourFox (C)2018 Cameron Kaiser */
+/* Time Picker widget for TenFourFox (C)2018 Cameron Kaiser */
+
+/* IMPORTANT!
+   Because the step determines how the NSDatePickers are configured and
+   the time format (HH:mm or HH:mm:ss), it must be set *before* setting
+   the default time and time range, if any. */
 
 #import <Cocoa/Cocoa.h>
 
-#include "nsDatePicker.h"
+#include "nsTimePicker.h"
 #include "nsCOMPtr.h"
 #include "nsReadableUtils.h"
 #include "nsNetUtil.h"
@@ -30,21 +35,21 @@
 - (id)buildAlertStyle:(int)fp8 title:(id)fp12 message:(id)fp16 first:(id)fp20 second:(id)fp24 third:(id)fp28 oldStyle:(BOOL)fp32 args:(char *)fp36;
 @end
 
-@class NSDoubleDatePicker; // forward declaration
+@class NSDoubleTimePicker; // forward declaration
 
-@interface NSDoubleDateDelegate : NSObject {
-  NSDoubleDatePicker *_parentAlert;
+@interface NSDoubleTimeDelegate : NSObject {
+  NSDoubleTimePicker *_parentAlert;
   NSDatePicker *_source;
 }
 
 - (void)datePickerCell:(NSDatePickerCell *)aDatePickerCell
   validateProposedDateValue:(NSDate **)proposedDateValue
   timeInterval:(NSTimeInterval *)proposedTimeInterval;
-- (void)setParentAlert:(NSDoubleDatePicker *)parentAlert
+- (void)setParentAlert:(NSDoubleTimePicker *)parentAlert
   withSource:(NSDatePicker *)source;
 @end
 
-@implementation NSDoubleDateDelegate
+@implementation NSDoubleTimeDelegate
 - (void)datePickerCell:(NSDatePickerCell *)aDatePickerCell
   validateProposedDateValue:(NSDate **)proposedDateValue
   timeInterval:(NSTimeInterval *)proposedTimeInterval
@@ -53,7 +58,7 @@
   [_parentAlert onSwitchControl:_source newDate:proposedDateValue];
 }
 
-- (void)setParentAlert:(NSDoubleDatePicker *)parentAlert
+- (void)setParentAlert:(NSDoubleTimePicker *)parentAlert
   withSource:(NSDatePicker *)source
 {
   _parentAlert = parentAlert;
@@ -61,35 +66,37 @@
 }
 @end
 
-////// NSDoubleDatePicker
+////// NSDoubleTimePicker
 ////// based on NSAlertCheckbox, http://cocoadev.github.io/NSAlertCheckbox/
 
-@interface NSDoubleDatePicker : NSAlert {
+@interface NSDoubleTimePicker : NSAlert {
   NSDatePicker *_pickertop;
   NSDatePicker *_pickerbottom;
-  NSDoubleDateDelegate *_topdelegate;
-  NSDoubleDateDelegate *_bottomdelegate;
+  NSDoubleTimeDelegate *_topdelegate;
+  NSDoubleTimeDelegate *_bottomdelegate;
+  double step;
 }
 
 - (void)dealloc;
-- (NSDoubleDatePicker *)datePicker:(NSString *)message
+- (NSDoubleTimePicker *)datePicker:(NSString *)message
   defaultButton:(NSString *)defaultButton
   alternateButton:(NSString *)alternateButton
   otherButton:(NSString *)otherButton
   informativeTextWithFormat:(NSString *)format;
 - (void)onSwitchControl:(NSDatePicker *)which newDate:(NSDate **)newDate;
-- (NSDate *)date;
-- (void)setDate:(NSDate *)date;
-- (void)setMinDate:(NSDate *)date;
-- (void)setMaxDate:(NSDate *)date;
+- (void)setStep:(double)newStep;
+- (NSDate *)time;
+- (void)setTime:(NSDate *)time;
+- (void)setMinTime:(NSDate *)time;
+- (void)setMaxTime:(NSDate *)time;
 @end
 
-@interface NSDoubleDatePicker(Private)
+@interface NSDoubleTimePicker(Private)
 - (void)_ensureDatePickers;
 - (void)_addDatePickersToAlert;
 @end
 
-@implementation NSDoubleDatePicker
+@implementation NSDoubleTimePicker
 
 - (void)dealloc
 {
@@ -101,7 +108,7 @@
   [super dealloc];
 }
 
-- (NSDoubleDatePicker *)datePicker:(NSString *)message
+- (NSDoubleTimePicker *)datePicker:(NSString *)message
   defaultButton:(NSString *)defaultButton
   alternateButton:(NSString *)alternateButton
   otherButton:(NSString *)otherButton
@@ -112,7 +119,7 @@
                                alternateButton:alternateButton
                                    otherButton:otherButton
                      informativeTextWithFormat:format];
-  return (NSDoubleDatePicker *)alert;
+  return (NSDoubleTimePicker *)alert;
 }
 
 - (id)buildAlertStyle:(int)fp8
@@ -172,52 +179,63 @@
     NSLog(@"wtf");
 }
 
-- (NSDate *)date
+- (void)setStep:(double)newStep
+{
+  step = newStep;
+}
+
+- (NSDate *)time
 {
   [self _ensureDatePickers];
   return [_pickertop dateValue];
 }
 
-- (void)setDate:(NSDate *)date
+- (void)setTime:(NSDate *)time
 {
   [self _ensureDatePickers];
-  [_pickertop setDateValue:date];
-  [_pickerbottom setDateValue:date];
+  [_pickertop setDateValue:time];
+  [_pickerbottom setDateValue:time];
 }
 
-- (void)setMinDate:(NSDate *)date
+- (void)setMinTime:(NSDate *)time
 {
   [self _ensureDatePickers];
-  [_pickertop setMinDate:date];
-  [_pickerbottom setMinDate:date];
+  [_pickertop setMinDate:time];
+  [_pickerbottom setMinDate:time];
 }
 
-- (void)setMaxDate:(NSDate *)date
+- (void)setMaxTime:(NSDate *)time
 {
   [self _ensureDatePickers];
-  [_pickertop setMaxDate:date];
-  [_pickerbottom setMaxDate:date];
+  [_pickertop setMaxDate:time];
+  [_pickerbottom setMaxDate:time];
 }
 @end
 
-@implementation NSDoubleDatePicker(Private)
+@implementation NSDoubleTimePicker(Private)
 - (void)_ensureDatePickers
 {
   if (!_pickertop) {
 //  NSLog(@"picker init");
     _pickertop = [[NSDatePicker alloc] initWithFrame:NSMakeRect(10,10,295,154)];
     [_pickertop setDatePickerStyle:NSClockAndCalendarDatePickerStyle];
-    [_pickertop setDatePickerElements:NSYearMonthDayDatePickerElementFlag];
+    if (step >= 60.0)
+      [_pickertop setDatePickerElements:NSHourMinuteDatePickerElementFlag];
+    else
+      [_pickertop setDatePickerElements:NSHourMinuteSecondDatePickerElementFlag];
 
-    _topdelegate = [[NSDoubleDateDelegate alloc] init];
+    _topdelegate = [[NSDoubleTimeDelegate alloc] init];
     [_topdelegate setParentAlert:self withSource:_pickertop];
     [_pickertop setDelegate:_topdelegate];
 
     _pickerbottom = [[NSDatePicker alloc] initWithFrame:NSMakeRect(10,10,295,154)];
     [_pickerbottom setDatePickerStyle:NSTextFieldAndStepperDatePickerStyle];
-    [_pickerbottom setDatePickerElements:NSYearMonthDayDatePickerElementFlag];
+    if (step >= 60.0)
+      [_pickerbottom setDatePickerElements:NSHourMinuteDatePickerElementFlag];
+    else
+      [_pickerbottom setDatePickerElements:NSHourMinuteSecondDatePickerElementFlag];
 
-    _bottomdelegate = [[NSDoubleDateDelegate alloc] init];
+    _bottomdelegate = [[NSDoubleTimeDelegate alloc] init];
     [_bottomdelegate setParentAlert:self withSource:_pickerbottom];
     [_pickerbottom setDelegate:_bottomdelegate];
   }
@@ -279,34 +297,35 @@
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS(nsDatePicker, nsIDatePicker)
+NS_IMPL_ISUPPORTS(nsTimePicker, nsITimePicker)
 
-nsDatePicker::nsDatePicker()
+nsTimePicker::nsTimePicker()
 {
   mHasDefault = false;
   mHasMin = false;
   mHasMax = false;
+  mStep = 60.0;
 }
 
-nsDatePicker::~nsDatePicker()
+nsTimePicker::~nsTimePicker()
 {
 }
 
 // XXX Not used
 void
-nsDatePicker::InitNative(nsIWidget *aParent, const nsAString& aTitle)
+nsTimePicker::InitNative(nsIWidget *aParent, const nsAString& aTitle)
 {
   mTitle = aTitle;
 }
 
 // Display the date dialog
-NS_IMETHODIMP nsDatePicker::Show(int16_t *retval)
+NS_IMETHODIMP nsTimePicker::Show(int16_t *retval)
 {
   NS_ENSURE_ARG_POINTER(retval);
 
   *retval = returnCancel;
 
-  int16_t userClicksOK = GetDate();
+  int16_t userClicksOK = GetTime();
 
   *retval = userClicksOK;
   return NS_OK;
@@ -314,7 +333,7 @@ NS_IMETHODIMP nsDatePicker::Show(int16_t *retval)
 
 // Returns |returnOK| if the user presses OK in the dialog.
 int16_t
-nsDatePicker::GetDate()
+nsTimePicker::GetTime()
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
   nsCOMPtr<nsIStringBundle> stringBundle;
@@ -324,7 +343,10 @@ nsDatePicker::GetDate()
 
   NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
   [formatter setFormatterBehavior:NSDateFormatterBehavior10_4];
-  [formatter setDateFormat:@"yyyy-MM-dd"];
+  if (mStep >= 60.0)
+    [formatter setDateFormat:@"HH:mm"];
+  else
+    [formatter setDateFormat:@"HH:mm:ss"];
 
   nsCOMPtr<nsIStringBundleService> bundleSvc = do_GetService(NS_STRINGBUNDLE_CONTRACTID);
   rv = bundleSvc->CreateBundle("chrome://global/locale/commonDialogs.properties", getter_AddRefs(stringBundle));
@@ -335,27 +357,28 @@ nsDatePicker::GetDate()
                                length:intlString.Length()];
   }
 
-  NSDoubleDatePicker *alert = [NSDoubleDatePicker
+  NSDoubleTimePicker *alert = [NSDoubleTimePicker
     alertWithMessageText:@" "// XXX: localize this eventually
            defaultButton:nil // "OK"
          alternateButton:cancelString // "Cancel"
              otherButton:nil // nothin'
     informativeTextWithFormat:@""];
+  [alert setStep:mStep];
   if (mHasDefault) {
-    NSDate *newDate = [formatter dateFromString:nsCocoaUtils::ToNSString(mDefault)];
-    if (newDate)
-      [alert setDate:newDate];
+    NSDate *newTime = [formatter dateFromString:nsCocoaUtils::ToNSString(mDefault)];
+    if (newTime)
+      [alert setTime:newTime];
   } else
-    [alert setDate:[NSDate date]];
+    [alert setTime:[NSDate date]];
   if (mHasMin) {
-    NSDate *newDate = [formatter dateFromString:nsCocoaUtils::ToNSString(mMinDate)];
-    if (newDate)
-      [alert setMinDate:newDate];
+    NSDate *newTime = [formatter dateFromString:nsCocoaUtils::ToNSString(mMinTime)];
+    if (newTime)
+      [alert setMinTime:newTime];
   }
   if (mHasMax) {
-    NSDate *newDate = [formatter dateFromString:nsCocoaUtils::ToNSString(mMaxDate)];
-    if (newDate)
-      [alert setMaxDate:newDate];
+    NSDate *newTime = [formatter dateFromString:nsCocoaUtils::ToNSString(mMaxTime)];
+    if (newTime)
+      [alert setMaxTime:newTime];
   }
 
   nsCocoaUtils::PrepareForNativeAppModalDialog();
@@ -365,7 +388,7 @@ nsDatePicker::GetDate()
     return returnCancel;
 
   nsCocoaUtils::GetStringForNSString([formatter stringFromDate:[alert date]],
-    mDate);
+    mTime);
 
   return returnOK;
   NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(returnCancel);
@@ -375,53 +398,64 @@ nsDatePicker::GetDate()
 // Sets the dialog title to whatever it should be.  If it fails, eh,
 // the OS will provide a sensible default.
 void
-nsDatePicker::SetDialogTitle(const nsString& inTitle, id aPanel)
+nsTimePicker::SetDialogTitle(const nsString& inTitle, id aPanel)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
   [aPanel setTitle:[NSString stringWithCharacters:(const unichar*)inTitle.get() length:inTitle.Length()]];
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
-} 
+}
 
-NS_IMETHODIMP nsDatePicker::SetDefaultDate(const nsAString& aString)
+NS_IMETHODIMP nsTimePicker::SetDefaultTime(const nsAString& aString)
 {
   mDefault = aString;
   mHasDefault = true;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsDatePicker::GetDefaultDate(nsAString& aString)
+NS_IMETHODIMP nsTimePicker::GetDefaultTime(nsAString& aString)
 {
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP nsDatePicker::SetMinDate(const nsAString& aString)
+NS_IMETHODIMP nsTimePicker::SetMinTime(const nsAString& aString)
 {
   mHasMin = true;
-  mMinDate = aString;
+  mMinTime = aString;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsDatePicker::GetMinDate(nsAString& aString)
+NS_IMETHODIMP nsTimePicker::GetMinTime(nsAString& aString)
 {
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP nsDatePicker::SetMaxDate(const nsAString& aString)
+NS_IMETHODIMP nsTimePicker::SetMaxTime(const nsAString& aString)
 {
   mHasMax = true;
-  mMaxDate = aString;
+  mMaxTime = aString;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsDatePicker::GetMaxDate(nsAString& aString)
+NS_IMETHODIMP nsTimePicker::GetMaxTime(nsAString& aString)
 {
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP nsDatePicker::GetSelectedDate(nsAString& aString)
+NS_IMETHODIMP nsTimePicker::SetStep(const double aStep)
 {
-  aString = mDate;
+  mStep = aStep;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsTimePicker::GetStep(double *aStep)
+{
+  return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP nsTimePicker::GetSelectedTime(nsAString& aString)
+{
+  aString = mTime;
   return NS_OK;
 }

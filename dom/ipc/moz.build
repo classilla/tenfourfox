@@ -76,6 +76,7 @@ UNIFIED_SOURCES += [
     'TabContext.cpp',
     'TabMessageUtils.cpp',
     'TabParent.cpp',
+    'TimePickerParent.cpp',
 ]
 
 # Blob.cpp cannot be compiled in unified mode because it triggers a fatal gcc warning.
@@ -112,6 +113,7 @@ IPDL_SOURCES += [
     'PProcessHangMonitor.ipdl',
     'PScreenManager.ipdl',
     'PTabContext.ipdlh',
+    'PTimePicker.ipdl',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')

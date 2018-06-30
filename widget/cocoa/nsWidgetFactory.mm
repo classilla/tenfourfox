@@ -16,6 +16,7 @@
 #include "nsAppShell.h"
 #include "nsAppShellSingleton.h"
 #include "nsDatePicker.h"
+#include "nsTimePicker.h"
 #include "nsFilePicker.h"
 #include "nsColorPicker.h"
 
@@ -46,6 +47,7 @@ using namespace mozilla::widget;
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsCocoaWindow)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsChildView)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDatePicker)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsTimePicker)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsFilePicker)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsColorPicker)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSound)
@@ -95,6 +97,7 @@ NS_DEFINE_NAMED_CID(NS_WINDOW_CID);
 NS_DEFINE_NAMED_CID(NS_POPUP_CID);
 NS_DEFINE_NAMED_CID(NS_CHILD_CID);
 NS_DEFINE_NAMED_CID(NS_DATEPICKER_CID);
+NS_DEFINE_NAMED_CID(NS_TIMEPICKER_CID);
 NS_DEFINE_NAMED_CID(NS_FILEPICKER_CID);
 NS_DEFINE_NAMED_CID(NS_COLORPICKER_CID);
 NS_DEFINE_NAMED_CID(NS_APPSHELL_CID);
@@ -125,6 +128,8 @@ static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
   { &kNS_POPUP_CID, false, NULL, nsCocoaWindowConstructor },
   { &kNS_CHILD_CID, false, NULL, nsChildViewConstructor },
   { &kNS_DATEPICKER_CID, false, NULL, nsDatePickerConstructor,
+    mozilla::Module::MAIN_PROCESS_ONLY },
+  { &kNS_TIMEPICKER_CID, false, NULL, nsTimePickerConstructor,
     mozilla::Module::MAIN_PROCESS_ONLY },
   { &kNS_FILEPICKER_CID, false, NULL, nsFilePickerConstructor,
     mozilla::Module::MAIN_PROCESS_ONLY },
@@ -165,6 +170,8 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
   { "@mozilla.org/widgets/popup/mac;1", &kNS_POPUP_CID },
   { "@mozilla.org/widgets/childwindow/mac;1", &kNS_CHILD_CID },
   { "@mozilla.org/datepicker;1", &kNS_DATEPICKER_CID,
+    mozilla::Module::MAIN_PROCESS_ONLY },
+  { "@mozilla.org/timepicker;1", &kNS_TIMEPICKER_CID,
     mozilla::Module::MAIN_PROCESS_ONLY },
   { "@mozilla.org/filepicker;1", &kNS_FILEPICKER_CID,
     mozilla::Module::MAIN_PROCESS_ONLY },

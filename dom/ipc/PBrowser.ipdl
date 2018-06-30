@@ -15,6 +15,7 @@ include protocol PDatePicker;
 include protocol PFilePicker;
 include protocol PIndexedDBPermissionRequest;
 include protocol PRenderFrame;
+include protocol PTimePicker;
 include protocol PPluginWidget;
 include DOMTypes;
 include JavaScriptTypes;
@@ -106,6 +107,7 @@ prio(normal upto urgent) sync protocol PBrowser
     manages PDocumentRenderer;
     manages PFilePicker;
     manages PDatePicker;
+    manages PTimePicker;
     manages PIndexedDBPermissionRequest;
     manages PRenderFrame;
     manages PPluginWidget;
@@ -380,6 +382,8 @@ parent:
     PFilePicker(nsString aTitle, int16_t aMode);
 
     PDatePicker(nsString aTitle);
+
+    PTimePicker(nsString aTitle);
 
     /**
      * Initiates an asynchronous request for one of the special indexedDB

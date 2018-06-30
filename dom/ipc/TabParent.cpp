@@ -79,6 +79,7 @@
 #include "StructuredCloneData.h"
 #include "ColorPickerParent.h"
 #include "DatePickerParent.h"
+#include "TimePickerParent.h"
 #include "FilePickerParent.h"
 #include "TabChild.h"
 #include "LoadContext.h"
@@ -1223,6 +1224,19 @@ TabParent::AllocPDatePickerParent(const nsString& aTitle)
 
 bool
 TabParent::DeallocPDatePickerParent(PDatePickerParent* actor)
+{
+  delete actor;
+  return true;
+}
+
+PTimePickerParent*
+TabParent::AllocPTimePickerParent(const nsString& aTitle)
+{
+  return new TimePickerParent(aTitle);
+}
+
+bool
+TabParent::DeallocPTimePickerParent(PTimePickerParent* actor)
 {
   delete actor;
   return true;

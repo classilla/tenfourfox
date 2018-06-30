@@ -1,0 +1,92 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIURI;
+interface nsIDOMWindow;
+
+[scriptable, function, uuid(0d79adad-b244-49A5-9997-2a8cad93fc46)]
+interface nsITimePickerShownCallback : nsISupports
+{
+ /**
+  * Callback which is called when a timepicker is shown and a result
+  * is returned.
+  *
+  * @param aResult One of returnOK, returnCancel
+  */
+  void done(in short aResult);
+};
+
+[scriptable, uuid(9840d564-42c8-4d78-9a4d-71002343c920)]
+interface nsITimePicker : nsISupports
+{
+  const short returnOK        = 0;              // User hit Ok, process selection
+  const short returnCancel    = 1;              // User hit cancel, ignore selection
+
+ /**
+  * Initialize the time picker widget.  The time picker is not valid until this
+  * method is called.
+  *
+  * @param      title    The title for the file widget
+  */
+  void init(in nsIDOMWindow parent, in AString title);
+
+ /**
+  * The time that should be suggested to the user as a default.
+  * The time is a string in HH:MM:SS or HH:MM format, depending on step.
+  *
+  * @throws NS_ERROR_FAILURE on attempts to get
+  */
+  attribute AString defaultTime;
+
+ /**
+  * The minimum time range. If null, there is no minimum time.
+  * The time is a string in HH:MM:SS or HH:MM format, depending on step.
+  *
+  * @throws NS_ERROR_FAILURE on attempts to get
+  */
+  attribute AString minTime;
+
+ /**
+  * The maximum time range. If null, there is no maximum time.
+  * The time is a string in HH:MM:SS or HH:MM format, depending on step.
+  *
+  * @throws NS_ERROR_FAILURE on attempts to get
+  */
+  attribute AString maxTime;
+
+ /**
+  * The step in seconds.
+  * If the step is less than 60 seconds, then HH:MM:SS is used, otherwise
+  * HH:MM. The step may be fractional.
+  *
+  * @throws NS_ERROR_FAILURE on attempts to get
+  *
+  * @plays sweet dubstep groove wubwubwubwubwubwub
+  */
+  attribute double step;
+
+ /**
+  * The selected time.
+  *
+  * @return Returns the time currently selected.
+  */
+  readonly attribute AString selectedTime;
+
+ /**
+  * Show time dialog. The dialog is displayed modally.
+  *
+  * @return returnOK if the user selects OK, returnCancel if the user selects cancel
+  */
+  [deprecated] short show();
+
+ /**
+  * Opens the time dialog asynchronously.
+  * The passed-in object's done method will be called upon completion.
+  */
+  void open(in nsITimePickerShownCallback aTimePickerShownCallback);
+};
