@@ -112,8 +112,6 @@
 #include <limits>
 
 #include "nsIColorPicker.h"
-#include "nsIDatePicker.h" // TenFourFox issue 405
-#include "nsITimePicker.h" // TenFourFox issue 405
 #include "nsIStringEnumerator.h"
 #include "HTMLSplitOnSpacesTokenizer.h"
 #include "nsIController.h"
@@ -122,6 +120,10 @@
 
 // input type=date
 #include "js/Date.h"
+#include "nsIDatePicker.h" // TenFourFox issue 405
+
+// input type=time
+#include "nsITimePicker.h" // TenFourFox issue 405
 
 NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Input)
 
@@ -220,6 +222,32 @@ const Decimal HTMLInputElement::kStepAny = Decimal(0);
 
 #define PROGRESS_STR "progress"
 static const uint32_t kProgressEventInterval = 50; // ms
+
+// Increase performance of checking for enabled types of input elements.
+// TenFourFox issue 405
+static bool sDOMInputPrefsCacheInitialized = false;
+static bool sDOMInputEnableDate = false;
+static bool sDOMInputEnableTime = false;
+static bool sDOMInputEnableColor = false;
+static bool sDOMInputEnableNumber = false;
+static void InitializeDOMInputPrefCache() {
+    if (MOZ_UNLIKELY(sDOMInputPrefsCacheInitialized)) return;
+    Preferences::AddBoolVarCache(&sDOMInputEnableDate, "tenfourfox.dom.forms.date");
+    Preferences::AddBoolVarCache(&sDOMInputEnableTime, "tenfourfox.dom.forms.time");
+    // Mozilla implementations that existed prior
+    Preferences::AddBoolVarCache(&sDOMInputEnableColor, "dom.forms.color");
+    Preferences::AddBoolVarCache(&sDOMInputEnableNumber, "dom.forms.number");
+    sDOMInputPrefsCacheInitialized = true;
+}
+#define ENABLED(x) static inline bool Input ## x ## Enabled() { \
+    if (MOZ_UNLIKELY(!sDOMInputPrefsCacheInitialized)) InitializeDOMInputPrefCache(); \
+    return sDOMInputEnable ## x ; \
+}
+ENABLED(Date)
+ENABLED(Time)
+ENABLED(Color)
+ENABLED(Number)
+#undef ENABLED
 
 class HTMLInputElementState final : public nsISupports
 {
@@ -3218,7 +3246,8 @@ HTMLInputElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
   // "hopped up" text field with special handling, we need to preempt
   // the line editor here before it has a chance to handle the key.
   // TenFourFox issue 405
-  if (mType == NS_FORM_INPUT_DATE || mType == NS_FORM_INPUT_TIME) {
+  if ((mType == NS_FORM_INPUT_DATE && InputDateEnabled()) ||
+      (mType == NS_FORM_INPUT_TIME && InputTimeEnabled())) {
     if (aVisitor.mEvent->mMessage == eKeyPress && aVisitor.mEvent->mFlags.mIsTrusted) {
       WidgetKeyboardEvent* keyEvent = aVisitor.mEvent->AsKeyboardEvent();
         if (!(keyEvent->IsMeta() ||
@@ -3913,7 +3942,8 @@ HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
   if (NS_SUCCEEDED(rv)) {
     WidgetKeyboardEvent* keyEvent = aVisitor.mEvent->AsKeyboardEvent();
 
-    if ((mType == NS_FORM_INPUT_DATE || mType == NS_FORM_INPUT_TIME) &&
+    if (((mType == NS_FORM_INPUT_DATE && InputDateEnabled()) ||
+         (mType == NS_FORM_INPUT_TIME && InputTimeEnabled())) &&
         keyEvent && keyEvent->mMessage == eKeyPress &&
         aVisitor.mEvent->mFlags.mIsTrusted &&
         (keyEvent->keyCode == NS_VK_BACK || keyEvent->keyCode == NS_VK_DELETE) &&
@@ -4909,14 +4939,10 @@ HTMLInputElement::ParseAttribute(int32_t aNamespaceID,
         newType = aResult.GetEnumValue();
         if (/* (IsExperimentalMobileType(newType) &&
              !Preferences::GetBool("dom.experimental_forms", false)) || */
-            (newType == NS_FORM_INPUT_DATE &&
-             !Preferences::GetBool("tenfourfox.dom.forms.date", false)) ||
-            (newType == NS_FORM_INPUT_TIME &&
-             !Preferences::GetBool("tenfourfox.dom.forms.time", false)) ||
-            (newType == NS_FORM_INPUT_NUMBER &&
-             !Preferences::GetBool("dom.forms.number", false)) ||
-            (newType == NS_FORM_INPUT_COLOR &&
-             !Preferences::GetBool("dom.forms.color", false))) {
+            (newType == NS_FORM_INPUT_DATE && !InputDateEnabled()) ||
+            (newType == NS_FORM_INPUT_TIME && !InputTimeEnabled()) ||
+            (newType == NS_FORM_INPUT_NUMBER && !InputNumberEnabled()) ||
+            (newType == NS_FORM_INPUT_COLOR && !InputColorEnabled())) {
           newType = kInputDefaultType->value;
           aResult.SetTo(newType, &aValue);
         }
