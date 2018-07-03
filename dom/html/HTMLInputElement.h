@@ -22,6 +22,7 @@
 #include "mozilla/dom/Promise.h"
 #include "nsIFilePicker.h"
 #include "nsIDatePicker.h"
+#include "nsITimePicker.h"
 #include "nsIContentPrefService2.h"
 #include "mozilla/Decimal.h"
 #include "nsContentUtils.h"
@@ -1478,6 +1479,24 @@ private:
 
   private:
     nsCOMPtr<nsIDatePicker> mDatePicker;
+    RefPtr<HTMLInputElement> mInput;
+  };
+
+  class nsTimePickerShownCallback
+    : public nsITimePickerShownCallback
+  {
+    virtual ~nsTimePickerShownCallback()
+    { }
+
+  public:
+    nsTimePickerShownCallback(HTMLInputElement* aInput,
+                              nsITimePicker* aTimePicker);
+    NS_DECL_ISUPPORTS
+
+    NS_IMETHOD Done(int16_t aResult) override;
+
+  private:
+    nsCOMPtr<nsITimePicker> mTimePicker;
     RefPtr<HTMLInputElement> mInput;
   };
 };

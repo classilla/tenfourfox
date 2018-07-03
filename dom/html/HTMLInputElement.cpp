@@ -590,11 +590,18 @@ HTMLInputElement::nsDatePickerShownCallback::Done(int16_t aResult)
   nsAutoString date;
   nsresult rv = mDatePicker->GetSelectedDate(date);
   NS_ENSURE_SUCCESS(rv, rv);
+  mInput->SetValue(date); // set value
 
   // The text control frame (if there is one) isn't going to send a change
   // event because it will think this is done by a script.
   // So, we can safely send one by ourself.
-  mInput->SetValue(date); // set value
+  // Send both input and change events at the same time, since from the
+  // browser's perspective that's exactly what's happening.
+  rv = nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                            static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                            NS_LITERAL_STRING("input"), true,
+                                            false);
+  NS_ENSURE_SUCCESS(rv, rv);
   return nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
                                               static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
                                               NS_LITERAL_STRING("change"), true,
@@ -603,6 +610,47 @@ HTMLInputElement::nsDatePickerShownCallback::Done(int16_t aResult)
 
 NS_IMPL_ISUPPORTS(HTMLInputElement::nsDatePickerShownCallback,
                   nsIDatePickerShownCallback)
+
+HTMLInputElement::nsTimePickerShownCallback::nsTimePickerShownCallback(
+  HTMLInputElement* aInput, nsITimePicker* aTimePicker)
+  : mTimePicker(aTimePicker)
+  , mInput(aInput)
+{
+}
+
+NS_IMETHODIMP
+HTMLInputElement::nsTimePickerShownCallback::Done(int16_t aResult)
+{
+  mInput->PickerClosed();
+
+  if (aResult == nsITimePicker::returnCancel) {
+    return NS_OK;
+  }
+
+  // The result is automatically truncated by the NSDateFormatter;
+  // we don't have to post-process it here.
+  nsAutoString time;
+  nsresult rv = mTimePicker->GetSelectedTime(time);
+  NS_ENSURE_SUCCESS(rv, rv);
+  mInput->SetValue(time); // set value
+
+  // The text control frame (if there is one) isn't going to send a change
+  // event because it will think this is done by a script.
+  // So, we can safely send one by ourself.
+  // Send both input and change events as above.
+  rv = nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                            static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                            NS_LITERAL_STRING("input"), true,
+                                            false);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                              static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                              NS_LITERAL_STRING("change"), true,
+                                              false);
+}
+
+NS_IMPL_ISUPPORTS(HTMLInputElement::nsTimePickerShownCallback,
+                  nsITimePickerShownCallback)
 
 bool
 HTMLInputElement::IsPopupBlocked() const
@@ -630,11 +678,110 @@ HTMLInputElement::IsPopupBlocked() const
 
 /* Time and date picker implementations from TenFourFox issue 405. */
 
+static bool
+IsTimeInRightFormat(const nsAutoString &aTime, double aStep)
+{
+  // Avoid exposing web-defined time strings to OS X, since I have
+  // no idea what crap lurks in there. Check that there are digits
+  // and : in the right place. We assume NSDateFormatter can at least
+  // reject values that are out of range.
+
+  // Since the step determines the template that NSDateFormatter uses,
+  // an eight character (HH:MM:SS) time with step >= 60 should fail,
+  // and a five character (HH:MM) time with step < 60 should too, or the
+  // formatter may choose bizarre times. This is probably not websafe
+  // but that's too bad.
+  if (aStep >= 60.0 && aTime.Length() != 5)
+    return false;
+  if (aStep <  60.0 && aTime.Length() != 8)
+    return false;
+
+  // Length is validated, so the loop here suffices for both cases.
+  const char16_t *cur = aTime.BeginReading();
+  const char16_t *end = aTime.EndReading();
+  size_t nchar = 0;
+  for (; cur < end; ++cur) {
+    nchar++;
+    if (nchar == 3 || nchar == 6) {
+      if (char16_t(':') == *cur)
+        continue;
+      return false;
+    }
+    if (char16_t('0') > *cur || char16_t('9') < *cur)
+      return false;
+  }
+
+  return true;
+}
+
 nsresult
 HTMLInputElement::InitTimePicker(bool aNoMatterWhat)
 {
-  NS_WARNING("InitTimePicker NYI");
-  return NS_ERROR_FAILURE;
+  if (mPickerRunning) {
+    NS_WARNING("Just one nsITimePicker is allowed");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIDocument> doc = OwnerDoc();
+
+  nsCOMPtr<nsPIDOMWindow> win = doc->GetWindow();
+  if (!win) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!aNoMatterWhat && IsPopupBlocked()) {
+    win->FirePopupBlockedEvent(doc, nullptr, EmptyString(), EmptyString());
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsITimePicker> timePicker = do_CreateInstance("@mozilla.org/timepicker;1");
+  if (!timePicker) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsAutoString initialValue;
+  GetValueInternal(initialValue);
+
+  // Step value is apparently in milliseconds.
+  double step = GetStep().toDouble() / 1000.0;
+  if (step == 0.0) step = 60.0; // XXX?
+
+  nsresult rv = timePicker->Init(win, EmptyString()); // title NYI
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = timePicker->SetStep(step);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (IsTimeInRightFormat(initialValue, step)) {
+    // Sanitized, therefore safe to give to the Cocoa time formatter.
+    rv = timePicker->SetDefaultTime(initialValue);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::min)) {
+    nsAutoString minStr;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
+    if (IsTimeInRightFormat(minStr, step)) {
+      rv = timePicker->SetMinTime(minStr);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::max)) {
+    nsAutoString maxStr;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr);
+    if (IsTimeInRightFormat(maxStr, step)) {
+      rv = timePicker->SetMaxTime(maxStr);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
+  nsCOMPtr<nsITimePickerShownCallback> callback =
+    new nsTimePickerShownCallback(this, timePicker);
+
+  rv = timePicker->Open(callback);
+  if (NS_SUCCEEDED(rv)) {
+    mPickerRunning = true;
+  }
+
+  return rv;
 }
 
 static bool
@@ -642,8 +789,8 @@ IsDateInRightFormat(const nsAutoString& aDate)
 {
   // Avoid exposing web-defined date strings to OS X, since I have
   // no idea what crap lurks in there. Instead, ensure the string
-  // is in nnnn-nn-nn format, and assume that OS X can handle days
-  // and months that are out of range and reject those as long as
+  // is in nnnn-nn-nn format, and assume NSDateFormatter handles days
+  // and months that are out of range and rejects those as long as
   // the basic format is acceptable.
   if (aDate.Length() != 10)
     return false;

@@ -387,7 +387,7 @@ nsTimePicker::GetTime()
   if (result == NSAlertAlternateReturn) // cancel
     return returnCancel;
 
-  nsCocoaUtils::GetStringForNSString([formatter stringFromDate:[alert date]],
+  nsCocoaUtils::GetStringForNSString([formatter stringFromDate:[alert time]],
     mTime);
 
   return returnOK;
