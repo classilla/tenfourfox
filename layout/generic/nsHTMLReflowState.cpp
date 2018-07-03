@@ -478,6 +478,11 @@ void nsHTMLReflowState::InitCBReflowState()
     mCBReflowState = nullptr;
     return;
   }
+  if (parentReflowState->mFlags.mDummyParentReflowState) {
+    // from bug 1316649
+    mCBReflowState = parentReflowState;
+    return;
+  }
 
   if (parentReflowState->frame == frame->GetContainingBlock()) {
     // Inner table frames need to use the containing block of the outer
