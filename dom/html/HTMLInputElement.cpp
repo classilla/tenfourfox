@@ -679,22 +679,37 @@ HTMLInputElement::IsPopupBlocked() const
 /* Time and date picker implementations from TenFourFox issue 405. */
 
 static bool
-IsTimeInRightFormat(const nsAutoString &aTime, double aStep)
+IsTimeInRightFormat(nsAutoString &aTime, double aStep)
 {
   // Avoid exposing web-defined time strings to OS X, since I have
   // no idea what crap lurks in there. Check that there are digits
   // and : in the right place. We assume NSDateFormatter can at least
   // reject values that are out of range.
-
+  // XXX:
   // Since the step determines the template that NSDateFormatter uses,
   // an eight character (HH:MM:SS) time with step >= 60 should fail,
   // and a five character (HH:MM) time with step < 60 should too, or the
   // formatter may choose bizarre times. This is probably not websafe
-  // but that's too bad.
-  if (aStep >= 60.0 && aTime.Length() != 5)
-    return false;
-  if (aStep <  60.0 && aTime.Length() != 8)
-    return false;
+  // but that's too bad. As a real world example, one of the MDN time
+  // examples uses "9:00" as the minimum time. This fails this test, but
+  // the comments in ParseTime() indicates that HH:MM is the only valid
+  // format, not H:MM. Furthermore, the real Firefox 61 also doesn't
+  // accept it as a minimum time, so we are consistent with recent builds.
+
+  // The spec allows HH:MM:SS.ssss. There's no point to this because
+  // we can't express such times with the NSDatePicker control, so we
+  // just chop it off.
+  int32_t dot = aTime.Find(".", false, 0, -1);
+  if (dot != kNotFound) {
+    if (dot != 8) return false; // H:MM:SS.ssss not allowed
+    if (aStep >= 60.0) return false; // HH:MM required
+    aTime.SetLength(8);
+  } else {
+    if (aStep >= 60.0 && aTime.Length() != 5)
+      return false;
+    if (aStep <  60.0 && aTime.Length() != 8)
+      return false;
+  }
 
   // Length is validated, so the loop here suffices for both cases.
   const char16_t *cur = aTime.BeginReading();
