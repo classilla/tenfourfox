@@ -6055,7 +6055,7 @@ PanGestureTypeForEvent(NSEvent* aEvent)
 
   WidgetMouseEventBase* mouseEvent = outGeckoEvent->AsMouseEventBase();
   mouseEvent->buttons = 0;
-#if(0) // wtf, but this works.
+#if(0)
   NSUInteger mouseButtons = [NSEvent pressedMouseButtons];
 
   if (mouseButtons & 0x01) {
@@ -6074,7 +6074,6 @@ PanGestureTypeForEvent(NSEvent* aEvent)
     mouseEvent->buttons |= WidgetMouseEvent::e5thButtonFlag;
   }
 #endif
-
   switch ([aMouseEvent type]) {
     case NSLeftMouseDown:
     case NSLeftMouseUp:
@@ -6085,11 +6084,28 @@ PanGestureTypeForEvent(NSEvent* aEvent)
     case NSOtherMouseDown:
     case NSOtherMouseUp:
     case NSOtherMouseDragged:
+     {
+      // pressedMouseButtons: doesn't exist in the 10.4 SDK, so use the
+      // additional code below (TenFourFox issue 507).
+
+      NSInteger mouseButtons = [aMouseEvent buttonNumber];
+      if (mouseButtons == 0)
+        mouseEvent->buttons |= WidgetMouseEvent::eLeftButtonFlag;
+      else if (mouseButtons == 1)
+        mouseEvent->buttons |= WidgetMouseEvent::eRightButtonFlag;
+      else if (mouseButtons == 2)
+        mouseEvent->buttons |= WidgetMouseEvent::eMiddleButtonFlag;
+      else if (mouseButtons == 3)
+        mouseEvent->buttons |= WidgetMouseEvent::e4thButtonFlag;
+      else if (mouseButtons >= 4) // WRONG! but close enough
+        mouseEvent->buttons |= WidgetMouseEvent::e5thButtonFlag;
+
       if ([aMouseEvent subtype] == NSTabletPointEventSubtype) {
         mouseEvent->pressure = [aMouseEvent pressure];
         MOZ_ASSERT(mouseEvent->pressure >= 0.0 && mouseEvent->pressure <= 1.0);
       }
       break;
+     }
 
     default:
       // Don't check other NSEvents for pressure.
