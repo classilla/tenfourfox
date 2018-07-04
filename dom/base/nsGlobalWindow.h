@@ -215,6 +215,11 @@ public:
   // If there is an IdleRequestCallback, this is requestIdleCallback (issue 463).
   nsCOMPtr<nsIScriptTimeoutHandler> mScriptHandler;
   RefPtr<mozilla::dom::IdleRequestCallback> mCallback;
+
+  // These members are only valid when this is a idle callback
+  // (TenFourFox issue 463).
+  uint32_t mElapsed;
+  uint32_t mDeadline;
 };
 
 struct IdleObserverHolder
