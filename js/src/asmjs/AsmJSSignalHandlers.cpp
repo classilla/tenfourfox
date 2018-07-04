@@ -26,6 +26,14 @@
 #include "jit/Disassembler.h"
 #include "vm/Runtime.h"
 
+#ifdef XP_MACOSX
+#ifndef __ppc__
+#include <sys/ucontext.h>
+#include <mach/mach_types.h>
+#include <mach/thread_status.h>
+#endif
+#endif
+
 using namespace js;
 using namespace js::jit;
 
@@ -202,9 +210,9 @@ class AutoSetHandlingSignal
 #  define R15_sig(p) ((p)->uc_mcontext.mc_r15)
 # endif
 #elif defined(XP_DARWIN)
-# define EIP_sig(p) ((p)->uc_mcontext->__ss.__eip)
-# define RIP_sig(p) ((p)->uc_mcontext->__ss.__rip)
-# define R15_sig(p) ((p)->uc_mcontext->__ss.__pc)
+# define EIP_sig(p) ((p)->uc_mcontext->ss.eip)
+# define RIP_sig(p) ((p)->uc_mcontext->ss.rip)
+# define R15_sig(p) ((p)->uc_mcontext->ss.pc)
 #else
 # error "Don't know how to read/write to the thread state via the mcontext_t."
 #endif
