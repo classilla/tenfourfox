@@ -6029,12 +6029,19 @@ PanGestureTypeForEvent(NSEvent* aEvent)
 {
   [self convertCocoaMouseEvent:aMouseEvent toGeckoEvent:outWheelEvent];
 
+#ifdef __LP64__
   bool usePreciseDeltas = nsCocoaUtils::HasPreciseScrollingDeltas(aMouseEvent) &&
     Preferences::GetBool("mousewheel.enable_pixel_scrolling", true);
 
   outWheelEvent->deltaMode = usePreciseDeltas ? nsIDOMWheelEvent::DOM_DELTA_PIXEL
                                               : nsIDOMWheelEvent::DOM_DELTA_LINE;
   outWheelEvent->isMomentum = nsCocoaUtils::IsMomentumScrollEvent(aMouseEvent);
+#else
+  // Pixel scrolling and phases/momentum aren't supported until 10.7.
+  // We don't support 10.7, so let's save some overhead.
+  outWheelEvent->deltaMode = nsIDOMWheelEvent::DOM_DELTA_LINE;
+  outWheelEvent->isMomentum = false;
+#endif
 }
 
 - (void) convertCocoaMouseEvent:(NSEvent*)aMouseEvent
