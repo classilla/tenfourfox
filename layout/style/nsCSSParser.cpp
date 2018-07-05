@@ -7242,9 +7242,9 @@ static const nsCSSProperty kBorderBlockEndIDs[] = {
   eCSSProperty_border_block_end_color
 };
 static const nsCSSProperty kColumnRuleIDs[] = {
-  eCSSProperty__moz_column_rule_width,
-  eCSSProperty__moz_column_rule_style,
-  eCSSProperty__moz_column_rule_color
+  eCSSProperty_column_rule_width,
+  eCSSProperty_column_rule_style,
+  eCSSProperty_column_rule_color
 };
 
 bool
@@ -11152,9 +11152,9 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
 
   case eCSSProperty_clip:
     return ParseRect(eCSSProperty_clip);
-  case eCSSProperty__moz_columns:
+  case eCSSProperty_columns:
     return ParseColumns();
-  case eCSSProperty__moz_column_rule:
+  case eCSSProperty_column_rule:
     return ParseBorderSide(kColumnRuleIDs, false);
   case eCSSProperty_content:
     return ParseContent();
@@ -13007,8 +13007,8 @@ CSSParserImpl::ParseColumns()
   // find.
   static const nsCSSProperty columnIDs[] = {
     eCSSPropertyExtra_x_auto_value,
-    eCSSProperty__moz_column_count,
-    eCSSProperty__moz_column_width
+    eCSSProperty_column_count,
+    eCSSProperty_column_width
   };
   const int32_t numProps = MOZ_ARRAY_LENGTH(columnIDs);
 
