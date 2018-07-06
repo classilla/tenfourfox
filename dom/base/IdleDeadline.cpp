@@ -51,13 +51,14 @@ IdleDeadline::TimeRemaining()
   }
 
   RefPtr<nsPerformance> performance = mWindow->GetPerformance();
-  if (!performance) {
+  if (MOZ_UNLIKELY(!performance)) {
     // If there is no performance object the window is partially torn
     // down, so we can safely say that there is no time remaining.
     return 0.0;
   }
 
-  return std::max(mDeadline - performance->Now(), 0.0);
+  DOMHighResTimeStamp remaining = std::max(mDeadline - performance->Now(), 0.0);
+  return remaining;
 }
 
 bool
