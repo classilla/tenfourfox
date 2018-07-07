@@ -1043,7 +1043,7 @@ pref("dom.disable_window_open_feature.status",      true);
 pref("dom.allow_scripts_to_close_windows",          false);
 
 // TenFourFox issue 463
-pref("dom.requestIdleCallback.enabled",             false);
+pref("tenfourfox.dom.requestIdleCallback.enabled",  true);
 
 pref("dom.require_user_interaction_for_beforeunload", true);
 
