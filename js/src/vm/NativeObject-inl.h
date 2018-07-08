@@ -130,12 +130,13 @@ NativeObject::ensureDenseInitializedLengthNoPackedCheck(ExclusiveContext* cx, ui
     uint32_t& initlen = getElementsHeader()->initializedLength;
 
     if (initlen < index + extra) {
+        uint32_t numShifted = getElementsHeader()->numShiftedElements();
         size_t offset = initlen;
         for (HeapSlot* sp = elements_ + initlen;
              sp != elements_ + (index + extra);
              sp++, offset++)
         {
-            sp->init(this, HeapSlot::Element, offset, MagicValue(JS_ELEMENTS_HOLE));
+            sp->init(this, HeapSlot::Element, offset + numShifted, MagicValue(JS_ELEMENTS_HOLE));
         }
         initlen = index + extra;
     }
@@ -284,6 +285,36 @@ NativeObject::setSlotWithType(ExclusiveContext* cx, Shape* shape,
         shape->setOverwritten();
 
     AddTypePropertyId(cx, this, shape->propid(), value);
+}
+
+inline bool
+NativeObject::tryShiftDenseElements(uint32_t count)
+{
+    ObjectElements* header = getElementsHeader();
+    if (header->initializedLength == count ||
+        count > ObjectElements::MaxShiftedElements ||
+        header->isCopyOnWrite() ||
+        // header->isFrozen() || // NYI
+        header->hasNonwritableArrayLength())
+    {
+        return false;
+    }
+
+    MOZ_ASSERT(count > 0);
+    MOZ_ASSERT(count < header->initializedLength);
+
+    if (MOZ_UNLIKELY(header->numShiftedElements() + count > ObjectElements::MaxShiftedElements)) {
+        unshiftElements();
+        header = getElementsHeader();
+    }
+
+    prepareElementRangeForOverwrite(0, count);
+    header->addShiftedElements(count);
+
+    elements_ += count;
+    ObjectElements* newHeader = getElementsHeader();
+    memmove(newHeader, header, sizeof(ObjectElements));
+    return true;
 }
 
 /* Make an object with pregenerated shape from a NEWOBJECT bytecode. */

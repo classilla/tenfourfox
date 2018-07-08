@@ -536,6 +536,8 @@ js::SetIntegrityLevel(JSContext* cx, HandleObject obj, IntegrityLevel level)
         if (level == IntegrityLevel::Frozen && obj->is<ArrayObject>()) {
             if (!obj->as<ArrayObject>().maybeCopyElementsForWrite(cx))
                 return false;
+            if (nobj->getElementsHeader()->numShiftedElements() > 0)
+                nobj->unshiftElements();
             obj->as<ArrayObject>().getElementsHeader()->setNonwritableArrayLength();
         }
     } else {
@@ -3653,8 +3655,10 @@ JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::ClassIn
 
     if (is<NativeObject>() && as<NativeObject>().hasDynamicElements()) {
         js::ObjectElements* elements = as<NativeObject>().getElementsHeader();
-        if (!elements->isCopyOnWrite() || elements->ownerObject() == this)
-            info->objectsMallocHeapElementsNonAsmJS += mallocSizeOf(elements);
+        if (!elements->isCopyOnWrite() || elements->ownerObject() == this) {
+            void* allocatedElements = as<NativeObject>().getUnshiftedElementsHeader();
+            info->objectsMallocHeapElementsNonAsmJS += mallocSizeOf(allocatedElements);
+        }
     }
 
     // Other things may be measured in the future if DMD indicates it is worthwhile.
@@ -3722,7 +3726,7 @@ JSObject::sizeOfIncludingThisInNursery() const
         if (native.hasDynamicElements()) {
             js::ObjectElements& elements = *native.getElementsHeader();
             if (!elements.isCopyOnWrite() || elements.ownerObject() == this)
-                size += elements.capacity * sizeof(HeapSlot);
+                size += (elements.capacity + elements.numShiftedElements()) * sizeof(HeapSlot);
         }
 
         if (is<ArgumentsObject>())

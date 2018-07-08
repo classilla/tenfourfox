@@ -38,18 +38,25 @@ FOR_EACH_GC_POINTER_TYPE(INSTANTIATE_ALL_VALID_TYPES)
 bool
 HeapSlot::preconditionForSet(NativeObject* owner, Kind kind, uint32_t slot)
 {
-    return kind == Slot
-         ? &owner->getSlotRef(slot) == this
-         : &owner->getDenseElement(slot) == (const Value*)this;
+    if (kind == Slot)
+        return &owner->getSlotRef(slot) == this;
+
+    uint32_t numShifted = owner->getElementsHeader()->numShiftedElements();
+    MOZ_ASSERT(slot >= numShifted);
+    return &owner->getDenseElement(slot - numShifted) == (const Value*)this;
 }
 
 bool
 HeapSlot::preconditionForWriteBarrierPost(NativeObject* obj, Kind kind, uint32_t slot,
                                               Value target) const
 {
-    return kind == Slot
-         ? obj->getSlotAddressUnchecked(slot)->get() == target
-         : static_cast<HeapSlot*>(obj->getDenseElements() + slot)->get() == target;
+    if (kind == Slot) {
+        return (obj->getSlotAddressUnchecked(slot)->get() == target);
+    } else {
+        uint32_t numShifted = obj->getElementsHeader()->numShiftedElements();
+        MOZ_ASSERT(slot >= numShifted);
+        return (static_cast<HeapSlot*>(obj->getDenseElements() + (slot - numShifted))->get() == target);
+    }
 }
 
 bool
