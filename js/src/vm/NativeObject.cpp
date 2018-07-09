@@ -760,7 +760,7 @@ NativeObject::goodElementsAllocationAmount(ExclusiveContext* cx, uint32_t reqCap
 }
 
 void
-NativeObject::unshiftElements()
+NativeObject::moveShiftedElements()
 {
     ObjectElements* header = getElementsHeader();
     uint32_t numShifted = header->numShiftedElements();
@@ -776,7 +776,7 @@ NativeObject::unshiftElements()
     elements_ = newHeader->elements();
 
     // To move the elements, temporarily update initializedLength to include
-    // both shifted and unshifted elements.
+    // the shifted elements.
     newHeader->initializedLength += numShifted;
 
     // Move the elements. Initialize to |undefined| to ensure pre-barriers
@@ -792,14 +792,95 @@ NativeObject::unshiftElements()
 }
 
 void
-NativeObject::maybeUnshiftElements()
+NativeObject::maybeMoveShiftedElements()
 {
     ObjectElements* header = getElementsHeader();
     MOZ_ASSERT(header->numShiftedElements() > 0);
 
-    // Unshift if less than a third of the allocated space is in use.
+    // Move the elements if less than a third of the allocated space is in use.
     if (header->capacity < header->numAllocatedElements() / 3)
-        unshiftElements();
+        moveShiftedElements();
+}
+
+bool
+NativeObject::tryUnshiftDenseElements(uint32_t count)
+{
+    MOZ_ASSERT(count > 0);
+
+    ObjectElements* header = getElementsHeader();
+    uint32_t numShifted = header->numShiftedElements();
+
+    if (count > numShifted) {
+        // We need more elements than are easily available. Try to make space
+        // for more elements than we need (and shift the remaining ones) so
+        // that unshifting more elements later will be fast.
+
+        // Don't bother reserving elements if the number of elements is small.
+        // Note that there's no technical reason for using this particular
+        // limit.
+        if (header->initializedLength <= 10 ||
+            header->isCopyOnWrite() ||
+            // header->isFrozen() || // NYI
+            header->hasNonwritableArrayLength() ||
+            MOZ_UNLIKELY(count > ObjectElements::MaxShiftedElements))
+        {
+            return false;
+        }
+
+        MOZ_ASSERT(header->capacity >= header->initializedLength);
+        uint32_t unusedCapacity = header->capacity - header->initializedLength;
+
+        // Determine toShift, the number of extra elements we want to make
+        // available.
+        uint32_t toShift = count - numShifted;
+        MOZ_ASSERT(toShift <= ObjectElements::MaxShiftedElements,
+                   "count <= MaxShiftedElements so toShift <= MaxShiftedElements");
+
+        // Give up if we need to allocate more elements.
+        if (toShift > unusedCapacity)
+            return false;
+
+        // Move more elements than we need, so that other unshift calls will be
+        // fast. We just have to make sure we don't exceed unusedCapacity.
+        toShift = Min(toShift + unusedCapacity / 2, unusedCapacity);
+
+        // Ensure |numShifted + toShift| does not exceed MaxShiftedElements.
+        if (numShifted + toShift > ObjectElements::MaxShiftedElements)
+            toShift = ObjectElements::MaxShiftedElements - numShifted;
+
+        MOZ_ASSERT(count <= numShifted + toShift);
+        MOZ_ASSERT(numShifted + toShift <= ObjectElements::MaxShiftedElements);
+        MOZ_ASSERT(toShift <= unusedCapacity);
+
+        // Now move/unshift the elements.
+        uint32_t initLen = header->initializedLength;
+        setDenseInitializedLength(initLen + toShift);
+        for (uint32_t i = 0; i < toShift; i++)
+            initDenseElement(initLen + i, UndefinedValue());
+        moveDenseElements(toShift, 0, initLen);
+
+        // Shift the elements we just prepended.
+        shiftDenseElementsUnchecked(toShift);
+
+        // We can now fall-through to the fast path below.
+        header = getElementsHeader();
+        MOZ_ASSERT(header->numShiftedElements() == numShifted + toShift);
+
+        numShifted = header->numShiftedElements();
+        MOZ_ASSERT(count <= numShifted);
+    }
+
+    elements_ -= count;
+    ObjectElements* newHeader = getElementsHeader();
+    memmove(newHeader, header, sizeof(ObjectElements));
+
+    newHeader->unshiftShiftedElements(count);
+
+    // Initialize to |undefined| to ensure pre-barriers don't see garbage.
+    for (uint32_t i = 0; i < count; i++)
+        initDenseElement(i, UndefinedValue());
+
+    return true;
 }
 
 bool
@@ -810,22 +891,31 @@ NativeObject::growElements(ExclusiveContext* cx, uint32_t reqCapacity)
     if (denseElementsAreCopyOnWrite())
         MOZ_CRASH();
 
-    // If there are shifted elements, consider unshifting them first. If we
-    // don't unshift here, the code below will include the shifted elements in
-    // the resize.
+    // If there are shifted elements, consider moving them first. If we don't
+    // move them here, the code below will include the shifted elements in the
+    // resize.
     uint32_t numShifted = getElementsHeader()->numShiftedElements();
     if (numShifted > 0) {
-        maybeUnshiftElements();
+        // If the number of elements is small, it's cheaper to just move them as
+        // it may avoid a malloc/realloc. Note that there's no technical reason
+        // for using this particular value, but it works well in real-world use
+        // cases.
+        static const size_t MaxElementsToMoveEagerly = 20;
+
+        if (getElementsHeader()->initializedLength <= MaxElementsToMoveEagerly)
+            moveShiftedElements();
+        else
+            maybeMoveShiftedElements();
         if (getDenseCapacity() >= reqCapacity)
             return true;
         numShifted = getElementsHeader()->numShiftedElements();
 
-        // Ensure |reqCapacity + numShifted| below won't overflow by forcing an
-        // unshift in that case.
+        // If |reqCapacity + numShifted| overflows, we just move all shifted
+        // elements to avoid the problem.
         CheckedInt<uint32_t> checkedReqCapacity(reqCapacity);
         checkedReqCapacity += numShifted;
         if (MOZ_UNLIKELY(!checkedReqCapacity.isValid())) {
-            unshiftElements();
+            moveShiftedElements();
             numShifted = 0;
         }
     }
@@ -895,10 +985,10 @@ NativeObject::shrinkElements(ExclusiveContext* cx, uint32_t reqCapacity)
     if (!hasDynamicElements())
         return;
 
-    // If we have shifted elements, consider unshifting them.
+    // If we have shifted elements, consider moving them.
     uint32_t numShifted = getElementsHeader()->numShiftedElements();
     if (numShifted > 0) {
-        maybeUnshiftElements();
+        maybeMoveShiftedElements();
         numShifted = getElementsHeader()->numShiftedElements();
     }
 

@@ -300,11 +300,19 @@ NativeObject::tryShiftDenseElements(uint32_t count)
         return false;
     }
 
+    shiftDenseElementsUnchecked(count);
+    return true;
+}
+
+inline void
+NativeObject::shiftDenseElementsUnchecked(uint32_t count)
+{
+    ObjectElements* header = getElementsHeader();
     MOZ_ASSERT(count > 0);
     MOZ_ASSERT(count < header->initializedLength);
 
     if (MOZ_UNLIKELY(header->numShiftedElements() + count > ObjectElements::MaxShiftedElements)) {
-        unshiftElements();
+        moveShiftedElements();
         header = getElementsHeader();
     }
 
@@ -314,7 +322,6 @@ NativeObject::tryShiftDenseElements(uint32_t count)
     elements_ += count;
     ObjectElements* newHeader = getElementsHeader();
     memmove(newHeader, header, sizeof(ObjectElements));
-    return true;
 }
 
 /* Make an object with pregenerated shape from a NEWOBJECT bytecode. */

@@ -169,7 +169,7 @@ ArraySetLength(JSContext* cx, Handle<ArrayObject*> obj, HandleId id,
  * to the next element and moving the ObjectElements header in memory (so it's
  * stored where the shifted Value used to be).
  *
- * Shifted elements can be unshifted when we grow the array, when the array is
+ * Shifted elements can be moved when we grow the array, when the array is
  * frozen (for simplicity, shifted elements are not supported on objects that
  * are frozen, have copy-on-write elements, or on arrays with non-writable
  * length).
@@ -205,12 +205,13 @@ class ObjectElements
     };
 
     // The flags word stores both the flags and the number of shifted elements.
-    // Allow shifting 2047 elements before unshifting.
-    static const size_t NumShiftedElementsBits = 11;
+    // Allow shifting 1023 elements before actually moving the elements.
+    // (Reduced from 2047 due to memory concerns on our 32-bit Power Macs.)
+    static const size_t NumShiftedElementsBits = 10;
     static const size_t MaxShiftedElements = (1 << NumShiftedElementsBits) - 1;
     static const size_t NumShiftedElementsShift = 32 - NumShiftedElementsBits;
     static const size_t FlagsMask = (1 << NumShiftedElementsShift) - 1;
-    static_assert(MaxShiftedElements == 2047,
+    static_assert(MaxShiftedElements == 1023,
                   "MaxShiftedElements should match the comment");
 
   private:
@@ -279,6 +280,16 @@ class ObjectElements
         flags = (numShifted << NumShiftedElementsShift) | (flags & FlagsMask);
         capacity -= count;
         initializedLength -= count;
+    }
+    void unshiftShiftedElements(uint32_t count) {
+        MOZ_ASSERT(count > 0);
+        MOZ_ASSERT(!(flags & (NONWRITABLE_ARRAY_LENGTH | FROZEN | COPY_ON_WRITE)));
+        uint32_t numShifted = numShiftedElements();
+        MOZ_ASSERT(count <= numShifted);
+        numShifted -= count;
+        flags = (numShifted << NumShiftedElementsShift) | (flags & FlagsMask);
+        capacity += count;
+        initializedLength += count;
     }
     void clearShiftedElements() {
         flags &= FlagsMask;
@@ -917,6 +928,8 @@ class NativeObject : public JSObject
             elements_[i].HeapSlot::~HeapSlot();
     }
 
+    inline void shiftDenseElementsUnchecked(uint32_t count);
+
     static bool rollbackProperties(ExclusiveContext* cx, HandleNativeObject obj,
                                    uint32_t slotSpan);
 
@@ -1032,11 +1045,15 @@ class NativeObject : public JSObject
     // Try to shift |count| dense elements, see the "Shifted elements" comment.
     inline bool tryShiftDenseElements(uint32_t count);
 
-    // Unshift all shifted elements so that numShiftedElements is 0.
-    void unshiftElements();
+    // Try to make space for |count| dense elements at the start of the array.
+    bool tryUnshiftDenseElements(uint32_t count);
 
-    // If this object has many shifted elements, unshift them.
-    void maybeUnshiftElements();
+    // Move the elements header and all shifted elements to the start of the
+    // allocated elements space, so that numShiftedElements is 0 afterwards.
+    void moveShiftedElements();
+
+    // If this object has many shifted elements call moveShiftedElements.
+    void maybeMoveShiftedElements();
 
     static bool goodElementsAllocationAmount(ExclusiveContext* cx, uint32_t reqAllocated,
                                              uint32_t length, uint32_t* goodAmount);

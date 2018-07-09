@@ -769,7 +769,7 @@ js::ArraySetLength(JSContext* cx, Handle<ArrayObject*> arr, HandleId id,
 
     if (attrs & JSPROP_READONLY) {
         if (header->numShiftedElements() > 0) {
-            arr->unshiftElements();
+            arr->moveShiftedElements();
             header = arr->getElementsHeader();
         }
 
@@ -2255,7 +2255,7 @@ js::array_unshift(JSContext* cx, unsigned argc, Value* vp)
     if (args.length() > 0) {
         /* Slide up the array to make room for all args at the bottom. */
         if (length > 0) {
-            // Only include a fast path for boxed arrays. Unboxed arrays can'nt
+            // Only include a fast path for boxed arrays. Unboxed arrays can't
             // be optimized here because unshifting temporarily places holes at
             // the start of the array.
             bool optimized = false;
@@ -2267,14 +2267,16 @@ js::array_unshift(JSContext* cx, unsigned argc, Value* vp)
                 ArrayObject* aobj = &obj->as<ArrayObject>();
                 if (!aobj->lengthIsWritable())
                     break;
-                DenseElementResult result = aobj->ensureDenseElements(cx, length, args.length());
-                if (result != DenseElementResult::Success) {
-                    if (result == DenseElementResult::Failure)
-                        return false;
-                    MOZ_ASSERT(result == DenseElementResult::Incomplete);
-                    break;
+                if (MOZ_UNLIKELY(length > UINT32_MAX) || !aobj->tryUnshiftDenseElements(args.length())) {
+                    DenseElementResult result = aobj->ensureDenseElements(cx, length, args.length());
+                    if (result != DenseElementResult::Success) {
+                        if (result == DenseElementResult::Failure)
+                            return false;
+                        MOZ_ASSERT(result == DenseElementResult::Incomplete);
+                        break;
+                    }
+                    aobj->moveDenseElements(args.length(), 0, length);
                 }
-                aobj->moveDenseElements(args.length(), 0, length);
                 for (uint32_t i = 0; i < args.length(); i++)
                     aobj->setDenseElement(i, MagicValue(JS_ELEMENTS_HOLE));
                 optimized = true;

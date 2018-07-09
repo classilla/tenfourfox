@@ -537,7 +537,7 @@ js::SetIntegrityLevel(JSContext* cx, HandleObject obj, IntegrityLevel level)
             if (!obj->as<ArrayObject>().maybeCopyElementsForWrite(cx))
                 return false;
             if (nobj->getElementsHeader()->numShiftedElements() > 0)
-                nobj->unshiftElements();
+                nobj->moveShiftedElements();
             obj->as<ArrayObject>().getElementsHeader()->setNonwritableArrayLength();
         }
     } else {
