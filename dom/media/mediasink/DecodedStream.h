@@ -27,6 +27,7 @@ class MediaInputPort;
 class MediaStream;
 class MediaStreamGraph;
 class OutputStreamManager;
+struct PlaybackInfoInit;
 class ProcessedMediaStream;
 class TimeStamp;
 
@@ -131,10 +132,7 @@ protected:
   virtual ~DecodedStream();
 
 private:
-  void CreateData(MozPromiseHolder<GenericPromise>&& aPromise);
   void DestroyData(UniquePtr<DecodedStreamData> aData);
-  void OnDataCreated(UniquePtr<DecodedStreamData> aData);
-  void InitTracks();
   void AdvanceTracks();
   void SendAudio(double aVolume, bool aIsSameOrigin);
   void SendVideo(bool aIsSameOrigin);
