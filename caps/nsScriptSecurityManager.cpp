@@ -1205,6 +1205,12 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             }
         }
         return NS_OK;
+    } else if ((!sourceScheme.LowerCaseEqualsLiteral("http") &&
+                !sourceScheme.LowerCaseEqualsLiteral("https")) &&
+                 targetScheme.LowerCaseEqualsLiteral("moz-icon")) {
+        // Don't expose moz-icon:// to the web, but it's okay for things
+        // like file:// and ftp://.
+        return NS_OK;
     }
 
     // If the schemes don't match, the policy is specified by the protocol
@@ -1233,9 +1239,11 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     if (hasFlags) {
         if (aFlags & nsIScriptSecurityManager::ALLOW_CHROME) {
 
-            // For now, don't change behavior for resource:// or moz-icon:// and
-            // just allow them.
-            if (!targetScheme.EqualsLiteral("chrome")) {
+            // For now, don't change behavior for resource:// and
+            // just allow it. This is required for extensions that inject
+            // internal resources into pages such as custom controls.
+            if (!targetScheme.EqualsLiteral("chrome") &&
+                !targetScheme.EqualsLiteral("moz-icon")) {
                 return NS_OK;
             }
 
