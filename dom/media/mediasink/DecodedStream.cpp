@@ -385,28 +385,6 @@ DecodedStream::DestroyData(UniquePtr<DecodedStreamData> aData)
   AbstractThread::MainThread()->Dispatch(r.forget());
 }
 
-
-
-bool
-DecodedStream::HasConsumers() const
-{
-  return !mOutputStreamManager->IsEmpty();
-}
-
-
-
-void
-DecodedStream::AddOutput(ProcessedMediaStream* aStream, bool aFinishWhenEnded)
-{
-  mOutputStreamManager->Add(aStream, aFinishWhenEnded);
-}
-
-void
-DecodedStream::RemoveOutput(MediaStream* aStream)
-{
-  mOutputStreamManager->Remove(aStream);
-}
-
 void
 DecodedStream::SetPlaying(bool aPlaying)
 {
