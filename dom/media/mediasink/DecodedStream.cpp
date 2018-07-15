@@ -13,6 +13,7 @@
 #include "MediaData.h"
 #include "MediaQueue.h"
 #include "MediaStreamGraph.h"
+#include "OutputStreamManager.h"
 #include "SharedBuffer.h"
 #include "VideoSegment.h"
 #include "VideoUtils.h"
@@ -126,7 +127,7 @@ UpdateStreamSuspended(MediaStream* aStream, bool aBlocking)
  */
 class DecodedStreamData {
 public:
-  DecodedStreamData(OutputStreamManager aOutputStreamManager,
+  DecodedStreamData(OutputStreamManager* aOutputStreamManager,
                     PlaybackInfoInit&& aInit,
                     MozPromiseHolder<GenericPromise>&& aPromise);
   ~DecodedStreamData();
@@ -160,10 +161,10 @@ public:
   // StreamTime going forward.
   bool mEOSVideoCompensation;
 
-  OutputStreamManager mOutputStreamManager;
+  const RefPtr<OutputStreamManager> mOutputStreamManager;
 };
 
-DecodedStreamData::DecodedStreamData(OutputStreamManager aOutputStreamManager,
+DecodedStreamData::DecodedStreamData(OutputStreamManager* aOutputStreamManager,
                                      PlaybackInfoInit&& aInit,
                                      MozPromiseHolder<GenericPromise>&& aPromise)
   : mAudioFramesWritten(0)
@@ -172,7 +173,7 @@ DecodedStreamData::DecodedStreamData(OutputStreamManager aOutputStreamManager,
   , mHaveSentFinish(false)
   , mHaveSentFinishAudio(false)
   , mHaveSentFinishVideo(false)
-  , mStream(aOutputStreamManager.Graph()->CreateSourceStream(nullptr))
+  , mStream(aOutputStreamManager->Graph()->CreateSourceStream(nullptr))
   // DecodedStreamGraphListener will resolve this promise.
   , mListener(new DecodedStreamGraphListener(mStream, Move(aPromise)))
   // mPlaying is initially true because MDSM won't start playback until playing
@@ -182,7 +183,7 @@ DecodedStreamData::DecodedStreamData(OutputStreamManager aOutputStreamManager,
   , mOutputStreamManager(aOutputStreamManager)
 {
   mStream->AddListener(mListener);
-  mOutputStreamManager.Connect(mStream);
+  mOutputStreamManager->Connect(mStream);
 
   // Initialize tracks.
   if (aInit.mInfo.HasAudio()) {
@@ -197,7 +198,7 @@ DecodedStreamData::DecodedStreamData(OutputStreamManager aOutputStreamManager,
 
 DecodedStreamData::~DecodedStreamData()
 {
-  mOutputStreamManager.Disconnect();
+  mOutputStreamManager->Disconnect();
   mListener->Forget();
   mStream->Destroy();
 }
@@ -225,8 +226,10 @@ DecodedStreamData::SetPlaying(bool aPlaying)
 
 DecodedStream::DecodedStream(AbstractThread* aOwnerThread,
                              MediaQueue<MediaData>& aAudioQueue,
-                             MediaQueue<MediaData>& aVideoQueue)
+                             MediaQueue<MediaData>& aVideoQueue,
+                             OutputStreamManager* aOutputStreamManager)
   : mOwnerThread(aOwnerThread)
+  , mOutputStreamManager(aOutputStreamManager)
   , mShuttingDown(false)
   , mPlaying(false)
   , mSameOrigin(false)
@@ -291,7 +294,7 @@ DecodedStream::Start(int64_t aStartTime, const MediaInfo& aInfo)
   class R : public nsRunnable {
     typedef MozPromiseHolder<GenericPromise> Promise;
   public:
-    R(PlaybackInfoInit&& aInit, Promise&& aPromise, OutputStreamManager aManager)
+    R(PlaybackInfoInit&& aInit, Promise&& aPromise, OutputStreamManager* aManager)
       : mInit(Move(aInit)), mOutputStreamManager(aManager)
     {
       mPromise = Move(aPromise);
@@ -301,7 +304,7 @@ DecodedStream::Start(int64_t aStartTime, const MediaInfo& aInfo)
       MOZ_ASSERT(NS_IsMainThread());
       // No need to create a source stream when there are no output streams. This
       // happens when RemoveOutput() is called immediately after StartPlayback().
-      if (!mOutputStreamManager.Graph()) {
+      if (!mOutputStreamManager->Graph()) {
         // Resolve the promise to indicate the end of playback.
         mPromise.Resolve(true, __func__);
         return NS_OK;
@@ -317,7 +320,7 @@ DecodedStream::Start(int64_t aStartTime, const MediaInfo& aInfo)
   private:
     PlaybackInfoInit mInit;
     Promise mPromise;
-    OutputStreamManager mOutputStreamManager;
+    RefPtr<OutputStreamManager> mOutputStreamManager;
     UniquePtr<DecodedStreamData> mData;
   };
 
@@ -387,7 +390,7 @@ DecodedStream::DestroyData(UniquePtr<DecodedStreamData> aData)
 bool
 DecodedStream::HasConsumers() const
 {
-  return !mOutputStreamManager.IsEmpty();
+  return !mOutputStreamManager->IsEmpty();
 }
 
 
@@ -395,13 +398,13 @@ DecodedStream::HasConsumers() const
 void
 DecodedStream::AddOutput(ProcessedMediaStream* aStream, bool aFinishWhenEnded)
 {
-  mOutputStreamManager.Add(aStream, aFinishWhenEnded);
+  mOutputStreamManager->Add(aStream, aFinishWhenEnded);
 }
 
 void
 DecodedStream::RemoveOutput(MediaStream* aStream)
 {
-  mOutputStreamManager.Remove(aStream);
+  mOutputStreamManager->Remove(aStream);
 }
 
 void

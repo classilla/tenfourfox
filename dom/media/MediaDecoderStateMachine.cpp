@@ -19,6 +19,7 @@
 #include "mediasink/AudioSinkWrapper.h"
 #include "mediasink/VideoSink.h"
 #include "mediasink/DecodedStream.h"
+#include "mediasink/OutputStreamManager.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Logging.h"
 #include "mozilla/mozalloc.h"
@@ -288,7 +289,9 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mSentLoadedMetadataEvent(false),
   mSentFirstFrameLoadedEvent(false, "MediaDecoderStateMachine::mSentFirstFrameLoadedEvent"),
   mSentPlaybackEndedEvent(false),
-  mStreamSink(new DecodedStream(mTaskQueue, mAudioQueue, mVideoQueue)),
+  mOutputStreamManager(new OutputStreamManager()),
+  mStreamSink(new DecodedStream(
+    mTaskQueue, mAudioQueue, mVideoQueue, mOutputStreamManager)),
   mResource(aDecoder->GetResource()),
   mAudioOffloading(false),
   mBuffered(mTaskQueue, TimeIntervals(),

@@ -10,7 +10,6 @@
 #include "MediaEventSource.h"
 #include "MediaInfo.h"
 #include "MediaSink.h"
-#include "OutputStreamManager.h"
 
 #include "mozilla/AbstractThread.h"
 #include "mozilla/Maybe.h"
@@ -23,6 +22,7 @@ namespace mozilla {
 class DecodedStreamData;
 class MediaData;
 class MediaStream;
+class OutputStreamManager;
 struct PlaybackInfoInit;
 class ProcessedMediaStream;
 class TimeStamp;
@@ -35,7 +35,8 @@ class DecodedStream : public media::MediaSink {
 public:
   DecodedStream(AbstractThread* aOwnerThread,
                 MediaQueue<MediaData>& aAudioQueue,
-                MediaQueue<MediaData>& aVideoQueue);
+                MediaQueue<MediaData>& aVideoQueue,
+                OutputStreamManager* aOutputStreamManager);
 
   // MediaSink functions.
   const PlaybackParams& GetPlaybackParams() const override;
@@ -91,7 +92,7 @@ private:
    * Main thread only members.
    */
   // Data about MediaStreams that are being fed by the decoder.
-  OutputStreamManager mOutputStreamManager;
+  const RefPtr<OutputStreamManager> mOutputStreamManager;
   // True if MDSM has begun shutdown.
   bool mShuttingDown;
 
