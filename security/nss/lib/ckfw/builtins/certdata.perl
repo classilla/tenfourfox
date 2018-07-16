@@ -83,6 +83,11 @@ while(<>) {
     $objsize[$count] = 0;
   }
 
+  # Fields we don't support should go in this list.
+  if ( $fields[0] =~ /CKA_NSS_MOZILLA_CA_POLICY/ ) {
+    next;
+  }
+
   @{$objects[$count][$objsize[$count]++]} = ( "$fields[0]", $fields[2], "$size" );
 
  # print "$fields[0] | $fields[1] | $size | $fields[2]\n";
