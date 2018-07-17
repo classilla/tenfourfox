@@ -2,8 +2,14 @@
 
 # from AuroraFox, modified for TenFourFox
 
-set verbose
 set ppath=$1
+if ("$ppath" == "/" || "$ppath" == "") then
+	echo 'invalid path'
+	exit
+endif
+
+set verbose
+rm -rf $ppath || echo 'Never mind.'
 cp -RL obj-ff-dbg/dist/TenFourFox.app $ppath || cp -RL obj-ff-dbg/dist/TenFourFoxDebug.app $ppath || exit
 cd $ppath/Contents/MacOS || exit
 
