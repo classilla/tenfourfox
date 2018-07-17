@@ -832,6 +832,7 @@ CipherSuiteChangeObserver::Observe(nsISupports* aSubject,
 void nsNSSComponent::setValidationOptions(bool isInitialSetting,
                                           const MutexAutoLock& lock)
 {
+#if(0)
   // This preference controls whether we do OCSP fetching and does not affect
   // OCSP stapling.
   // 0 = disabled, 1 = enabled
@@ -847,6 +848,7 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
     Telemetry::Accumulate(Telemetry::CERT_OCSP_ENABLED, ocspEnabled);
     Telemetry::Accumulate(Telemetry::CERT_OCSP_REQUIRED, ocspRequired);
   }
+#endif
 
   bool ocspStaplingEnabled = Preferences::GetBool("security.ssl.enable_ocsp_stapling",
                                                   true);

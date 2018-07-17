@@ -239,9 +239,11 @@ nsNSSSocketInfo::NoteTimeUntilReady()
 
   mNotedTimeUntilReady = true;
 
+#if(0)
   // This will include TCP and proxy tunnel wait time
   Telemetry::AccumulateTimeDelta(Telemetry::SSL_TIME_UNTIL_READY,
                                  mSocketCreationTimestamp, TimeStamp::Now());
+#endif
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
          ("[%p] nsNSSSocketInfo::NoteTimeUntilReady\n", mFd));
 }
@@ -249,6 +251,7 @@ nsNSSSocketInfo::NoteTimeUntilReady()
 void
 nsNSSSocketInfo::SetHandshakeCompleted()
 {
+#if(0)
   if (!mHandshakeCompleted) {
     enum HandshakeType {
       Resumption = 1,
@@ -272,7 +275,7 @@ nsNSSSocketInfo::SetHandshakeCompleted()
                           handshakeType == Resumption);
     Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_TYPE, handshakeType);
   }
-
+#endif
 
     // Remove the plain text layer as it is not needed anymore.
     // The plain text layer is not always present - so its not a fatal error
@@ -550,10 +553,12 @@ nsNSSSocketInfo::SetCertVerificationResult(PRErrorCode errorCode,
     SetCanceled(errorCode, errorMessageType);
   }
 
+#if(0)
   if (mPlaintextBytesRead && !errorCode) {
     Telemetry::Accumulate(Telemetry::SSL_BYTES_BEFORE_CERT_CALLBACK,
                           AssertedCast<uint32_t>(mPlaintextBytesRead));
   }
+#endif
 
   mCertVerificationState = after_cert_verification;
 }
@@ -784,10 +789,12 @@ nsSSLIOLayerHelpers::rememberIntolerantAtVersion(const nsACString& hostName,
           break;
       }
     }
+#if(0)
     if (fallbackLimitBucket) {
       Telemetry::Accumulate(Telemetry::SSL_FALLBACK_LIMIT_REACHED,
                             fallbackLimitBucket);
     }
+#endif
 
     return false;
   }
@@ -1083,6 +1090,7 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
     // this as a hard failure, but forget any intolerance so that later attempts
     // don't use this version (i.e., range.max) and trigger the error again.
 
+#if(0)
     // First, track the original cause of the version fallback.  This uses the
     // same buckets as the telemetry below, except that bucket 0 will include
     // all cases where there wasn't an original reason.
@@ -1091,6 +1099,7 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
                                    socketInfo->GetPort());
     Telemetry::Accumulate(Telemetry::SSL_VERSION_FALLBACK_INAPPROPRIATE,
                           tlsIntoleranceTelemetryBucket(originalReason));
+#endif
 
     helpers.forgetIntolerance(socketInfo->GetHostName(),
                               socketInfo->GetPort());
@@ -1111,11 +1120,11 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
     if (!fallbackLimitReached || helpers.mUnrestrictedRC4Fallback) {
       if (helpers.rememberStrongCiphersFailed(socketInfo->GetHostName(),
                                               socketInfo->GetPort(), err)) {
-        Telemetry::Accumulate(Telemetry::SSL_WEAK_CIPHERS_FALLBACK,
-                              tlsIntoleranceTelemetryBucket(err));
+        //Telemetry::Accumulate(Telemetry::SSL_WEAK_CIPHERS_FALLBACK,
+        //                      tlsIntoleranceTelemetryBucket(err));
         return true;
       }
-      Telemetry::Accumulate(Telemetry::SSL_WEAK_CIPHERS_FALLBACK, 0);
+      //Telemetry::Accumulate(Telemetry::SSL_WEAK_CIPHERS_FALLBACK, 0);
     } else if (err == SSL_ERROR_NO_CYPHER_OVERLAP) {
       // Indicate that the override UI should be shown.
       socketInfo->SetSecurityState(
@@ -1139,6 +1148,7 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
     return false;
   }
 
+#if(0)
   Telemetry::ID pre;
   Telemetry::ID post;
   switch (range.max) {
@@ -1162,6 +1172,7 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
   // The difference between _PRE and _POST represents how often we avoided
   // TLS intolerance fallback due to remembered tolerance.
   Telemetry::Accumulate(pre, reason);
+#endif
 
   if (!helpers.rememberIntolerantAtVersion(socketInfo->GetHostName(),
                                            socketInfo->GetPort(),
@@ -1169,7 +1180,8 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
     return false;
   }
 
-  Telemetry::Accumulate(post, reason);
+
+  //Telemetry::Accumulate(post, reason);
 
   return true;
 }
