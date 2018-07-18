@@ -2,15 +2,17 @@
 
 # from AuroraFox, modified for TenFourFox
 
-set ppath=$1
+set ppath="$1"
 if ("$ppath" == "/" || "$ppath" == "") then
 	echo 'invalid path'
 	exit
 endif
+if (-e "$ppath/Contents/MacOS/firefox") then
+	rm -rf "$ppath" || exit
+endif
 
 set verbose
-rm -rf $ppath || echo 'Never mind.'
-cp -RL obj-ff-dbg/dist/TenFourFox.app $ppath || cp -RL obj-ff-dbg/dist/TenFourFoxDebug.app $ppath || exit
+cp -RL obj-ff-dbg/dist/TenFourFox.app "$ppath" || cp -RL obj-ff-dbg/dist/TenFourFoxDebug.app "$ppath" || exit
 cd $ppath/Contents/MacOS || exit
 
 # determine which libgcc got linked (default to /opt/local/lib/gcc48)
