@@ -278,6 +278,7 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     // Start with leftmost, using hostname as a screen (TenFourFox issue 492).
 
                     HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/ea/notosansjapanese/v6/NotoSansJP-");
+                    HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/s/notosansjp/v14/");
 
                     HTTP_OR_HTTPS_SUBDIR("www.icloud.com", "/fonts/SFNSText-");
 
@@ -285,10 +286,17 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("typeface.nytimes.com", "/fonts/nyt-cheltenham-");
 
                     // Don't cut to SF-Pro-; there are some dingbat fonts that DO work.
+                    HTTP_OR_HTTPS_SUBDIR("www.apple.com", "/wss/fonts/SF-Pro-JP/v1/");
                     HTTP_OR_HTTPS_SUBDIR("www.apple.com", "/wss/fonts/SF-Pro-Text/v1/");
                     HTTP_OR_HTTPS_SUBDIR("www.apple.com", "/wss/fonts/SF-Pro-Display/v1/");
 
                     HTTP_OR_HTTPS_SUBDIR("lib.intuitcdn.net", "/fonts/AvenirNext/1.0/");
+
+                    HTTP_OR_HTTPS_SUBDIR("use.typekit.net", "/af/e3bd4a/00000000000000003b9ade5d/");
+                    HTTP_OR_HTTPS_SUBDIR("use.typekit.net", "/af/dd9acd/0000000000000000000177dc/");
+                    HTTP_OR_HTTPS_SUBDIR("use.typekit.net", "/af/7088b5/0000000000000000000177de/");
+                    HTTP_OR_HTTPS_SUBDIR("use.typekit.net", "/af/430cc5/0000000000000000000177da/");
+                    HTTP_OR_HTTPS_SUBDIR("platform-assets.typekit.net", "/AND-Regular.");
 
                     // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");
