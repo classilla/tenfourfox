@@ -173,7 +173,7 @@ public:
     STREAM_LOG(LogLevel::Debug, ("Starting system thread"));
     profiler_register_thread("MediaStreamGraph", &aLocal);
     LIFECYCLE_LOG("Starting a new system driver for graph %p\n",
-                  mDriver->mGraphImpl);
+                  mDriver->mGraphImpl.get());
     if (mDriver->mPreviousDriver) {
       LIFECYCLE_LOG("%p releasing an AudioCallbackDriver(%p), for graph %p\n",
                     mDriver,
@@ -204,7 +204,7 @@ private:
 void
 ThreadedDriver::Start()
 {
-  LIFECYCLE_LOG("Starting thread for a SystemClockDriver  %p\n", mGraphImpl);
+  LIFECYCLE_LOG("Starting thread for a SystemClockDriver  %p\n", mGraphImpl.get());
   nsCOMPtr<nsIRunnable> event = new MediaStreamGraphInitThreadRunnable(this);
   // Note: mThread may be null during event->Run() if we pass to NewNamedThread!  See AudioInitTask
   nsresult rv = NS_NewNamedThread("MediaStreamGrph", getter_AddRefs(mThread));
@@ -599,7 +599,7 @@ AudioCallbackDriver::Destroy()
 void
 AudioCallbackDriver::Resume()
 {
-  STREAM_LOG(LogLevel::Debug, ("Resuming audio threads for MediaStreamGraph %p", mGraphImpl));
+  STREAM_LOG(LogLevel::Debug, ("Resuming audio threads for MediaStreamGraph %p", mGraphImpl.get()));
   if (cubeb_stream_start(mAudioStream) != CUBEB_OK) {
     NS_WARNING("Could not start cubeb stream for MSG.");
   }
@@ -611,12 +611,12 @@ AudioCallbackDriver::Start()
   // If this is running on the main thread, we can't open the stream directly,
   // because it is a blocking operation.
   if (NS_IsMainThread()) {
-    STREAM_LOG(LogLevel::Debug, ("Starting audio threads for MediaStreamGraph %p from a new thread.", mGraphImpl));
+    STREAM_LOG(LogLevel::Debug, ("Starting audio threads for MediaStreamGraph %p from a new thread.", mGraphImpl.get()));
     RefPtr<AsyncCubebTask> initEvent =
       new AsyncCubebTask(this, AsyncCubebOperation::INIT);
     initEvent->Dispatch();
   } else {
-    STREAM_LOG(LogLevel::Debug, ("Starting audio threads for MediaStreamGraph %p from the previous driver's thread", mGraphImpl));
+    STREAM_LOG(LogLevel::Debug, ("Starting audio threads for MediaStreamGraph %p from the previous driver's thread", mGraphImpl.get()));
     Init();
 
     // Check if we need to resolve promises because the driver just got switched
@@ -669,7 +669,7 @@ AudioCallbackDriver::Revive()
     mGraphImpl->SetCurrentDriver(mNextDriver);
     mNextDriver->Start();
   } else {
-    STREAM_LOG(LogLevel::Debug, ("Starting audio threads for MediaStreamGraph %p from a new thread.", mGraphImpl));
+    STREAM_LOG(LogLevel::Debug, ("Starting audio threads for MediaStreamGraph %p from a new thread.", mGraphImpl.get()));
     RefPtr<AsyncCubebTask> initEvent =
       new AsyncCubebTask(this, AsyncCubebOperation::INIT);
     initEvent->Dispatch();
