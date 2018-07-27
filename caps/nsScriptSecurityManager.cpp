@@ -1125,6 +1125,9 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("secure-cdn.mplxtms.com") ||
 
                 BLOK("usadmm.dotomi.com") ||
+
+                BLOK("p.d.1emn.com") ||
+                BLOK("p.w.1emn.com") ||
                     0) {
 #undef BLOK
                 // Yup.
