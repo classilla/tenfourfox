@@ -227,7 +227,7 @@
 {
   NSWindow *window = [self window];
   NSView *content = [window contentView];
-  float padding = 14.0f;
+  float padding = 10.0f;
 
   NSArray *subviews = [content subviews];
   NSEnumerator *en = [subviews objectEnumerator];
