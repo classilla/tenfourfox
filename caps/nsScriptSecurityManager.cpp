@@ -1101,6 +1101,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("collector.cint.com") ||
 
                 BLOK("dpm.demdex.net") ||
+                BLOK("nbcu.demdex.net") ||
 
                 BLOK("www.uciservice.com") ||
 
@@ -1128,6 +1129,16 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("p.d.1emn.com") ||
                 BLOK("p.w.1emn.com") ||
+
+                BLOK("ak.sail-horizon.com") ||
+                BLOK("api.sail-personalize.com") ||
+
+                BLOK("st.dynamicyield.com") ||
+                BLOK("px.dynamicyield.com") ||
+
+                BLOK("nervoussummer.com") ||
+
+                BLOK("usasync01.admantx.com") ||
                     0) {
 #undef BLOK
                 // Yup.
