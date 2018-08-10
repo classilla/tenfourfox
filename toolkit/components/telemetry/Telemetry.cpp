@@ -3882,6 +3882,8 @@ SetHistogramRecordingEnabled(ID aID, bool aEnabled)
 void
 Accumulate(ID aHistogram, uint32_t aSample)
 {
+return;
+/*
   if (!TelemetryImpl::CanRecordBase()) {
     return;
   }
@@ -3890,11 +3892,14 @@ Accumulate(ID aHistogram, uint32_t aSample)
   if (NS_SUCCEEDED(rv)) {
     HistogramAdd(*h, aSample, gHistograms[aHistogram].dataset);
   }
+*/
 }
 
 void
 Accumulate(ID aID, const nsCString& aKey, uint32_t aSample)
 {
+return;
+/*
   if (!TelemetryImpl::CanRecordBase()) {
     return;
   }
@@ -3902,11 +3907,14 @@ Accumulate(ID aID, const nsCString& aKey, uint32_t aSample)
   KeyedHistogram* keyed = TelemetryImpl::GetKeyedHistogramById(nsDependentCString(th.id()));
   MOZ_ASSERT(keyed);
   keyed->Add(aKey, aSample);
+*/
 }
 
 void
 Accumulate(const char* name, uint32_t sample)
 {
+return;
+/*
   if (!TelemetryImpl::CanRecordBase()) {
     return;
   }
@@ -3921,11 +3929,14 @@ Accumulate(const char* name, uint32_t sample)
   if (NS_SUCCEEDED(rv)) {
     HistogramAdd(*h, sample, gHistograms[id].dataset);
   }
+*/
 }
 
 void
 Accumulate(const char *name, const nsCString& key, uint32_t sample)
 {
+return;
+/*
     if (!TelemetryImpl::CanRecordBase()) {
       return;
     }
@@ -3934,25 +3945,29 @@ Accumulate(const char *name, const nsCString& key, uint32_t sample)
     if (NS_SUCCEEDED(rv)) {
       Accumulate(id, key, sample);
     }
+*/
 }
 
 void
 AccumulateTimeDelta(ID aHistogram, TimeStamp start, TimeStamp end)
 {
+return;
+/*
   Accumulate(aHistogram,
              static_cast<uint32_t>((end - start).ToMilliseconds()));
+*/
 }
 
 bool
 CanRecordBase()
 {
-  return TelemetryImpl::CanRecordBase();
+  return false; // TelemetryImpl::CanRecordBase();
 }
 
 bool
 CanRecordExtended()
 {
-  return TelemetryImpl::CanRecordExtended();
+  return false; // TelemetryImpl::CanRecordExtended();
 }
 
 base::Histogram*
@@ -3975,14 +3990,18 @@ RecordSlowSQLStatement(const nsACString &statement,
                        const nsACString &dbName,
                        uint32_t delay)
 {
+/*
   TelemetryImpl::RecordSlowStatement(statement, dbName, delay);
+*/
 }
 
 void
 RecordWebrtcIceCandidates(const uint32_t iceCandidateBitmask,
                           const bool success, const bool loop)
 {
+/*
   TelemetryImpl::RecordIceCandidates(iceCandidateBitmask, success, loop);
+*/
 }
 
 void Init()
@@ -4348,7 +4367,7 @@ NSMODULE_DEFN(nsTelemetryModule) = &kTelemetryModule;
 void
 XRE_TelemetryAccumulate(int aID, uint32_t aSample)
 {
-  mozilla::Telemetry::Accumulate((mozilla::Telemetry::ID) aID, aSample);
+//  mozilla::Telemetry::Accumulate((mozilla::Telemetry::ID) aID, aSample);
 }
 
 KeyedHistogram::KeyedHistogram(const nsACString &name, const nsACString &expiration,
