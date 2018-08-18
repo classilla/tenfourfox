@@ -755,6 +755,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("sb.scorecardresearch.com") ||
 
                 BLOK("ad.doubleclick.net") ||
+                BLOK("cm.g.doubleclick.net") ||
                 BLOK("static.doubleclick.net") ||
                 BLOK("stats.g.doubleclick.net") ||
                 BLOK("pubads.g.doubleclick.net") ||
@@ -809,6 +810,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdn-gl.imrworldwide.com") ||
                 BLOK("secure-us.imrworldwide.com") ||
                 BLOK("secure-dcr.imrworldwide.com") ||
+                BLOK("secure-drm.imrworldwide.com") ||
                 
                 BLOK("labs-cdn.revcontent.com") ||
                 BLOK("trends.revcontent.com") ||
@@ -1139,6 +1141,9 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("nervoussummer.com") ||
 
                 BLOK("usasync01.admantx.com") ||
+
+                BLOK("synchrobox.adswizz.com") ||
+                BLOK("delivery-cdn-cf.adswizz.com") ||
                     0) {
 #undef BLOK
                 // Yup.
