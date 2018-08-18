@@ -522,11 +522,14 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     return NS_ERROR_NULL_POINTER;
   }
 
+#if(0)
+// This is obnoxious, and seems to no longer be relevant.
   NS_WARN_IF_FALSE(!aTargetFrame ||
                    !aTargetFrame->GetContent() ||
                    aTargetFrame->GetContent() == aTargetContent ||
                    aTargetFrame->GetContent()->GetFlattenedTreeParent() == aTargetContent,
                    "aTargetFrame should be related with aTargetContent");
+#endif
 
   mCurrentTarget = aTargetFrame;
   mCurrentTargetContent = nullptr;
