@@ -160,6 +160,7 @@ private:
   void     ReportConnectionTelemetry();
 
   void StopSession(nsresult reason);
+  void DoStopSession(nsresult reason);
   void AbortSession(nsresult reason);
   void ReleaseSession();
   void CleanupConnection();
@@ -294,6 +295,8 @@ private:
   bool                            mPrivateBrowsing;
 
   nsCOMPtr<nsIDashboardEventNotifier> mConnectionLogService;
+
+  mozilla::Mutex mMutex;
 
 // These members are used for network per-app metering (bug 855949)
 // Currently, they are only available on gonk.
