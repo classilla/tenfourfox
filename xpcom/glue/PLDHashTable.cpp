@@ -387,7 +387,7 @@ PLDHashTable::Clear()
 // distinction is a bit grotty but this function is hot enough that these
 // differences are worthwhile.
 template <PLDHashTable::SearchReason Reason>
-PLDHashEntryHdr* PL_DHASH_FASTCALL
+MOZ_ALWAYS_INLINE PLDHashEntryHdr*
 PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash)
 {
   MOZ_ASSERT(mEntryStore.Get());

@@ -755,6 +755,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("sb.scorecardresearch.com") ||
 
                 BLOK("ad.doubleclick.net") ||
+                BLOK("cm.g.doubleclick.net") ||
                 BLOK("static.doubleclick.net") ||
                 BLOK("stats.g.doubleclick.net") ||
                 BLOK("pubads.g.doubleclick.net") ||
@@ -800,6 +801,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 
                 BLOK("xcp.go.sonobi.com") ||
                 BLOK("apex.go.sonobi.com") ||
+                BLOK("mtrx.go.sonobi.com") ||
                 
                 BLOK("s.ntv.io") ||
                 
@@ -808,6 +810,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdn-gl.imrworldwide.com") ||
                 BLOK("secure-us.imrworldwide.com") ||
                 BLOK("secure-dcr.imrworldwide.com") ||
+                BLOK("secure-drm.imrworldwide.com") ||
                 
                 BLOK("labs-cdn.revcontent.com") ||
                 BLOK("trends.revcontent.com") ||
@@ -1004,6 +1007,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("cdata.carambo.la") ||
                 BLOK("route.carambo.la") ||
 
+                // Avoid blocking specific tags
                 BLOK("us-u.openx.net") ||
                 BLOK("uk-ads.openx.net") ||
                 BLOK("us-ads.openx.net") ||
@@ -1099,6 +1103,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("collector.cint.com") ||
 
                 BLOK("dpm.demdex.net") ||
+                BLOK("nbcu.demdex.net") ||
 
                 BLOK("www.uciservice.com") ||
 
@@ -1106,6 +1111,39 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("uk.cdn-net.com") ||
                 BLOK("six.cdn-net.com") ||
                 BLOK("www.cdn-net.com") ||
+
+                BLOK("bob.dmpxs.com") ||
+
+                BLOK("api.traq.li") ||
+
+                BLOK("s.zkcdn.net") ||
+
+                BLOK("s1.listrakbi.com") ||
+                BLOK("at1.listrakbi.com") ||
+                BLOK("cdn.listrakbi.com") ||
+                BLOK("onescript-recscont.listrakbi.com") ||
+
+                BLOK("js.matheranalytics.com") ||
+
+                BLOK("secure-cdn.mplxtms.com") ||
+
+                BLOK("usadmm.dotomi.com") ||
+
+                BLOK("p.d.1emn.com") ||
+                BLOK("p.w.1emn.com") ||
+
+                BLOK("ak.sail-horizon.com") ||
+                BLOK("api.sail-personalize.com") ||
+
+                BLOK("st.dynamicyield.com") ||
+                BLOK("px.dynamicyield.com") ||
+
+                BLOK("nervoussummer.com") ||
+
+                BLOK("usasync01.admantx.com") ||
+
+                BLOK("synchrobox.adswizz.com") ||
+                BLOK("delivery-cdn-cf.adswizz.com") ||
                     0) {
 #undef BLOK
                 // Yup.
@@ -1186,6 +1224,12 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             }
         }
         return NS_OK;
+    } else if ((!sourceScheme.LowerCaseEqualsLiteral("http") &&
+                !sourceScheme.LowerCaseEqualsLiteral("https")) &&
+                 targetScheme.LowerCaseEqualsLiteral("moz-icon")) {
+        // Don't expose moz-icon:// to the web, but it's okay for things
+        // like file:// and ftp://.
+        return NS_OK;
     }
 
     // If the schemes don't match, the policy is specified by the protocol
@@ -1214,9 +1258,11 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     if (hasFlags) {
         if (aFlags & nsIScriptSecurityManager::ALLOW_CHROME) {
 
-            // For now, don't change behavior for resource:// or moz-icon:// and
-            // just allow them.
-            if (!targetScheme.EqualsLiteral("chrome")) {
+            // For now, don't change behavior for resource:// and
+            // just allow it. This is required for extensions that inject
+            // internal resources into pages such as custom controls.
+            if (!targetScheme.EqualsLiteral("chrome") &&
+                !targetScheme.EqualsLiteral("moz-icon")) {
                 return NS_OK;
             }
 

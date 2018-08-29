@@ -206,6 +206,17 @@ net_GetFileFromURLSpec(const nsACString &aURL, nsIFile **result)
   if (bHFSPath)
     convertHFSPathtoPOSIX(path, path);
 
+  // TenFourFox issue 512 (our own fix for M1412081). Just disallow anything
+  // where path starts with /net/ since it looks like ../ paths have already
+  // been parsed. Not needed for Tiger, but doesn't hurt.
+  nsAutoCString lcPath;
+  lcPath.Append(path);
+  ToLowerCase(lcPath);
+  if (StringBeginsWith(lcPath, NS_LITERAL_CSTRING("/net/"))) {
+    fprintf(stderr, "Warning: TenFourFox blocking file:// access to potentially dangerous path %s.\n", path.get());
+    return NS_ERROR_FILE_INVALID_PATH;
+  }
+
   // assuming path is encoded in the native charset
   rv = localFile->InitWithNativePath(path);
   if (NS_FAILED(rv))

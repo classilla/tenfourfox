@@ -480,6 +480,7 @@ class CompileInfo
     // the frame is active on the stack.  This implies that these definitions
     // would have to be executed and that they cannot be removed even if they
     // are unused.
+#if(0)
     bool isObservableSlot(uint32_t slot) const {
         if (isObservableFrameSlot(slot))
             return true;
@@ -489,6 +490,17 @@ class CompileInfo
 
         return false;
     }
+#else // bug 1342016 attachment 8849618 for our older code
+    inline bool isObservableSlot(uint32_t slot) const {
+        if (slot >= firstLocalSlot())
+            return false;
+
+        if (slot < firstArgSlot())
+            return isObservableFrameSlot(slot);
+
+        return isObservableArgumentSlot(slot);
+    }
+#endif
 
     bool isObservableFrameSlot(uint32_t slot) const {
         if (!funMaybeLazy())

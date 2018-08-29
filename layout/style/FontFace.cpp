@@ -17,6 +17,10 @@
 #include "nsIDocument.h"
 #include "nsStyleUtil.h"
 
+// TenFourFox issue 513
+#include "nsICryptoHash.h"
+#include "nsNetCID.h"
+
 namespace mozilla {
 namespace dom {
 
@@ -196,6 +200,54 @@ FontFace::Constructor(const GlobalObject& aGlobal,
 void
 FontFace::InitializeSource(const StringOrArrayBufferOrArrayBufferView& aSource)
 {
+  // TenFourFox issue 513: hash the string or the buffer and thus
+  // have yet another font blacklist. The string could be a URL,
+  // but it could also be a data URL, and I'd rather not duplicate
+  // the logic from gfx/thebes in this file too.
+  nsAutoCString fullHash;
+  nsresult rv;
+
+#define FONT_FACE_ENSURE_SUCCESS if (NS_FAILED(rv)) { SetStatus(FontFaceLoadStatus::Error); return; }
+  nsCOMPtr<nsICryptoHash> crypto = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
+  FONT_FACE_ENSURE_SUCCESS
+  rv = crypto->Init(nsICryptoHash::SHA1);
+  FONT_FACE_ENSURE_SUCCESS
+  if (aSource.IsString()) {
+    rv = crypto->Update(reinterpret_cast<const uint8_t*>(aSource.GetAsString().BeginReading()),
+                        aSource.GetAsString().Length());
+  } else {
+    if (aSource.IsArrayBuffer()) {
+      GetDataFrom(aSource.GetAsArrayBuffer(),
+                  mSourceBuffer, mSourceBufferLength);
+    } else {
+      MOZ_ASSERT(aSource.IsArrayBufferView());
+      GetDataFrom(aSource.GetAsArrayBufferView(),
+                  mSourceBuffer, mSourceBufferLength);
+    }
+
+    rv = crypto->Update(reinterpret_cast<const uint8_t*>(mSourceBuffer), mSourceBufferLength);
+  }
+  FONT_FACE_ENSURE_SUCCESS
+  rv = crypto->Finish(true, fullHash);
+  FONT_FACE_ENSURE_SUCCESS
+#undef FONT_FACE_ENSURE_SUCCESS
+  else {
+#if DEBUG
+fprintf(stderr, "Hashed binary font loaded through CFLAPI: %s\n", fullHash.get());
+#endif
+    if (0 ||
+        // various TypeKit fonts
+        fullHash.Equals("0J8+zdBD2+R6x1AGwjdcnDKsexg=") ||
+        fullHash.Equals("43Ex5T5rNbucBuC/8634OUdpNbc=") ||
+        fullHash.Equals("4AlprMOrpYDZsCQW6LUmjOzj84M=") ||
+        fullHash.Equals("Yb+MwthynLt2Y4pvXDv5pumHX2E=") ||
+        0) {
+          fprintf(stderr, "Warning: TenFourFox blocking ATSUI-incompatible CSS Font Loading API source (with SHA-1 hash of %s).\n", fullHash.get());
+          SetStatus(FontFaceLoadStatus::Error);
+          return;
+     }
+  }
+
   if (aSource.IsString()) {
     if (!ParseDescriptor(eCSSFontDesc_Src,
                          aSource.GetAsString(),
@@ -217,15 +269,6 @@ FontFace::InitializeSource(const StringOrArrayBufferOrArrayBufferView& aSource)
   }
 
   mSourceType = FontFace::eSourceType_Buffer;
-
-  if (aSource.IsArrayBuffer()) {
-    GetDataFrom(aSource.GetAsArrayBuffer(),
-                mSourceBuffer, mSourceBufferLength);
-  } else {
-    MOZ_ASSERT(aSource.IsArrayBufferView());
-    GetDataFrom(aSource.GetAsArrayBufferView(),
-                mSourceBuffer, mSourceBufferLength);
-  }
 
   SetStatus(FontFaceLoadStatus::Loading);
   DoLoad();

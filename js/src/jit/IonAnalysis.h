@@ -54,7 +54,7 @@ bool
 ApplyTypeInformation(MIRGenerator* mir, MIRGraph& graph);
 
 bool
-MakeMRegExpHoistable(MIRGraph& graph);
+MakeMRegExpHoistable(MIRGenerator* mir, MIRGraph& graph);
 
 bool
 RenumberBlocks(MIRGraph& graph);

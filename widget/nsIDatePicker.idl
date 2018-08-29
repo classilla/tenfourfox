@@ -74,8 +74,8 @@ interface nsIDatePicker : nsISupports
   [deprecated] short show();
 
  /**
-  * Opens the date dialog asynchrounously.
-  * The passed in object's done method will be called upon completion.
+  * Opens the date dialog asynchronously.
+  * The passed-in object's done method will be called upon completion.
   */
   void open(in nsIDatePickerShownCallback aDatePickerShownCallback);
 };

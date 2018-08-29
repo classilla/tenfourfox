@@ -859,7 +859,6 @@ nsIOService::NewChannelFromURIWithProxyFlags2(nsIURI* aURI,
                                        aSecurityFlags,
                                        aContentPolicyType);
     }
-    NS_ASSERTION(loadInfo, "Please pass security info when creating a channel");
     return NewChannelFromURIWithProxyFlagsInternal(aURI,
                                                    aProxyURI,
                                                    aProxyFlags,
@@ -933,7 +932,6 @@ nsIOService::NewChannel2(const nsACString& aSpec,
 NS_IMETHODIMP
 nsIOService::NewChannel(const nsACString &aSpec, const char *aCharset, nsIURI *aBaseURI, nsIChannel **result)
 {
-  NS_ASSERTION(false, "Deprecated, use NewChannel2 providing loadInfo arguments!");
   return NewChannel2(aSpec,
                      aCharset,
                      aBaseURI,

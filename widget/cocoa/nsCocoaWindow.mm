@@ -4147,10 +4147,12 @@ static inline bool CheckForMisplacedMenuEventLeopard(NSEvent *anEvent) {
         break;
     }
   } else {
+    if (type != NSApplicationDefined) { // These get spammy.
 #if DEBUG
-    fprintf(stderr, "no target for this event (%i)! sending to super\n", type);
+      fprintf(stderr, "no target for this event (%i)! sending to super\n", type);
 #endif
-    [super sendEvent:anEvent];
+      [super sendEvent:anEvent];
+    }
   }
 
   NS_OBJC_END_TRY_ABORT_BLOCK;

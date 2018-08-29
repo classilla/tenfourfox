@@ -2684,17 +2684,17 @@ static const nsCSSProperty gOutlineSubpropTable[] = {
 };
 
 static const nsCSSProperty gColumnsSubpropTable[] = {
-  eCSSProperty__moz_column_count,
-  eCSSProperty__moz_column_width,
+  eCSSProperty_column_count,
+  eCSSProperty_column_width,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gColumnRuleSubpropTable[] = {
   // nsCSSDeclaration.cpp outputs the subproperties in this order.
   // It also depends on the color being third.
-  eCSSProperty__moz_column_rule_width,
-  eCSSProperty__moz_column_rule_style,
-  eCSSProperty__moz_column_rule_color,
+  eCSSProperty_column_rule_width,
+  eCSSProperty_column_rule_style,
+  eCSSProperty_column_rule_color,
   eCSSProperty_UNKNOWN
 };
 

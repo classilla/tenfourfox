@@ -1168,6 +1168,17 @@ Element::GetDestinationInsertionPoints()
 void
 Element::GetAttribute(const nsAString& aName, DOMString& aReturn)
 {
+  // Complete the illusion of TenFourFox issue 517 by preventing Rocket Loader
+  // from seeing the data-cf-nonce attribute. This doesn't seem to be used
+  // anywhere else in the Cloudflare stack.
+  if (!IsXULElement() && MOZ_UNLIKELY(aName.LowerCaseEqualsASCII("data-cf-nonce"))) {
+#if DEBUG
+    fprintf(stderr, "TenFourFox: blocked access to proscribed property data-cf-nonce.\n");
+#endif
+    aReturn.SetNull();
+    return;
+  }
+
   const nsAttrValue* val =
     mAttrsAndChildren.GetAttr(aName,
                               IsHTMLElement() && IsInHTMLDocument() ?

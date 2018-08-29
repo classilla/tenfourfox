@@ -27,6 +27,7 @@ private:
   WebCryptoThreadPool()
     : mMutex("WebCryptoThreadPool::mMutex")
     , mPool(nullptr)
+    , mShutdown(false)
   { }
   virtual ~WebCryptoThreadPool()
   { }
@@ -46,6 +47,7 @@ private:
 
   mozilla::Mutex mMutex;
   nsCOMPtr<nsIThreadPool> mPool;
+  bool mShutdown;
 };
 
 } // namespace dom

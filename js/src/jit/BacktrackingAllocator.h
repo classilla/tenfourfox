@@ -663,7 +663,7 @@ class BacktrackingAllocator : protected RegisterAllocator
                           bool* success, bool* pfixed, LiveBundleVector& conflicting);
     bool tryAllocateNonFixed(LiveBundle* bundle, Requirement requirement, Requirement hint,
                              bool* success, bool* pfixed, LiveBundleVector& conflicting);
-    bool processBundle(LiveBundle* bundle);
+    bool processBundle(MIRGenerator* mir, LiveBundle* bundle);
     bool computeRequirement(LiveBundle* bundle, Requirement *prequirement, Requirement *phint);
     bool tryAllocateRegister(PhysicalRegister& r, LiveBundle* bundle,
                              bool* success, bool* pfixed, LiveBundleVector& conflicting);

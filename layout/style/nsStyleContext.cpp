@@ -1268,7 +1268,7 @@ nsStyleContext::GetVisitedDependentColor(nsCSSProperty aProperty)
                aProperty == eCSSProperty_border_bottom_color ||
                aProperty == eCSSProperty_border_left_color ||
                aProperty == eCSSProperty_outline_color ||
-               aProperty == eCSSProperty__moz_column_rule_color ||
+               aProperty == eCSSProperty_column_rule_color ||
                aProperty == eCSSProperty_text_decoration_color ||
                aProperty == eCSSProperty_text_emphasis_color ||
                aProperty == eCSSProperty_fill ||

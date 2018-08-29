@@ -9,9 +9,11 @@
 #include "nsWidgetsCID.h"
 #include "nsClipboardProxy.h"
 #include "nsColorPickerProxy.h"
+#include "nsDatePickerProxy.h"
 #include "nsDragServiceProxy.h"
 #include "nsFilePickerProxy.h"
 #include "nsScreenManagerProxy.h"
+#include "nsTimePickerProxy.h"
 #include "mozilla/widget/PuppetBidiKeyboard.h"
 
 using namespace mozilla;
@@ -21,20 +23,26 @@ using namespace mozilla::widget;
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboardProxy)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsColorPickerProxy)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsDatePickerProxy)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDragServiceProxy)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsFilePickerProxy)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsScreenManagerProxy)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsTimePickerProxy)
 NS_GENERIC_FACTORY_CONSTRUCTOR(PuppetBidiKeyboard)
 
 NS_DEFINE_NAMED_CID(NS_CLIPBOARD_CID);
 NS_DEFINE_NAMED_CID(NS_COLORPICKER_CID);
+NS_DEFINE_NAMED_CID(NS_DATEPICKER_CID);
 NS_DEFINE_NAMED_CID(NS_DRAGSERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_FILEPICKER_CID);
 NS_DEFINE_NAMED_CID(PUPPETBIDIKEYBOARD_CID);
 NS_DEFINE_NAMED_CID(NS_SCREENMANAGER_CID);
+NS_DEFINE_NAMED_CID(NS_TIMEPICKER_CID);
 
 static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
     { &kNS_CLIPBOARD_CID, false, nullptr, nsClipboardProxyConstructor,
+      Module::CONTENT_PROCESS_ONLY },
+    { &kNS_DATEPICKER_CID, false, nullptr, nsDatePickerProxyConstructor,
       Module::CONTENT_PROCESS_ONLY },
     { &kNS_COLORPICKER_CID, false, nullptr, nsColorPickerProxyConstructor,
       Module::CONTENT_PROCESS_ONLY },
@@ -44,6 +52,8 @@ static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
       Module::CONTENT_PROCESS_ONLY },
     { &kNS_SCREENMANAGER_CID, false, nullptr, nsScreenManagerProxyConstructor,
       Module::CONTENT_PROCESS_ONLY },
+    { &kNS_TIMEPICKER_CID, false, nullptr, nsTimePickerProxyConstructor,
+      Module::CONTENT_PROCESS_ONLY },
     { &kPUPPETBIDIKEYBOARD_CID, false, NULL, PuppetBidiKeyboardConstructor,
       mozilla::Module::CONTENT_PROCESS_ONLY },
     { nullptr }
@@ -52,7 +62,9 @@ static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
 static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
     { "@mozilla.org/widget/clipboard;1", &kNS_CLIPBOARD_CID, Module::CONTENT_PROCESS_ONLY },
     { "@mozilla.org/colorpicker;1", &kNS_COLORPICKER_CID, Module::CONTENT_PROCESS_ONLY },
+    { "@mozilla.org/datepicker;1", &kNS_DATEPICKER_CID, Module::CONTENT_PROCESS_ONLY },
     { "@mozilla.org/filepicker;1", &kNS_FILEPICKER_CID, Module::CONTENT_PROCESS_ONLY },
+    { "@mozilla.org/timepicker;1", &kNS_TIMEPICKER_CID, Module::CONTENT_PROCESS_ONLY },
     { "@mozilla.org/gfx/screenmanager;1", &kNS_SCREENMANAGER_CID, Module::CONTENT_PROCESS_ONLY },
     { "@mozilla.org/widget/dragservice;1", &kNS_DRAGSERVICE_CID, Module::CONTENT_PROCESS_ONLY },
     { nullptr }

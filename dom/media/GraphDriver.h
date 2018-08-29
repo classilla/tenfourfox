@@ -183,9 +183,8 @@ protected:
   GraphTime mIterationStart;
   // Time of the end of this graph iteration.
   GraphTime mIterationEnd;
-  // The MediaStreamGraphImpl that owns this driver. This has a lifetime longer
-  // than the driver, and will never be null.
-  MediaStreamGraphImpl* mGraphImpl;
+  // The MediaStreamGraphImpl associated with this driver.
+  const RefPtr<MediaStreamGraphImpl> mGraphImpl;
 
   // This enum specifies the wait state of the driver.
   enum WaitState {

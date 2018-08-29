@@ -420,6 +420,16 @@ public:
     virtual bool
     DeallocPFilePickerChild(PFilePickerChild* actor) override;
 
+    virtual PDatePickerChild*
+    AllocPDatePickerChild(const nsString& aTitle) override;
+    virtual bool
+    DeallocPDatePickerChild(PDatePickerChild* actor) override;
+
+    virtual PTimePickerChild*
+    AllocPTimePickerChild(const nsString& aTitle) override;
+    virtual bool
+    DeallocPTimePickerChild(PTimePickerChild* actor) override;
+
     virtual PIndexedDBPermissionRequestChild*
     AllocPIndexedDBPermissionRequestChild(const Principal& aPrincipal)
                                           override;

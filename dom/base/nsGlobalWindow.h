@@ -70,7 +70,7 @@
 #define MAX_IDLE_FUZZ_TIME_MS 90000
 
 // Min idle notification time in seconds.
-#define MIN_IDLE_NOTIFICATION_TIME_S 1
+#define MIN_IDLE_NOTIFICATION_TIME_S 5
 
 class nsIArray;
 class nsIBaseWindow;
@@ -215,6 +215,11 @@ public:
   // If there is an IdleRequestCallback, this is requestIdleCallback (issue 463).
   nsCOMPtr<nsIScriptTimeoutHandler> mScriptHandler;
   RefPtr<mozilla::dom::IdleRequestCallback> mCallback;
+
+  // These members are only valid when this is a idle callback
+  // (TenFourFox issue 463).
+  uint32_t mElapsed;
+  uint32_t mDeadline;
 };
 
 struct IdleObserverHolder

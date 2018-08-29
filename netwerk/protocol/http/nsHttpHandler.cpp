@@ -432,10 +432,11 @@ nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request,
     nsresult rv;
 
     // Add the "User-Agent" header (unless we have blacklisted this site and
-    // we aren't using a custom user agent; see TenFourFox issue 422).
+    // we aren't using a custom user agent; see TenFourFox issues 422 and 518).
     if (mUserAgentOverride || (
             !hostLine.EqualsLiteral("i.imgur.com") &&
             !hostLine.EqualsLiteral("imgur.com") &&
+            !hostLine.EqualsLiteral("github.com") &&
     1)) {
         rv = request->SetHeader(nsHttp::User_Agent, UserAgent(),
                                 false, nsHttpHeaderArray::eVarietyDefault);

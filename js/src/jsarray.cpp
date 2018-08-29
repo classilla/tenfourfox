@@ -768,6 +768,11 @@ js::ArraySetLength(JSContext* cx, Handle<ArrayObject*> arr, HandleId id,
     header->initializedLength = Min(header->initializedLength, newLen);
 
     if (attrs & JSPROP_READONLY) {
+        if (header->numShiftedElements() > 0) {
+            arr->moveShiftedElements();
+            header = arr->getElementsHeader();
+        }
+
         header->setNonwritableArrayLength();
 
         // When an array's length becomes non-writable, writes to indexes
@@ -2101,18 +2106,16 @@ ShiftMoveBoxedOrUnboxedDenseElements(JSObject* obj)
 {
     MOZ_ASSERT(HasBoxedOrUnboxedDenseElements<Type>(obj));
 
-    /*
-     * At this point the length and initialized length have already been
-     * decremented and the result fetched, so just shift the array elements
-     * themselves.
-     */
     size_t initlen = GetBoxedOrUnboxedInitializedLength<Type>(obj);
+    MOZ_ASSERT(initlen > 0);
+
     if (Type == JSVAL_TYPE_MAGIC) {
-        obj->as<NativeObject>().moveDenseElementsNoPreBarrier(0, 1, initlen);
+        if (!obj->as<NativeObject>().tryShiftDenseElements(1))
+            obj->as<NativeObject>().moveDenseElementsNoPreBarrier(0, 1, initlen - 1);
     } else {
         uint8_t* data = obj->as<UnboxedArrayObject>().elements();
         size_t elementSize = UnboxedTypeSize(Type);
-        memmove(data, data + elementSize, initlen * elementSize);
+        memmove(data, data + elementSize, (initlen - 1) * elementSize);
     }
 
     return DenseElementResult::Success;
@@ -2150,6 +2153,11 @@ ArrayShiftDenseKernel(JSContext* cx, HandleObject obj, MutableHandleValue rval)
     rval.set(GetBoxedOrUnboxedDenseElement<Type>(obj, 0));
     if (rval.isMagic(JS_ELEMENTS_HOLE))
         rval.setUndefined();
+
+    if (Type == JSVAL_TYPE_MAGIC) {
+        if (obj->as<NativeObject>().tryShiftDenseElements(1))
+            return DenseElementResult::Success;
+    }
 
     DenseElementResult result = MoveBoxedOrUnboxedDenseElements<Type>(cx, obj, 0, 1, initlen - 1);
     MOZ_ASSERT(result != DenseElementResult::Incomplete);
@@ -2247,7 +2255,7 @@ js::array_unshift(JSContext* cx, unsigned argc, Value* vp)
     if (args.length() > 0) {
         /* Slide up the array to make room for all args at the bottom. */
         if (length > 0) {
-            // Only include a fast path for boxed arrays. Unboxed arrays can'nt
+            // Only include a fast path for boxed arrays. Unboxed arrays can't
             // be optimized here because unshifting temporarily places holes at
             // the start of the array.
             bool optimized = false;
@@ -2259,14 +2267,16 @@ js::array_unshift(JSContext* cx, unsigned argc, Value* vp)
                 ArrayObject* aobj = &obj->as<ArrayObject>();
                 if (!aobj->lengthIsWritable())
                     break;
-                DenseElementResult result = aobj->ensureDenseElements(cx, length, args.length());
-                if (result != DenseElementResult::Success) {
-                    if (result == DenseElementResult::Failure)
-                        return false;
-                    MOZ_ASSERT(result == DenseElementResult::Incomplete);
-                    break;
+                if (MOZ_UNLIKELY(length > UINT32_MAX) || !aobj->tryUnshiftDenseElements(args.length())) {
+                    DenseElementResult result = aobj->ensureDenseElements(cx, length, args.length());
+                    if (result != DenseElementResult::Success) {
+                        if (result == DenseElementResult::Failure)
+                            return false;
+                        MOZ_ASSERT(result == DenseElementResult::Incomplete);
+                        break;
+                    }
+                    aobj->moveDenseElements(args.length(), 0, length);
                 }
-                aobj->moveDenseElements(args.length(), 0, length);
                 for (uint32_t i = 0; i < args.length(); i++)
                     aobj->setDenseElement(i, MagicValue(JS_ELEMENTS_HOLE));
                 optimized = true;
@@ -2445,12 +2455,17 @@ js::array_splice_impl(JSContext* cx, unsigned argc, Value* vp, bool returnValueI
 
         if (CanOptimizeForDenseStorage(obj, 0, len, cx)) {
             /* Steps 12(a)-(b). */
-            DenseElementResult result =
-                MoveAnyBoxedOrUnboxedDenseElements(cx, obj, targetIndex, sourceIndex,
-                                                   len - sourceIndex);
-            MOZ_ASSERT(result != DenseElementResult::Incomplete);
-            if (result == DenseElementResult::Failure)
-                return false;
+            if (targetIndex != 0 ||
+                !obj->is<NativeObject>() ||
+                !obj->as<NativeObject>().tryShiftDenseElements(sourceIndex))
+            {
+                DenseElementResult result =
+                    MoveAnyBoxedOrUnboxedDenseElements(cx, obj, targetIndex, sourceIndex,
+                                                       len - sourceIndex);
+                MOZ_ASSERT(result != DenseElementResult::Incomplete);
+                if (result == DenseElementResult::Failure)
+                    return false;
+            }
 
             /* Steps 12(c)-(d). */
             SetAnyBoxedOrUnboxedInitializedLength(cx, obj, finalLength);

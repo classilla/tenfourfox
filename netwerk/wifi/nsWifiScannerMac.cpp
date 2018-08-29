@@ -161,8 +161,12 @@ nsresult
 nsWifiMonitor::DoScan()
 {
   // See bug 848435. Since we sort of support running under Rosetta on Snow
-  // Leopard, we need to still support that path, sort of.
+  // Leopard, we need to still support that path, sort of. Here's a better
+  // fix, from TenFourFox issue 361.
   extern bool WiFiUsingSnowLeopard();
-  return (WiFiUsingSnowLeopard()) ? DoScanOld() : DoScanWithCoreWLAN();
+  if (MOZ_UNLIKELY(WiFiUsingSnowLeopard())) {
+    nsresult rv = DoScanWithCoreWLAN();
+    if (NS_SUCCEEDED(rv)) return rv;
+  }
+  return DoScanOld();
 }
-

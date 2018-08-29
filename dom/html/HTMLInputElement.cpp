@@ -120,6 +120,10 @@
 
 // input type=date
 #include "js/Date.h"
+#include "nsIDatePicker.h" // TenFourFox issue 405
+
+// input type=time
+#include "nsITimePicker.h" // TenFourFox issue 405
 
 NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Input)
 
@@ -218,6 +222,32 @@ const Decimal HTMLInputElement::kStepAny = Decimal(0);
 
 #define PROGRESS_STR "progress"
 static const uint32_t kProgressEventInterval = 50; // ms
+
+// Increase performance of checking for enabled types of input elements.
+// TenFourFox issue 405
+static bool sDOMInputPrefsCacheInitialized = false;
+static bool sDOMInputEnableDate = false;
+static bool sDOMInputEnableTime = false;
+static bool sDOMInputEnableColor = false;
+static bool sDOMInputEnableNumber = false;
+static void InitializeDOMInputPrefCache() {
+    if (MOZ_UNLIKELY(sDOMInputPrefsCacheInitialized)) return;
+    Preferences::AddBoolVarCache(&sDOMInputEnableDate, "tenfourfox.dom.forms.date");
+    Preferences::AddBoolVarCache(&sDOMInputEnableTime, "tenfourfox.dom.forms.time");
+    // Mozilla implementations that existed prior
+    Preferences::AddBoolVarCache(&sDOMInputEnableColor, "dom.forms.color");
+    Preferences::AddBoolVarCache(&sDOMInputEnableNumber, "dom.forms.number");
+    sDOMInputPrefsCacheInitialized = true;
+}
+#define ENABLED(x) static inline bool Input ## x ## Enabled() { \
+    if (MOZ_UNLIKELY(!sDOMInputPrefsCacheInitialized)) InitializeDOMInputPrefCache(); \
+    return sDOMInputEnable ## x ; \
+}
+ENABLED(Date)
+ENABLED(Time)
+ENABLED(Color)
+ENABLED(Number)
+#undef ENABLED
 
 class HTMLInputElementState final : public nsISupports
 {
@@ -541,6 +571,87 @@ nsColorPickerShownCallback::Done(const nsAString& aColor)
 
 NS_IMPL_ISUPPORTS(nsColorPickerShownCallback, nsIColorPickerShownCallback)
 
+HTMLInputElement::nsDatePickerShownCallback::nsDatePickerShownCallback(
+  HTMLInputElement* aInput, nsIDatePicker* aDatePicker)
+  : mDatePicker(aDatePicker)
+  , mInput(aInput)
+{
+}
+
+NS_IMETHODIMP
+HTMLInputElement::nsDatePickerShownCallback::Done(int16_t aResult)
+{
+  mInput->PickerClosed();
+
+  if (aResult == nsIDatePicker::returnCancel) {
+    return NS_OK;
+  }
+
+  nsAutoString date;
+  nsresult rv = mDatePicker->GetSelectedDate(date);
+  NS_ENSURE_SUCCESS(rv, rv);
+  mInput->SetValue(date); // set value
+
+  // The text control frame (if there is one) isn't going to send a change
+  // event because it will think this is done by a script.
+  // So, we can safely send one by ourself.
+  // Send both input and change events at the same time, since from the
+  // browser's perspective that's exactly what's happening.
+  rv = nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                            static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                            NS_LITERAL_STRING("input"), true,
+                                            false);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                              static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                              NS_LITERAL_STRING("change"), true,
+                                              false);
+}
+
+NS_IMPL_ISUPPORTS(HTMLInputElement::nsDatePickerShownCallback,
+                  nsIDatePickerShownCallback)
+
+HTMLInputElement::nsTimePickerShownCallback::nsTimePickerShownCallback(
+  HTMLInputElement* aInput, nsITimePicker* aTimePicker)
+  : mTimePicker(aTimePicker)
+  , mInput(aInput)
+{
+}
+
+NS_IMETHODIMP
+HTMLInputElement::nsTimePickerShownCallback::Done(int16_t aResult)
+{
+  mInput->PickerClosed();
+
+  if (aResult == nsITimePicker::returnCancel) {
+    return NS_OK;
+  }
+
+  // The result is automatically truncated by the NSDateFormatter;
+  // we don't have to post-process it here.
+  nsAutoString time;
+  nsresult rv = mTimePicker->GetSelectedTime(time);
+  NS_ENSURE_SUCCESS(rv, rv);
+  mInput->SetValue(time); // set value
+
+  // The text control frame (if there is one) isn't going to send a change
+  // event because it will think this is done by a script.
+  // So, we can safely send one by ourself.
+  // Send both input and change events as above.
+  rv = nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                            static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                            NS_LITERAL_STRING("input"), true,
+                                            false);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                              static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                              NS_LITERAL_STRING("change"), true,
+                                              false);
+}
+
+NS_IMPL_ISUPPORTS(HTMLInputElement::nsTimePickerShownCallback,
+                  nsITimePickerShownCallback)
+
 bool
 HTMLInputElement::IsPopupBlocked() const
 {
@@ -563,6 +674,220 @@ HTMLInputElement::IsPopupBlocked() const
   uint32_t permission;
   pm->TestPermission(OwnerDoc()->NodePrincipal(), &permission);
   return permission == nsIPopupWindowManager::DENY_POPUP;
+}
+
+/* Time and date picker implementations from TenFourFox issue 405. */
+
+static bool
+IsTimeInRightFormat(nsAutoString &aTime, double aStep)
+{
+  // Avoid exposing web-defined time strings to OS X, since I have
+  // no idea what crap lurks in there. Check that there are digits
+  // and : in the right place. We assume NSDateFormatter can at least
+  // reject values that are out of range.
+  // XXX:
+  // Since the step determines the template that NSDateFormatter uses,
+  // an eight character (HH:MM:SS) time with step >= 60 should fail,
+  // and a five character (HH:MM) time with step < 60 should too, or the
+  // formatter may choose bizarre times. This is probably not websafe
+  // but that's too bad. As a real world example, one of the MDN time
+  // examples uses "9:00" as the minimum time. This fails this test, but
+  // the comments in ParseTime() indicates that HH:MM is the only valid
+  // format, not H:MM. Furthermore, the real Firefox 61 also doesn't
+  // accept it as a minimum time, so we are consistent with recent builds.
+
+  // The spec allows HH:MM:SS.ssss. There's no point to this because
+  // we can't express such times with the NSDatePicker control, so we
+  // just chop it off.
+  int32_t dot = aTime.Find(".", false, 0, -1);
+  if (dot != kNotFound) {
+    if (dot != 8) return false; // H:MM:SS.ssss not allowed
+    if (aStep >= 60.0) return false; // HH:MM required
+    aTime.SetLength(8);
+  } else {
+    if (aStep >= 60.0 && aTime.Length() != 5)
+      return false;
+    if (aStep <  60.0 && aTime.Length() != 8)
+      return false;
+  }
+
+  // Length is validated, so the loop here suffices for both cases.
+  const char16_t *cur = aTime.BeginReading();
+  const char16_t *end = aTime.EndReading();
+  size_t nchar = 0;
+  for (; cur < end; ++cur) {
+    nchar++;
+    if (nchar == 3 || nchar == 6) {
+      if (char16_t(':') == *cur)
+        continue;
+      return false;
+    }
+    if (char16_t('0') > *cur || char16_t('9') < *cur)
+      return false;
+  }
+
+  return true;
+}
+
+nsresult
+HTMLInputElement::InitTimePicker(bool aNoMatterWhat)
+{
+  if (mPickerRunning) {
+    NS_WARNING("Just one nsITimePicker is allowed");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIDocument> doc = OwnerDoc();
+
+  nsCOMPtr<nsPIDOMWindow> win = doc->GetWindow();
+  if (!win) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!aNoMatterWhat && IsPopupBlocked()) {
+    win->FirePopupBlockedEvent(doc, nullptr, EmptyString(), EmptyString());
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsITimePicker> timePicker = do_CreateInstance("@mozilla.org/timepicker;1");
+  if (!timePicker) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsAutoString initialValue;
+  GetValueInternal(initialValue);
+
+  // Step value is apparently in milliseconds.
+  double step = GetStep().toDouble() / 1000.0;
+  if (step == 0.0) step = 60.0; // XXX?
+
+  nsresult rv = timePicker->Init(win, EmptyString()); // title NYI
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = timePicker->SetStep(step);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (IsTimeInRightFormat(initialValue, step)) {
+    // Sanitized, therefore safe to give to the Cocoa time formatter.
+    rv = timePicker->SetDefaultTime(initialValue);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::min)) {
+    nsAutoString minStr;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
+    if (IsTimeInRightFormat(minStr, step)) {
+      rv = timePicker->SetMinTime(minStr);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::max)) {
+    nsAutoString maxStr;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr);
+    if (IsTimeInRightFormat(maxStr, step)) {
+      rv = timePicker->SetMaxTime(maxStr);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
+  nsCOMPtr<nsITimePickerShownCallback> callback =
+    new nsTimePickerShownCallback(this, timePicker);
+
+  rv = timePicker->Open(callback);
+  if (NS_SUCCEEDED(rv)) {
+    mPickerRunning = true;
+  }
+
+  return rv;
+}
+
+static bool
+IsDateInRightFormat(const nsAutoString& aDate)
+{
+  // Avoid exposing web-defined date strings to OS X, since I have
+  // no idea what crap lurks in there. Instead, ensure the string
+  // is in nnnn-nn-nn format, and assume NSDateFormatter handles days
+  // and months that are out of range and rejects those as long as
+  // the basic format is acceptable.
+  if (aDate.Length() != 10)
+    return false;
+
+  const char16_t *cur = aDate.BeginReading();
+  const char16_t *end = aDate.EndReading();
+  size_t nchar = 0;
+  for (; cur < end; ++cur) {
+    nchar++;
+    if (nchar == 5 || nchar == 8) {
+      if (char16_t('-') == *cur)
+        continue;
+      return false;
+    }
+    if (char16_t('0') > *cur || char16_t('9') < *cur)
+      return false;
+  }
+
+  return true;
+}
+
+nsresult
+HTMLInputElement::InitDatePicker(bool aNoMatterWhat)
+{
+  if (mPickerRunning) {
+    NS_WARNING("Just one nsIDatePicker is allowed");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIDocument> doc = OwnerDoc();
+
+  nsCOMPtr<nsPIDOMWindow> win = doc->GetWindow();
+  if (!win) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!aNoMatterWhat && IsPopupBlocked()) {
+    win->FirePopupBlockedEvent(doc, nullptr, EmptyString(), EmptyString());
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIDatePicker> datePicker = do_CreateInstance("@mozilla.org/datepicker;1");
+  if (!datePicker) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsAutoString initialValue;
+  GetValueInternal(initialValue);
+  nsresult rv = datePicker->Init(win, EmptyString()); // title NYI
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (IsDateInRightFormat(initialValue)) {
+    // Sanitized, therefore safe to give to the Cocoa date formatter.
+    rv = datePicker->SetDefaultDate(initialValue);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::min)) {
+    nsAutoString minStr;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
+    if (IsDateInRightFormat(minStr)) {
+      rv = datePicker->SetMinDate(minStr);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::max)) {
+    nsAutoString maxStr;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr);
+    if (IsDateInRightFormat(maxStr)) {
+      rv = datePicker->SetMaxDate(maxStr);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
+  nsCOMPtr<nsIDatePickerShownCallback> callback =
+    new nsDatePickerShownCallback(this, datePicker);
+
+  rv = datePicker->Open(callback);
+  if (NS_SUCCEEDED(rv)) {
+    mPickerRunning = true;
+  }
+
+  return rv;
 }
 
 nsresult
@@ -2194,11 +2519,6 @@ HTMLInputElement::MozSetFileNameArray(const char16_t** aFileNames, uint32_t aLen
 bool
 HTMLInputElement::MozIsTextField(bool aExcludePassword)
 {
-  // TODO: temporary until bug 773205 is fixed.
-  if (IsExperimentalMobileType(mType)) {
-    return false;
-  }
-
   return IsSingleLineTextControl(aExcludePassword);
 }
 
@@ -2901,7 +3221,8 @@ HTMLInputElement::Focus(ErrorResult& aError)
     nsNumberControlFrame* numberControlFrame =
       do_QueryFrame(GetPrimaryFrame());
     if (numberControlFrame) {
-      HTMLInputElement* textControl = numberControlFrame->GetAnonTextControl();
+      RefPtr<HTMLInputElement> textControl =
+        numberControlFrame->GetAnonTextControl();
       if (textControl) {
         textControl->Focus(aError);
         return;
@@ -3079,6 +3400,29 @@ HTMLInputElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
   aVisitor.mCanHandle = false;
   if (IsDisabledForEvents(aVisitor.mEvent->mMessage)) {
     return NS_OK;
+  }
+
+  // Do not process keyboard events on a date or time picker
+  // text field, except for TAB, DELETE, BACKSPACE, RETURN/ENTER or
+  // SPACE, or Command/FN keys. Because such a field is actually a
+  // "hopped up" text field with special handling, we need to preempt
+  // the line editor here before it has a chance to handle the key.
+  // TenFourFox issue 405
+  if ((mType == NS_FORM_INPUT_DATE && InputDateEnabled()) ||
+      (mType == NS_FORM_INPUT_TIME && InputTimeEnabled())) {
+    if (aVisitor.mEvent->mMessage == eKeyPress && aVisitor.mEvent->mFlags.mIsTrusted) {
+      WidgetKeyboardEvent* keyEvent = aVisitor.mEvent->AsKeyboardEvent();
+        if (!(keyEvent->IsMeta() ||
+              keyEvent->IsFn() ||
+              keyEvent->IsOS()) &&
+            keyEvent->keyCode != NS_VK_TAB &&
+            keyEvent->keyCode != NS_VK_BACK &&
+            keyEvent->keyCode != NS_VK_SPACE &&
+            keyEvent->keyCode != NS_VK_DELETE &&
+            keyEvent->keyCode != NS_VK_RETURN) {
+              return NS_OK;
+        }
+     }
   }
 
   // Initialize the editor if needed.
@@ -3608,6 +3952,12 @@ HTMLInputElement::MaybeInitPickers(EventChainPostVisitor& aVisitor)
   if (mType == NS_FORM_INPUT_COLOR) {
     return InitColorPicker();
   }
+  if (mType == NS_FORM_INPUT_DATE) {
+    return InitDatePicker();
+  }
+  if (mType == NS_FORM_INPUT_TIME) {
+    return InitTimePicker();
+  }
   return NS_OK;
 }
 
@@ -3753,6 +4103,23 @@ HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 
   if (NS_SUCCEEDED(rv)) {
     WidgetKeyboardEvent* keyEvent = aVisitor.mEvent->AsKeyboardEvent();
+
+    if (((mType == NS_FORM_INPUT_DATE && InputDateEnabled()) ||
+         (mType == NS_FORM_INPUT_TIME && InputTimeEnabled())) &&
+        keyEvent && keyEvent->mMessage == eKeyPress &&
+        aVisitor.mEvent->mFlags.mIsTrusted &&
+        (keyEvent->keyCode == NS_VK_BACK || keyEvent->keyCode == NS_VK_DELETE) &&
+        !(keyEvent->IsShift() || keyEvent->IsControl() ||
+          keyEvent->IsAlt() || keyEvent->IsMeta() ||
+          keyEvent->IsAltGraph() || keyEvent->IsFn() ||
+          keyEvent->IsOS())) {
+      // Backspace/delete on a date or time picker field should
+      // just clear it. TenFourFox issue 405. Otherwise, defer
+      // to the handler in PreHandleEvent.
+      aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
+      SetValue(EmptyString());
+    }
+
     if (mType ==  NS_FORM_INPUT_NUMBER &&
         keyEvent && keyEvent->mMessage == eKeyPress &&
         aVisitor.mEvent->mFlags.mIsTrusted &&
@@ -3831,6 +4198,8 @@ HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
               case NS_FORM_INPUT_SUBMIT:
               case NS_FORM_INPUT_IMAGE: // Bug 34418
               case NS_FORM_INPUT_COLOR:
+              case NS_FORM_INPUT_DATE: // TenFourFox issue 405
+              case NS_FORM_INPUT_TIME: // ditto
               {
                 WidgetMouseEvent event(aVisitor.mEvent->mFlags.mIsTrusted,
                                        eMouseClick, nullptr,
@@ -4730,12 +5099,12 @@ HTMLInputElement::ParseAttribute(int32_t aNamespaceID,
       bool success = aResult.ParseEnumValue(aValue, kInputTypeTable, false);
       if (success) {
         newType = aResult.GetEnumValue();
-        if ((IsExperimentalMobileType(newType) &&
-             !Preferences::GetBool("dom.experimental_forms", false)) ||
-            (newType == NS_FORM_INPUT_NUMBER &&
-             !Preferences::GetBool("dom.forms.number", false)) ||
-            (newType == NS_FORM_INPUT_COLOR &&
-             !Preferences::GetBool("dom.forms.color", false))) {
+        if (/* (IsExperimentalMobileType(newType) &&
+             !Preferences::GetBool("dom.experimental_forms", false)) || */
+            (newType == NS_FORM_INPUT_DATE && !InputDateEnabled()) ||
+            (newType == NS_FORM_INPUT_TIME && !InputTimeEnabled()) ||
+            (newType == NS_FORM_INPUT_NUMBER && !InputNumberEnabled()) ||
+            (newType == NS_FORM_INPUT_COLOR && !InputColorEnabled())) {
           newType = kInputDefaultType->value;
           aResult.SetTo(newType, &aValue);
         }
@@ -6230,11 +6599,6 @@ HTMLInputElement::PlaceholderApplies() const
 bool
 HTMLInputElement::DoesPatternApply() const
 {
-  // TODO: temporary until bug 773205 is fixed.
-  if (IsExperimentalMobileType(mType)) {
-    return false;
-  }
-
   return IsSingleLineTextControl(false);
 }
 

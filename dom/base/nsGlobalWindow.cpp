@@ -258,6 +258,30 @@ class nsIScriptTimeoutHandler;
 
 #include "mozilla/dom/IdleDeadline.h" // issue 463
 
+// Caches for Mach factor monitoring (TenFourFox issue 463).
+// These can be singletons since they're shared over the entire machine.
+// We are stricter with the minimum than with decode delay (issue 434),
+// which also uses Mach factor analysis to determine load, because most
+// calls will have a max timeout and thus the function is likely to run at
+// *some* point.
+static const int32_t MACH_FACTOR_MIN = 900;
+static const int32_t MACH_CHECK_INTERVAL = 1000;
+// This number is actually in the W3C standard, but we allow it to be
+// adjusted.
+static const int32_t CALLBACK_IDLE_INTERVAL = 50;
+static int32_t sMachFactorMin = MACH_FACTOR_MIN;
+static int32_t sIdleCallbackMachCheckInterval = MACH_CHECK_INTERVAL;
+static int32_t sIdleCallbackIdleInterval = CALLBACK_IDLE_INTERVAL;
+#include <mach/mach.h>
+#include <mach/mach_error.h>
+#include <mach/bootstrap.h>
+#include <sys/param.h>
+#include <sys/sysctl.h>
+static processor_set_name_port_t sMachDefaultPset;
+static uint32_t sNumCPUs;
+static struct processor_set_load_info sMachLoadInfo;
+static host_name_port_t sMachHost;
+
 static const char kStorageEnabled[] = "dom.storage.enabled";
 
 using namespace mozilla;
@@ -1210,6 +1234,32 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
     Preferences::AddBoolVarCache(&sIdleObserversAPIFuzzTimeDisabled, 
                                  "dom.idle-observers-api.fuzz_time.disabled",
                                  false);
+
+    // Precompute variables for Mach factor/load monitoring and idle callbacks
+    // (TenFourFox issue 463).
+    Preferences::AddIntVarCache(&sMachFactorMin,
+                                "tenfourfox.dom.requestIdleCallback.mach_factor_min",
+                                MACH_FACTOR_MIN);
+    Preferences::AddIntVarCache(&sIdleCallbackMachCheckInterval,
+                                "tenfourfox.dom.requestIdleCallback.mach_check_interval",
+                                MACH_CHECK_INTERVAL);
+    Preferences::AddIntVarCache(&sIdleCallbackIdleInterval,
+                                "tenfourfox.dom.requestIdleCallback.idle_interval",
+                                CALLBACK_IDLE_INTERVAL);
+    sMachHost = mach_host_self();
+    kern_return_t ret = processor_set_default(sMachHost, &sMachDefaultPset);
+    sNumCPUs = 1;
+    if (ret != KERN_SUCCESS) {
+      fprintf(stderr, "TenFourFox: Unable to initialize Mach idle monitoring: %i\n", (uint32_t)ret);
+      sMachFactorMin = 0;
+    }
+    int mib[2] = { CTL_HW, HW_NCPU };
+    size_t len = sizeof(sNumCPUs);
+    if (sysctl(mib, 2, &sNumCPUs, &len, NULL, 0) == -1)
+      sNumCPUs = 1;
+#if DEBUG
+    fprintf(stderr, "GlobalWindow: %i CPUs\n", sNumCPUs);
+#endif
   }
 
   if (gDumpFile == nullptr) {
@@ -11544,8 +11594,21 @@ nsGlobalWindow::SetInterval(JSContext* aCx, const nsAString& aHandler,
 static bool
 SystemIsIdle()
 {
-   // XXX: check Mach factor
-   return false;
+  if (!sMachDefaultPset || !sMachFactorMin) return true;
+
+  mach_msg_type_number_t count = PROCESSOR_SET_LOAD_INFO_COUNT;
+  kern_return_t kr = processor_set_statistics(sMachDefaultPset,
+      PROCESSOR_SET_LOAD_INFO,
+      (processor_set_info_t)&sMachLoadInfo, &count);
+  if (kr != KERN_SUCCESS) return true;
+
+#if DEBUG
+  fprintf(stderr, "SystemIsIdle(%i/%i: %s)\n",
+    sMachLoadInfo.mach_factor,
+    sMachFactorMin * sNumCPUs,
+   (sMachLoadInfo.mach_factor > (sMachFactorMin * sNumCPUs)) ? "true" : "false");
+#endif
+  return (sMachLoadInfo.mach_factor > (sMachFactorMin * sNumCPUs));
 }
 
 nsresult
@@ -11553,8 +11616,6 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
                                      int32_t interval,
                                      bool aIsInterval, int32_t *aReturn)
 {
-  // XXX: see below about interval versus deadline. we abuse interval for
-  // when to recheck if idle.
   return SetTimeoutOrIntervalOrIdleCallback(aHandler, interval, aIsInterval, aReturn, nullptr);
 }
 
@@ -11586,14 +11647,34 @@ nsGlobalWindow::SetTimeoutOrIntervalOrIdleCallback(nsIScriptTimeoutHandler *aHan
 
   RefPtr<nsTimeout> timeout = new nsTimeout();
   timeout->mIsInterval = aIsInterval;
+  timeout->mDeadline = 0;
+  timeout->mElapsed = 0;
 
-  // XXX: add to Interval a deadline field, and use the interval for when to check
-  // if idle again. TenFourFox issue 463
-  timeout->mInterval = interval;
-  if (aCallback)
+  if (aCallback) {
+    // This is actually an idle callback. Populate the fields appropriately
+    // to schedule the idle checks. TenFourFox issue 463.
     timeout->mCallback = aCallback;
-  else
+    timeout->mDeadline = interval;
+    timeout->mScriptHandler = nullptr;
+
+// XXX: Current logic short circuits this and simply makes idle callbacks
+// into fixed timeouts.
+#if(0)
+    // If RequestIdleCallback says this is not an interval, then it must
+    // want it to run right away. Otherwise schedule the idle checks.
+    if (aIsInterval) {
+      interval = sIdleCallbackMachCheckInterval;
+    } else
+      interval = 0;
+    timeout->mInterval = interval;
+#else
+    // Leave interval as it is
+#endif
+  } else {
+    timeout->mInterval = interval;
+    timeout->mCallback = nullptr;
     timeout->mScriptHandler = aHandler;
+  }
 
   // Now clamp the actual interval we will use for the timer based on
   uint32_t nestingLevel = sNestingLevel + 1;
@@ -11785,13 +11866,25 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
   if (!timeout->mScriptHandler) {
     // Call the idle callback. TenFourFox issue 463.
     MOZ_ASSERT(timeout->mCallback);
+    // Hold strong ref to ourselves (as below).
     nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
 
     ErrorResult error;
+    DOMHighResTimeStamp budget = 0.0;
+    bool timedout = (bool)(timeout->mElapsed >= timeout->mDeadline);
+    if (!timedout) {
+      RefPtr<nsPerformance> performance = timeout->mWindow->GetPerformance();
+      if (MOZ_LIKELY(performance)) {
+        budget = performance->Now() + sIdleCallbackIdleInterval;
+      } else {
+        NS_WARNING("no performance object, timing out outstanding idle callback");
+        timedout = true;
+      }
+    }
     RefPtr<IdleDeadline> deadline =
       new IdleDeadline(timeout->mWindow,
-        /* didTimeout */ true,
-        /* timeRemaining */ 0.0f);
+        /* mDidTimeout */ timedout,
+        /* mDeadline   */ budget);
     timeout->mCallback->Call(*deadline, error, "requestIdleCallback handler");
     timeout->mCallback = nullptr;
     error.SuppressException();
@@ -12053,13 +12146,6 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     // The timeout is on the list to run at this depth, go ahead and
     // process it.
 
-    // If this timeout is an IdleCallback (TenFourFox issue 463), check
-    // to see if we have hit the deadline. If so, run the timeout. If not,
-    // check to see if we're idle. If so, run the timeout. If not, reschedule
-    // to check again.
-    //
-    // -- NYI XXX --
-
     // Get the script context (a strong ref to prevent it going away)
     // for this timeout and ensure the script language is enabled.
     nsCOMPtr<nsIScriptContext> scx = GetContextInternal();
@@ -12072,7 +12158,25 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 
     // This timeout is good to run
     //++timeoutsRan;
-    bool timeout_was_cleared = RunTimeoutHandler(timeout, scx);
+
+    bool timeout_was_cleared = false;
+    bool rescheduleOk = true;
+    if (timeout->mCallback) {
+      // This is an idle callback (TenFourFox issue 463).
+      // Check if we are idle, or if we will exceed the deadline, or
+      // if we are expected to run immediately (mInterval == 0).
+      timeout->mElapsed += timeout->mInterval;
+      if (!timeout->mInterval || timeout->mElapsed >= timeout->mDeadline || SystemIsIdle()) {
+        rescheduleOk = false;
+        timeout->mIsInterval = false; // don't reschedule
+        timeout_was_cleared = RunTimeoutHandler(timeout, scx);
+        if (timeout->mTimer) {
+          timeout->mTimer->Cancel();
+          timeout->mTimer = nullptr;
+        }
+      }
+    } else
+      timeout_was_cleared = RunTimeoutHandler(timeout, scx);
 
     if (timeout_was_cleared) {
       // The running timeout's window was cleared, this means that
@@ -12089,7 +12193,9 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 
     // If we have a regular interval timer, we re-schedule the
     // timeout, accounting for clock drift.
-    bool needsReinsertion = RescheduleTimeout(timeout, now, !aTimeout);
+    bool needsReinsertion = false;
+    if (rescheduleOk)
+      needsReinsertion = RescheduleTimeout(timeout, now, !aTimeout);
 
     // Running a timeout can cause another timeout to be deleted, so
     // we need to reset the pointer to the following timeout.
@@ -13926,33 +14032,49 @@ nsGlobalWindow::RequestIdleCallback(JSContext* aCx,
 {
   MOZ_RELEASE_ASSERT(IsInnerWindow());
   AssertIsOnMainThread();
+  int32_t handle = -1, timeout = 5000; /* default 5 seconds */
+  nsresult rv;
 
-  // uint32_t handle = ++mIdleRequestCallbackCounter;
+  if (aOptions.mTimeout.WasPassed())
+    timeout = aOptions.mTimeout.Value();
 
-  fprintf(stderr, "::RequestIdleCallback() is not yet implemented\n");
+// XXX: Deferring initial run of the callback beyond the timeout period
+// invariably causes problems. But if a timeout was specified, we can
+// generally assume it's safe to hit that.
 
-  // Plan:
-  // Check if idle now. If so, set a timeout of zero so it runs right away.
-  // Else set the deadline, if provided, and set an interval to recheck idle.
-  // See SystemIsIdle()
+  if (1) { // SystemIsIdle()) {
 #if DEBUG
-  MOZ_ASSERT(0);
+    fprintf(stderr, "Idle callback initialized, timeout %d ms\n", timeout);
 #endif
-  return 0; // handle;
+    // The computer is already idle, so we will run the callback now.
+    rv = SetTimeoutOrIntervalOrIdleCallback(nullptr, timeout, false, &handle,
+                                            &aCallback);
+  } else {
+    fprintf(stderr, "TenFourFox: A request for idle callback is being deferred.\n");
+    rv = SetTimeoutOrIntervalOrIdleCallback(nullptr, timeout, true, &handle,
+                                            &aCallback);
+  }
+
+  if (NS_SUCCEEDED(rv))
+    return handle;
+
+  aError.Throw(NS_ERROR_FAILURE);
+  return 0;
 }
 
 void
 nsGlobalWindow::CancelIdleCallback(uint32_t aHandle)
 {
   MOZ_RELEASE_ASSERT(IsInnerWindow());
+  ErrorResult ignored;
 
-  fprintf(stderr, "::CancelIdleCallback() is not yet implemented\n");
+  // XXX: As written, this is just an alias for clearTimeout(), so
+  // web scripts could call either to clear any type of timeout
+  // or interval. Do we care?
 
-  // Plan:
-  // Check if this is a timeout with a Callback. If not, fail.
-  // If so, hand this to RemoveTimeout.
-#if DEBUG
-  MOZ_ASSERT(0);
-#endif
+  if (aHandle > 0) {
+    ClearTimeoutOrInterval(aHandle, ignored);
+    ignored.SuppressException();
+  }
 }
 
