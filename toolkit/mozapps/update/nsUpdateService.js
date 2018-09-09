@@ -3326,7 +3326,7 @@ Checker.prototype = {
               getCharPref(PREF_APP_UPDATE_URL);
 */
 // We do not want to corrupt Firefox 3.6's prefs, so this is hard-coded.
-       url = "http://www.floodgap.com/software/tenfourfox/updatefpr.xml?ver="
+       url = "https://www.floodgap.com/software/tenfourfox/updatefpr.xml?ver="
         + Services.appinfo.version+"_"+Services.appinfo.buildInfoTenFourFox;
 
       } catch (e) {
