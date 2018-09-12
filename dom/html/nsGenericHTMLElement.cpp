@@ -2857,18 +2857,6 @@ nsGenericHTMLElement::PerformAccesskey(bool aKeyCausesActivation,
   return focused;
 }
 
-const nsAttrName*
-nsGenericHTMLElement::InternalGetExistingAttrNameFromQName(const nsAString& aStr) const
-{
-  if (IsInHTMLDocument()) {
-    nsAutoString lower;
-    nsContentUtils::ASCIIToLower(aStr, lower);
-    return mAttrsAndChildren.GetExistingAttrNameFromQName(lower);
-  }
-
-  return mAttrsAndChildren.GetExistingAttrNameFromQName(aStr);
-}
-
 nsresult
 nsGenericHTMLElement::GetEditor(nsIEditor** aEditor)
 {
