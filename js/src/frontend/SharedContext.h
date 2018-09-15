@@ -333,6 +333,7 @@ class FunctionBox : public ObjectBox, public SharedContext
     uint16_t        length;
 
     uint8_t         generatorKindBits_;     /* The GeneratorKind of this function. */
+    uint8_t         asyncKindBits_;         /* The FunctionAsyncKing of this function. */
     bool            inGenexpLambda:1;       /* lambda from generator expression */
     bool            hasDestructuringArgs:1; /* arguments list contains destructuring expression */
     bool            useAsm:1;               /* see useAsmOrInsideUseAsm */
@@ -350,7 +351,8 @@ class FunctionBox : public ObjectBox, public SharedContext
     template <typename ParseHandler>
     FunctionBox(ExclusiveContext* cx, ObjectBox* traceListHead, JSFunction* fun,
                 JSObject* enclosingStaticScope, ParseContext<ParseHandler>* pc,
-                Directives directives, bool extraWarnings, GeneratorKind generatorKind);
+                Directives directives, bool extraWarnings, GeneratorKind generatorKind,
+                FunctionAsyncKind asyncKind);
 
     ObjectBox* toObjectBox() override { return this; }
     JSFunction* function() const { return &object->as<JSFunction>(); }
@@ -365,6 +367,8 @@ class FunctionBox : public ObjectBox, public SharedContext
     bool isGenerator() const { return generatorKind() != NotGenerator; }
     bool isLegacyGenerator() const { return generatorKind() == LegacyGenerator; }
     bool isStarGenerator() const { return generatorKind() == StarGenerator; }
+    FunctionAsyncKind asyncKind() const { return AsyncKindFromBits(asyncKindBits_); }
+    bool isAsync() const { return asyncKind() == AsyncFunction; }
     bool isArrow() const { return function()->isArrow(); }
 
     void setGeneratorKind(GeneratorKind kind) {

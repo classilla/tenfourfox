@@ -312,6 +312,7 @@ BytecodeCompiler::saveCallerFun(HandleScript evalCaller)
     Directives directives(/* strict = */ options.strictOption);
     ObjectBox* funbox = parser->newFunctionBox(/* fn = */ nullptr, fun,
                                                directives, fun->generatorKind(),
+                                               fun->asyncKind(),
                                                enclosingStaticScope);
     if (!funbox)
         return false;

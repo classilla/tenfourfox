@@ -689,7 +689,8 @@ Parser<FullParseHandler>::cloneParseTree(ParseNode* opn)
         RootedFunction fun(context, opn->pn_funbox->function());
         NULLCHECK(pn->pn_funbox = newFunctionBox(pn, fun, pc,
                                                  Directives(/* strict = */ opn->pn_funbox->strict()),
-                                                 opn->pn_funbox->generatorKind()));
+                                                 opn->pn_funbox->generatorKind(),
+                                                 opn->pn_funbox->asyncKind()));
         NULLCHECK(pn->pn_body = cloneParseTree(opn->pn_body));
         pn->pn_scopecoord = opn->pn_scopecoord;
         pn->pn_dflags = opn->pn_dflags;

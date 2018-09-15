@@ -760,7 +760,8 @@ Parser<ParseHandler>::newObjectBox(JSObject* obj)
 template <typename ParseHandler>
 FunctionBox::FunctionBox(ExclusiveContext* cx, ObjectBox* traceListHead, JSFunction* fun,
                          JSObject* enclosingStaticScope, ParseContext<ParseHandler>* outerpc,
-                         Directives directives, bool extraWarnings, GeneratorKind generatorKind)
+                         Directives directives, bool extraWarnings, GeneratorKind generatorKind,
+                         FunctionAsyncKind asyncKind)
   : ObjectBox(fun, traceListHead),
     SharedContext(cx, directives, extraWarnings),
     bindings(),
@@ -771,6 +772,7 @@ FunctionBox::FunctionBox(ExclusiveContext* cx, ObjectBox* traceListHead, JSFunct
     startColumn(0),
     length(0),
     generatorKindBits_(GeneratorKindAsBits(generatorKind)),
+    asyncKindBits_(AsyncKindAsBits(asyncKind)),
     inGenexpLambda(false),
     hasDestructuringArgs(false),
     useAsm(false),
@@ -794,6 +796,7 @@ Parser<ParseHandler>::newFunctionBox(Node fn, JSFunction* fun,
                                      ParseContext<ParseHandler>* outerpc,
                                      Directives inheritedDirectives,
                                      GeneratorKind generatorKind,
+                                     FunctionAsyncKind asyncKind,
                                      JSObject* enclosingStaticScope)
 {
     MOZ_ASSERT_IF(outerpc, enclosingStaticScope == outerpc->innermostStaticScope());
@@ -809,7 +812,7 @@ Parser<ParseHandler>::newFunctionBox(Node fn, JSFunction* fun,
     FunctionBox* funbox =
         alloc.new_<FunctionBox>(context, traceListHead, fun, enclosingStaticScope, outerpc,
                                 inheritedDirectives, options().extraWarningsOption,
-                                generatorKind);
+                                generatorKind, asyncKind);
     if (!funbox) {
         ReportOutOfMemory(context);
         return nullptr;
@@ -1155,7 +1158,7 @@ Parser<FullParseHandler>::standaloneFunctionBody(HandleFunction fun,
         return null();
     fn->pn_body = argsbody;
 
-    FunctionBox* funbox = newFunctionBox(fn, fun, inheritedDirectives, generatorKind,
+    FunctionBox* funbox = newFunctionBox(fn, fun, inheritedDirectives, generatorKind, SyncFunction,
                                          enclosingStaticScope);
     if (!funbox)
         return null();
@@ -2507,7 +2510,7 @@ Parser<FullParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
         RootedFunction fun(context, handler.nextLazyInnerFunction());
         MOZ_ASSERT(!fun->isLegacyGenerator());
         FunctionBox* funbox = newFunctionBox(pn, fun, pc, Directives(/* strict = */ false),
-                                             fun->generatorKind());
+                                             fun->generatorKind(), fun->asyncKind());
         if (!funbox)
             return false;
 
@@ -2836,6 +2839,7 @@ Parser<SyntaxParseHandler>::finishFunctionDefinition(Node pn, FunctionBox* funbo
     if (pc->sc->strict())
         lazy->setStrict();
     lazy->setGeneratorKind(funbox->generatorKind());
+    lazy->setAsyncKind(funbox->asyncKind());
     if (funbox->isLikelyConstructorWrapper())
         lazy->setLikelyConstructorWrapper();
     if (funbox->isDerivedClassConstructor())
@@ -2859,7 +2863,7 @@ Parser<FullParseHandler>::functionArgsAndBody(InHandling inHandling, ParseNode* 
     ParseContext<FullParseHandler>* outerpc = pc;
 
     // Create box for fun->object early to protect against last-ditch GC.
-    FunctionBox* funbox = newFunctionBox(pn, fun, pc, inheritedDirectives, generatorKind);
+    FunctionBox* funbox = newFunctionBox(pn, fun, pc, inheritedDirectives, generatorKind, SyncFunction);
     if (!funbox)
         return false;
 
@@ -2959,7 +2963,7 @@ Parser<SyntaxParseHandler>::functionArgsAndBody(InHandling inHandling, Node pn, 
     ParseContext<SyntaxParseHandler>* outerpc = pc;
 
     // Create box for fun->object early to protect against last-ditch GC.
-    FunctionBox* funbox = newFunctionBox(pn, fun, pc, inheritedDirectives, generatorKind);
+    FunctionBox* funbox = newFunctionBox(pn, fun, pc, inheritedDirectives, generatorKind, SyncFunction);
     if (!funbox)
         return false;
 
@@ -3018,7 +3022,7 @@ Parser<FullParseHandler>::standaloneLazyFunction(HandleFunction fun, bool strict
 
     RootedObject enclosing(context, fun->lazyScript()->enclosingScope());
     Directives directives(/* strict = */ strict);
-    FunctionBox* funbox = newFunctionBox(pn, fun, directives, generatorKind, enclosing);
+    FunctionBox* funbox = newFunctionBox(pn, fun, directives, generatorKind, SyncFunction, enclosing);
     if (!funbox)
         return null();
     funbox->length = fun->nargs() - fun->hasRest();
@@ -8632,7 +8636,7 @@ Parser<ParseHandler>::generatorComprehensionLambda(GeneratorKind comprehensionKi
 
     // Create box for fun->object early to root it.
     Directives directives(/* strict = */ outerpc->sc->strict());
-    FunctionBox* genFunbox = newFunctionBox(genfn, fun, outerpc, directives, comprehensionKind);
+    FunctionBox* genFunbox = newFunctionBox(genfn, fun, outerpc, directives, comprehensionKind, SyncFunction);
     if (!genFunbox)
         return null();
 

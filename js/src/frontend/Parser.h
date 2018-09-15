@@ -126,6 +126,10 @@ struct MOZ_STACK_CLASS ParseContext : public GenericParseContext
     bool isLegacyGenerator() const { return generatorKind() == LegacyGenerator; }
     bool isStarGenerator() const { return generatorKind() == StarGenerator; }
 
+    bool isAsync() const {
+        return sc->isFunctionBox() && sc->asFunctionBox()->isAsync();
+    }
+
     bool isArrowFunction() const {
         return sc->isFunctionBox() && sc->asFunctionBox()->function()->isArrow();
     }
@@ -579,22 +583,26 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     ObjectBox* newObjectBox(JSObject* obj);
     FunctionBox* newFunctionBox(Node fn, JSFunction* fun, ParseContext<ParseHandler>* outerpc,
                                 Directives directives, GeneratorKind generatorKind,
+                                FunctionAsyncKind asyncKind,
                                 JSObject* enclosingStaticScope);
 
     // Use when the funbox is the outermost.
     FunctionBox* newFunctionBox(Node fn, HandleFunction fun, Directives directives,
-                                GeneratorKind generatorKind, HandleObject enclosingStaticScope)
+                                GeneratorKind generatorKind, FunctionAsyncKind asyncKind,
+                                HandleObject enclosingStaticScope)
     {
         return newFunctionBox(fn, fun, nullptr, directives, generatorKind,
+                              asyncKind,
                               enclosingStaticScope);
     }
 
     // Use when the funbox should be linked to the outerpc's innermost scope.
     FunctionBox* newFunctionBox(Node fn, HandleFunction fun, ParseContext<ParseHandler>* outerpc,
-                                Directives directives, GeneratorKind generatorKind)
+                                Directives directives, GeneratorKind generatorKind,
+                                FunctionAsyncKind asyncKind)
     {
         RootedObject enclosing(context, outerpc->innermostStaticScope());
-        return newFunctionBox(fn, fun, outerpc, directives, generatorKind, enclosing);
+        return newFunctionBox(fn, fun, outerpc, directives, generatorKind, asyncKind, enclosing);
     }
 
     ModuleBox* newModuleBox(Node pn, HandleModuleObject module);

@@ -867,6 +867,7 @@ js::XDRScript(XDRState<mode>* xdr, HandleObject enclosingScopeArg, HandleScript 
         return false;
 
     if (mode == XDR_DECODE) {
+        /* XXX: AsyncFunction and isAsync not implemented. */
         if (!JSScript::partiallyInit(cx, script, nconsts, nobjects, nregexps, ntrynotes,
                                      nblockscopes, nyieldoffsets, nTypeSets))
         {
@@ -2751,6 +2752,7 @@ JSScript::Create(ExclusiveContext* cx, HandleObject enclosingScope, bool savedCa
     script->setSourceObject(sourceObject);
     script->sourceStart_ = bufStart;
     script->sourceEnd_ = bufEnd;
+    script->isAsync_ = false;
 
     return script;
 }
@@ -2915,6 +2917,7 @@ JSScript::linkToFunctionFromEmitter(js::ExclusiveContext* cx, JS::Handle<JSScrip
 
     script->isGeneratorExp_ = funbox->inGenexpLambda;
     script->setGeneratorKind(funbox->generatorKind());
+    script->setAsyncKind(funbox->asyncKind());
 
     // Link the function and the script to each other, so that StaticScopeIter
     // may walk the scope chain of currently compiling scripts.
@@ -2940,6 +2943,7 @@ JSScript::linkToModuleFromEmitter(js::ExclusiveContext* cx, JS::Handle<JSScript*
     script->funLength_ = 0;
 
     script->isGeneratorExp_ = false;
+    script->isAsync_ = false;
     script->setGeneratorKind(NotGenerator);
 
     // Link the module and the script to each other, so that StaticScopeIter
@@ -3575,6 +3579,7 @@ js::detail::CopyScript(JSContext* cx, HandleObject scriptStaticScope, HandleScri
     dst->hasInnerFunctions_ = src->hasInnerFunctions();
     dst->isGeneratorExp_ = src->isGeneratorExp();
     dst->setGeneratorKind(src->generatorKind());
+    dst->isAsync_ = src->asyncKind() == AsyncFunction;
 
     if (nconsts != 0) {
         HeapValue* vector = Rebase<HeapValue>(dst, src, src->consts()->vector);
@@ -4275,6 +4280,7 @@ LazyScript::CreateRaw(ExclusiveContext* cx, HandleFunction fun,
     // Reset runtime flags to obtain a fresh LazyScript.
     p.hasBeenCloned = false;
     p.treatAsRunOnce = false;
+    p.isAsync = false;
 
     size_t bytes = (p.numFreeVariables * sizeof(FreeVariable))
                  + (p.numInnerFunctions * sizeof(HeapPtrFunction));
@@ -4306,6 +4312,7 @@ LazyScript::CreateRaw(ExclusiveContext* cx, HandleFunction fun,
 
     p.version = version;
     p.numFreeVariables = numFreeVariables;
+    p.isAsync = false;
     p.numInnerFunctions = numInnerFunctions;
     p.generatorKindBits = GeneratorKindAsBits(NotGenerator);
     p.strict = false;
