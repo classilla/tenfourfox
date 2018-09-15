@@ -1025,8 +1025,6 @@ protected:
     GetEventListenerManagerForAttr(nsIAtom* aAttrName,
                                    bool* aDefer) override;
 
-  virtual const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const override;
-
   /**
    * Create a URI for the given aURISpec string.
    * Returns INVALID_STATE_ERR and nulls *aURI if aURISpec is empty

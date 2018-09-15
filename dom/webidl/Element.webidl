@@ -42,6 +42,8 @@ interface Element : Node {
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
   [Throws]
+  boolean toggleAttribute(DOMString name, optional boolean force);
+  [Throws]
   void setAttribute(DOMString name, DOMString value);
   [Throws]
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);

@@ -675,6 +675,8 @@ public:
   void GetAttributeNS(const nsAString& aNamespaceURI,
                       const nsAString& aLocalName,
                       nsAString& aReturn);
+  bool ToggleAttribute(const nsAString& aName, const Optional<bool>& aForce,
+                       ErrorResult& aError);
   void SetAttribute(const nsAString& aName, const nsAString& aValue,
                     ErrorResult& aError);
   void SetAttributeNS(const nsAString& aNamespaceURI,
@@ -688,7 +690,7 @@ public:
                          ErrorResult& aError);
   bool HasAttribute(const nsAString& aName) const
   {
-    return InternalGetExistingAttrNameFromQName(aName) != nullptr;
+    return InternalGetAttrNameFromQName(aName) != nullptr;
   }
   bool HasAttributeNS(const nsAString& aNamespaceURI,
                       const nsAString& aLocalName) const;
@@ -1281,9 +1283,13 @@ protected:
     GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer);
 
   /**
-   * Internal hook for converting an attribute name-string to an atomized name
+   * Internal hook for converting an attribute name-string to nsAttrName in
+   * case there is such existing attribute. aNameToUse can be passed to get
+   * name which was used for looking for the attribute (lowercase in HTML).
    */
-  virtual const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const;
+  const nsAttrName*
+  InternalGetAttrNameFromQName(const nsAString& aStr,
+                               nsAutoString* aNameToUse = nullptr) const;
 
   nsIFrame* GetStyledFrame();
 

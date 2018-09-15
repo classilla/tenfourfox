@@ -428,6 +428,8 @@ nsNumberControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
     nsContentUtils::AddScriptRunner(focusJob);
   }
 
+  SyncDisabledState(); // Sync disabled state of 'mTextField'.
+
   if (StyleDisplay()->mAppearance == NS_THEME_TEXTFIELD) {
     // The author has elected to hide the spinner by setting this
     // -moz-appearance. We will reframe if it changes.
@@ -458,8 +460,6 @@ nsNumberControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
                             nsGkAtoms::div,
                             nsCSSPseudoElements::ePseudo_mozNumberSpinDown,
                             spinBoxCI.mStyleContext);
-
-  SyncDisabledState();
 
   return rv;
 }
