@@ -56,6 +56,12 @@ interface nsPIWindowWatcher : nsISupports
                          nsITabParent is a remote tab belonging to aParent. Can
                          be nullptr if this window is not being opened from a tab.
       @param aArgs Window argument
+      @param aIsPopupSpam true if the window is a popup spam window; used for
+                          popup blocker internals.
+      @param aForceNoOpener If true, force noopener behavior.  This means not
+                            looking for existing windows with the given name,
+                            not setting an opener on the newly opened window,
+                            and returning null from this method.
       @return the new window
 
       @note This method may examine the JS context stack for purposes of
@@ -70,7 +76,9 @@ interface nsPIWindowWatcher : nsISupports
                            in string aName, in string aFeatures,
                            in boolean aCalledFromScript, in boolean aDialog,
                            in boolean aNavigate, in nsITabParent aOpeningTab,
-                           in nsISupports aArgs);
+                           in nsISupports aArgs,
+                           in boolean aIsPopupSpam,
+                           in boolean aForceNoOpener);
 
   /**
    * Find a named docshell tree item amongst all windows registered

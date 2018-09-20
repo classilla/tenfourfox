@@ -1321,6 +1321,7 @@ protected:
   // Get the parent, returns null if this is a toplevel window
   nsIDOMWindow* GetParentInternal();
 
+public:
   // popup tracking
   bool IsPopupSpamWindow()
   {
@@ -1331,17 +1332,10 @@ protected:
     return GetOuterWindowInternal()->mIsPopupSpam;
   }
 
-  void SetPopupSpamWindow(bool aPopup)
-  {
-    if (IsInnerWindow() && !mOuterWindow) {
-      NS_ERROR("SetPopupSpamWindow() called on inner window w/o an outer!");
+  // Outer windows only.
+  void SetIsPopupSpamWindow(bool aIsPopupSpam);
 
-      return;
-    }
-
-    GetOuterWindowInternal()->mIsPopupSpam = aPopup;
-  }
-
+protected:
   // Window Control Functions
 
   // Outer windows only.
@@ -1471,8 +1465,7 @@ public:
 
   bool PopupWhitelisted();
   PopupControlState RevisePopupAbuseLevel(PopupControlState);
-  void     FireAbuseEvents(bool aBlocked, bool aWindow,
-                           const nsAString &aPopupURL,
+  void     FireAbuseEvents(const nsAString &aPopupURL,
                            const nsAString &aPopupWindowName,
                            const nsAString &aPopupWindowFeatures);
   void FireOfflineStatusEventIfChanged();
@@ -1538,7 +1531,8 @@ public:
   // If aLookForCallerOnJSStack is true, this method will look at the JS stack
   // to determine who the caller is.  If it's false, it'll use |this| as the
   // caller.
-  bool WindowExists(const nsAString& aName, bool aLookForCallerOnJSStack);
+  bool WindowExists(const nsAString& aName, bool aForceNoOpener,
+                    bool aLookForCallerOnJSStack);
 
   already_AddRefed<nsIWidget> GetMainWidget();
   nsIWidget* GetNearestWidget() const;

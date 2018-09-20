@@ -18,6 +18,7 @@
 #include "nsJSUtils.h"
 #include "plstr.h"
 
+#include "nsGlobalWindow.h"
 #include "nsIBaseWindow.h"
 #include "nsIBrowserDOMWindow.h"
 #include "nsIDocShell.h"
@@ -366,7 +367,10 @@ nsWindowWatcher::OpenWindow(nsIDOMWindow* aParent,
 
   return OpenWindowInternal(aParent, aUrl, aName, aFeatures,
                             /* calledFromJS = */ false, dialog,
-                            /* navigate = */ true, nullptr, argv, aResult);
+                            /* navigate = */ true, nullptr, argv,
+                            /* aIsPopupSpam = */ false,
+                            /* aForceNoOpener = */ false,
+                            aResult);
 }
 
 struct SizeSpec
@@ -424,6 +428,8 @@ nsWindowWatcher::OpenWindow2(nsIDOMWindow* aParent,
                              bool aNavigate,
                              nsITabParent* aOpeningTab,
                              nsISupports* aArguments,
+                             bool aIsPopupSpam,
+                             bool aForceNoOpener,
                              nsIDOMWindow** aResult)
 {
   nsCOMPtr<nsIArray> argv = ConvertArgsToArray(aArguments);
@@ -443,7 +449,10 @@ nsWindowWatcher::OpenWindow2(nsIDOMWindow* aParent,
 
   return OpenWindowInternal(aParent, aUrl, aName, aFeatures,
                             aCalledFromScript, dialog,
-                            aNavigate, aOpeningTab, argv, aResult);
+                            aNavigate, aOpeningTab, argv,
+                            aIsPopupSpam,
+                            aForceNoOpener,
+                            aResult);
 }
 
 nsresult
@@ -456,6 +465,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
                                     bool aNavigate,
                                     nsITabParent* aOpeningTab,
                                     nsIArray* aArgv,
+                                    bool aIsPopupSpam,
+                                    bool aForceNoOpener,
                                     nsIDOMWindow** aResult)
 {
   nsresult rv = NS_OK;
@@ -531,7 +542,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
   // know or care about names - unless we're opening named windows from chrome.
   if (!aOpeningTab) {
     // try to find an extant window with the given name
-    nsCOMPtr<nsIDOMWindow> foundWindow = SafeGetWindowByName(name, aParent);
+    nsCOMPtr<nsIDOMWindow> foundWindow =
+      SafeGetWindowByName(name, aForceNoOpener, aParent);
     GetWindowTreeItem(foundWindow, getter_AddRefs(newDocShellItem));
   }
 
@@ -828,7 +840,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     }
   }
 
-  rv = ReadyOpenedDocShellItem(newDocShellItem, aParent, windowIsNew, aResult);
+  rv = ReadyOpenedDocShellItem(newDocShellItem, aParent, windowIsNew,
+                               aForceNoOpener, aResult);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -900,6 +913,16 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     // SetInitialPrincipalToSubject is safe to call multiple times.
     if (newWindow) {
       newWindow->SetInitialPrincipalToSubject();
+      if (aIsPopupSpam) {
+        nsGlobalWindow* globalWin = static_cast<nsGlobalWindow*>(newWindow.get());
+        MOZ_ASSERT(!globalWin->IsPopupSpamWindow(),
+                   "Who marked it as popup spam already???");
+        if (!globalWin->IsPopupSpamWindow()) { // Make sure we don't mess up our
+                                               // counter even if the above
+                                               // assert fails.
+          globalWin->SetIsPopupSpamWindow(true);
+        }
+      }
     }
   }
 
@@ -1067,6 +1090,10 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
 
       newChrome->ShowAsModal();
     }
+  }
+
+  if (aForceNoOpener && windowIsNew) {
+    NS_RELEASE(*aResult);
   }
 
   return NS_OK;
@@ -1857,8 +1884,18 @@ nsWindowWatcher::GetCallerTreeItem(nsIDocShellTreeItem* aParentItem)
 
 nsPIDOMWindow*
 nsWindowWatcher::SafeGetWindowByName(const nsAString& aName,
+                                     bool aForceNoOpener,
                                      nsIDOMWindow* aCurrentWindow)
 {
+  if (aForceNoOpener) {
+    if (!aName.LowerCaseEqualsLiteral("_self") &&
+        !aName.LowerCaseEqualsLiteral("_top") &&
+        !aName.LowerCaseEqualsLiteral("_parent")) {
+      // Ignore all other names in the noopener case.
+      return nullptr;
+    }
+  }
+
   nsCOMPtr<nsIDocShellTreeItem> startItem;
   GetWindowTreeItem(aCurrentWindow, getter_AddRefs(startItem));
 
@@ -1887,6 +1924,7 @@ nsresult
 nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem* aOpenedItem,
                                          nsIDOMWindow* aParent,
                                          bool aWindowIsNew,
+                                         bool aForceNoOpener,
                                          nsIDOMWindow** aOpenedWindow)
 {
   nsresult rv = NS_ERROR_FAILURE;
@@ -1897,7 +1935,9 @@ nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem* aOpenedItem,
   nsCOMPtr<nsPIDOMWindow> piOpenedWindow = aOpenedItem->GetWindow();
   if (piOpenedWindow) {
     if (aParent) {
-      piOpenedWindow->SetOpenerWindow(aParent, aWindowIsNew); // damnit
+      if (!aForceNoOpener) {
+        piOpenedWindow->SetOpenerWindow(aParent, aWindowIsNew); // damnit
+      }
 
       if (aWindowIsNew) {
 #ifdef DEBUG
