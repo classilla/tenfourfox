@@ -901,7 +901,10 @@ public:
                                       const nsAString& aOptions,
                                       mozilla::ErrorResult& aError);
   nsresult Open(const nsAString& aUrl, const nsAString& aName,
-                const nsAString& aOptions, nsPIDOMWindow **_retval) override;
+                const nsAString& aOptions,
+                nsIDocShellLoadInfo* aLoadInfo,
+                bool aForceNoOpener,
+                nsPIDOMWindow **_retval) override;
   mozilla::dom::Navigator* GetNavigator(mozilla::ErrorResult& aError);
   nsIDOMNavigator* GetNavigator() override;
   nsIDOMOfflineResourceList* GetApplicationCache(mozilla::ErrorResult& aError);
@@ -1380,15 +1383,21 @@ private:
    *        three args, if present, will be aUrl, aName, and aOptions.  So this
    *        param only matters if there are more than 3 arguments.
    *
-   * @param argc The number of arguments in argv.
-   *
    * @param aExtraArgument Another way to pass arguments in.  This is mutually
-   *        exclusive with the argv/argc approach.
+   *        exclusive with the argv approach.
+   *
+   * @param aLoadInfo to be passed on along to the windowwatcher.
+   *
+   * @param aForceNoOpener if true, will act as if "noopener" were passed in
+   *                       aOptions, but without affecting any other window
+   *                       features.
    *
    * @param aJSCallerContext The calling script's context. This must be null
    *        when aCalledNoScript is true.
    *
-   * @param aReturn [out] The window that was opened, if any.
+   * @param aReturn [out] The window that was opened, if any.  Will be null if
+   *                      aForceNoOpener is true of if aOptions contains
+   *                      "noopener".
    *
    * Outer windows only.
    */
@@ -1402,6 +1411,8 @@ private:
                                     bool aNavigate,
                                     nsIArray *argv,
                                     nsISupports *aExtraArgument,
+                                    nsIDocShellLoadInfo* aLoadInfo,
+                                    bool aForceNoOpener,
                                     nsIPrincipal *aCalleePrincipal,
                                     JSContext *aJSCallerContext,
                                     nsIDOMWindow **aReturn);

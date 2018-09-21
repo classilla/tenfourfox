@@ -7677,9 +7677,11 @@ nsGlobalWindow::Open(const nsAString& aUrl, const nsAString& aName,
 
 nsresult
 nsGlobalWindow::Open(const nsAString& aUrl, const nsAString& aName,
-                     const nsAString& aOptions, nsPIDOMWindow **_retval)
+                     const nsAString& aOptions, nsIDocShellLoadInfo* aLoadInfo,
+                     bool aForceNoOpener, nsPIDOMWindow **_retval)
 {
-  FORWARD_TO_OUTER(Open, (aUrl, aName, aOptions, _retval),
+  FORWARD_TO_OUTER(Open, (aUrl, aName, aOptions, aLoadInfo, aForceNoOpener,
+                          _retval),
                    NS_ERROR_NOT_INITIALIZED);
   nsCOMPtr<nsIDOMWindow> window;
   nsresult rv = OpenInternal(aUrl, aName, aOptions,
@@ -7689,6 +7691,8 @@ nsGlobalWindow::Open(const nsAString& aUrl, const nsAString& aName,
                              false,          // aDoJSFixups
                              true,           // aNavigate
                              nullptr, nullptr,  // No args
+                             aLoadInfo,
+                             aForceNoOpener,
                              GetPrincipal(),    // aCalleePrincipal
                              nullptr,           // aJSCallerContext
                              getter_AddRefs(window));
@@ -7710,6 +7714,8 @@ nsGlobalWindow::OpenJS(const nsAString& aUrl, const nsAString& aName,
                       true,           // aDoJSFixups
                       true,           // aNavigate
                       nullptr, nullptr,  // No args
+                      nullptr,           // aLoadInfo
+                      false,             // aForceNoOpener
                       GetPrincipal(),    // aCalleePrincipal
                       nsContentUtils::GetCurrentJSContext(), // aJSCallerContext
                       _retval);
@@ -7730,6 +7736,8 @@ nsGlobalWindow::OpenDialog(const nsAString& aUrl, const nsAString& aName,
                       false,                   // aDoJSFixups
                       true,                    // aNavigate
                       nullptr, aExtraArgument,    // Arguments
+                      nullptr,                    // aLoadInfo
+                      false,                      // aForceNoOpener
                       GetPrincipal(),             // aCalleePrincipal
                       nullptr,                    // aJSCallerContext
                       _retval);
@@ -7750,6 +7758,8 @@ nsGlobalWindow::OpenNoNavigate(const nsAString& aUrl,
                       false,          // aDoJSFixups
                       false,          // aNavigate
                       nullptr, nullptr,  // No args
+                      nullptr,           // aLoadInfo
+                      false,             // aForceNoOpener
                       GetPrincipal(),    // aCalleePrincipal
                       nullptr,           // aJSCallerContext
                       _retval);
@@ -7780,6 +7790,8 @@ nsGlobalWindow::OpenDialogOuter(JSContext* aCx, const nsAString& aUrl,
                         false,            // aDoJSFixups
                         true,                // aNavigate
                         argvArray, nullptr,  // Arguments
+                        nullptr,             // aLoadInfo
+                        false,               // aForceNoOpener
                         GetPrincipal(),      // aCalleePrincipal
                         aCx,                 // aJSCallerContext
                         getter_AddRefs(dialog));
@@ -8860,6 +8872,8 @@ nsGlobalWindow::ShowModalDialogOuter(const nsAString& aUrl, nsIVariant* aArgumen
                         true,           // aDoJSFixups
                         true,           // aNavigate
                         nullptr, argHolder, // args
+                        nullptr,            // aLoadInfo
+                        false,              // aForceNoOpener
                         GetPrincipal(),     // aCalleePrincipal
                         nullptr,            // aJSCallerContext
                         getter_AddRefs(dlgWin));
@@ -11294,6 +11308,8 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
                              bool aDoJSFixups, bool aNavigate,
                              nsIArray *argv,
                              nsISupports *aExtraArgument,
+                             nsIDocShellLoadInfo* aLoadInfo,
+                             bool aForceNoOpener,
                              nsIPrincipal *aCalleePrincipal,
                              JSContext *aJSCallerContext,
                              nsIDOMWindow **aReturn)
@@ -11335,16 +11351,24 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
               nsIPrincipal::APP_STATUS_INSTALLED;
   }
 
-  bool forceNoOpener = false;
+  nsAutoCString options;
+  bool forceNoOpener = aForceNoOpener;
   // Unlike other window flags, "noopener" comes from splitting on commas with
   // HTML whitespace trimming...
   nsCharSeparatedTokenizerTemplate<nsContentUtils::IsHTMLWhitespace> tok(
     aOptions, ',');
   while (tok.hasMoreTokens()) {
-    if (tok.nextToken().EqualsLiteral("noopener")) {
+    auto nextTok = tok.nextToken();
+    if (nextTok.EqualsLiteral("noopener")) {
       forceNoOpener = true;
-      break;
+      continue;
     }
+    // Want to create a copy of the options without 'noopener' because having
+    // 'noopener' in the options affects other window features.
+    if (!options.IsEmpty()) {
+      options.Append(',');
+    }
+    AppendUTF16toUTF8(nextTok, options);
   }
 
   // XXXbz When this gets fixed to not use LegacyIsCallerNativeCode()
@@ -11406,10 +11430,9 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
     do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
   NS_ENSURE_TRUE(wwatch, rv);
 
-  NS_ConvertUTF16toUTF8 options(aOptions);
   NS_ConvertUTF16toUTF8 name(aName);
 
-  const char *options_ptr = aOptions.IsEmpty() ? nullptr : options.get();
+  const char *options_ptr  = options.IsEmpty() ? nullptr : options.get();
   const char *name_ptr = aName.IsEmpty() ? nullptr : name.get();
 
   nsCOMPtr<nsPIWindowWatcher> pwwatch(do_QueryInterface(wwatch));
@@ -11436,6 +11459,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
                                 aDialog, aNavigate, nullptr, argv,
                                 isPopupSpamWindow,
                                 forceNoOpener,
+                                aLoadInfo,
                                 getter_AddRefs(domReturn));
     } else {
       // Force a system caller here so that the window watcher won't screw us
@@ -11457,6 +11481,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
                                 aDialog, aNavigate, nullptr, aExtraArgument,
                                 isPopupSpamWindow,
                                 forceNoOpener,
+                                aLoadInfo,
                                 getter_AddRefs(domReturn));
 
     }

@@ -370,6 +370,7 @@ nsWindowWatcher::OpenWindow(nsIDOMWindow* aParent,
                             /* navigate = */ true, nullptr, argv,
                             /* aIsPopupSpam = */ false,
                             /* aForceNoOpener = */ false,
+                            /* aLoadInfo = */ nullptr,
                             aResult);
 }
 
@@ -430,6 +431,7 @@ nsWindowWatcher::OpenWindow2(nsIDOMWindow* aParent,
                              nsISupports* aArguments,
                              bool aIsPopupSpam,
                              bool aForceNoOpener,
+                             nsIDocShellLoadInfo* aLoadInfo,
                              nsIDOMWindow** aResult)
 {
   nsCOMPtr<nsIArray> argv = ConvertArgsToArray(aArguments);
@@ -452,6 +454,7 @@ nsWindowWatcher::OpenWindow2(nsIDOMWindow* aParent,
                             aNavigate, aOpeningTab, argv,
                             aIsPopupSpam,
                             aForceNoOpener,
+                            aLoadInfo,
                             aResult);
 }
 
@@ -467,6 +470,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
                                     nsIArray* aArgv,
                                     bool aIsPopupSpam,
                                     bool aForceNoOpener,
+                                    nsIDocShellLoadInfo* aLoadInfo,
                                     nsIDOMWindow** aResult)
 {
   nsresult rv = NS_OK;
@@ -967,8 +971,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     }
   }
 
-  nsCOMPtr<nsIDocShellLoadInfo> loadInfo;
-  if (uriToLoad && aNavigate) {
+  nsCOMPtr<nsIDocShellLoadInfo> loadInfo = aLoadInfo;
+  if (uriToLoad && aNavigate && !loadInfo) {
     newDocShell->CreateLoadInfo(getter_AddRefs(loadInfo));
     NS_ENSURE_TRUE(loadInfo, NS_ERROR_FAILURE);
 

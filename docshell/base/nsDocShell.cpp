@@ -9592,9 +9592,20 @@ nsDocShell::InternalLoad(nsIURI* aURI,
   if (aWindowTarget && *aWindowTarget) {
     // Locate the target DocShell.
     nsCOMPtr<nsIDocShellTreeItem> targetItem;
-    rv = FindItemWithName(aWindowTarget, nullptr, this,
-                          getter_AddRefs(targetItem));
-    NS_ENSURE_SUCCESS(rv, rv);
+    nsDependentString name(aWindowTarget);
+    // Only _self, _parent, and _top are supported in noopener case. But we
+    // have to be careful to not apply that to the noreferrer case.  See bug
+    // 1358469.
+    bool allowNamedTarget = !(aFlags & INTERNAL_LOAD_FLAGS_NO_OPENER) ||
+                            (aFlags & INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER);
+    if (allowNamedTarget ||
+        name.LowerCaseEqualsLiteral("_self") ||
+        name.LowerCaseEqualsLiteral("_parent") ||
+        name.LowerCaseEqualsLiteral("_top")) {
+      rv = FindItemWithName(aWindowTarget, nullptr, this,
+                            getter_AddRefs(targetItem));
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
 
     targetDocShell = do_QueryInterface(targetItem);
     // If the targetDocShell doesn't exist, then this is a new docShell
@@ -9737,11 +9748,60 @@ nsDocShell::InternalLoad(nsIURI* aURI,
       NS_ENSURE_TRUE(win, NS_ERROR_NOT_AVAILABLE);
 
       nsDependentString name(aWindowTarget);
-      nsCOMPtr<nsIDOMWindow> newWin;
       nsAutoCString spec;
       if (aURI) {
         aURI->GetSpec(spec);
       }
+      // If we are a noopener load, we just hand the whole thing over to our
+      // window.
+      if (aFlags & INTERNAL_LOAD_FLAGS_NO_OPENER) {
+        // Various asserts that we know to hold because NO_OPENER loads can only
+        // happen for links.
+        MOZ_ASSERT(!aLoadReplace);
+        /* MOZ_ASSERT(aPrincipalToInherit == aTriggeringPrincipal); */
+        MOZ_ASSERT(aFlags == INTERNAL_LOAD_FLAGS_NO_OPENER ||
+                   aFlags == (INTERNAL_LOAD_FLAGS_NO_OPENER |
+                              INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER));
+        MOZ_ASSERT(!aPostData);
+        MOZ_ASSERT(!aHeadersData);
+        MOZ_ASSERT(aLoadType == LOAD_LINK);
+        MOZ_ASSERT(!aSHEntry);
+        MOZ_ASSERT(aFirstParty); // Windowwatcher will assume this.
+
+        nsCOMPtr<nsIDocShellLoadInfo> loadInfo;
+        rv = CreateLoadInfo(getter_AddRefs(loadInfo));
+        if (NS_FAILED(rv)) {
+          return rv;
+        }
+
+        // Set up our loadinfo so it will do the load as much like we would have
+        // as possible.
+        loadInfo->SetReferrer(aReferrer);
+        loadInfo->SetReferrerPolicy(aReferrerPolicy);
+        loadInfo->SetSendReferrer(!(aFlags &
+                                    INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER));
+        loadInfo->SetOriginalURI(aOriginalURI);
+        loadInfo->SetLoadReplace(aLoadReplace);
+        loadInfo->SetOwner(loadingPrincipal); // SetTriggeringPrincipal
+        loadInfo->SetInheritOwner( /* SetInheritPrincipal _INHERIT_PRINCIPAL */
+          !!(aFlags & INTERNAL_LOAD_FLAGS_INHERIT_OWNER));
+        // Explicit principal because we do not want any guesses as to what the
+        // principal to inherit is: it should be aTriggeringPrincipal.
+        loadInfo->SetOwnerIsExplicit(true); // SetPrincipalIsExplicit(true);
+        loadInfo->SetLoadType(ConvertLoadTypeToDocShellLoadInfo(LOAD_LINK));
+
+        nsCOMPtr<nsPIDOMWindow> newWin;
+        rv = win->Open(NS_ConvertUTF8toUTF16(spec),
+                       name, // window name
+                       EmptyString(), // Features
+                       loadInfo,
+                       true, // aForceNoOpener
+                       getter_AddRefs(newWin));
+        MOZ_ASSERT(!newWin);
+        return rv;
+      }
+
+      nsCOMPtr<nsIDOMWindow> newWin;
       rv = win->OpenNoNavigate(NS_ConvertUTF8toUTF16(spec),
                                name,  // window name
                                EmptyString(), // Features
@@ -9756,11 +9816,6 @@ nsDocShell::InternalLoad(nsIURI* aURI,
         if (!newDoc || newDoc->IsInitialDocument()) {
           isNewWindow = true;
           aFlags |= INTERNAL_LOAD_FLAGS_FIRST_LOAD;
-
-          // set opener object to null for noreferrer
-          if (aFlags & INTERNAL_LOAD_FLAGS_NO_OPENER) {
-            piNewWin->SetOpenerWindow(nullptr, false);
-          }
         }
       }
 
@@ -13497,10 +13552,15 @@ nsDocShell::OnLinkClickSync(nsIContent* aContent,
     aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::rel, referrer);
     nsWhitespaceTokenizerTemplate<nsContentUtils::IsHTMLWhitespace> tok(referrer);
     while (tok.hasMoreTokens()) {
-      if (tok.nextToken().LowerCaseEqualsLiteral("noreferrer")) {
+      const nsAString& token = tok.nextToken();
+      if (token.LowerCaseEqualsLiteral("noreferrer")) {
         flags |= INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER |
                  INTERNAL_LOAD_FLAGS_NO_OPENER;
+        // We now have all the flags we could possibly have, so just stop.
         break;
+      }
+      if (token.LowerCaseEqualsLiteral("noopener")) {
+        flags |= INTERNAL_LOAD_FLAGS_NO_OPENER;
       }
     }
   }
