@@ -493,11 +493,10 @@ pref("media.webvtt.regions.enabled", false);
 pref("media.track.enabled", false);
 
 // Whether to enable MediaSource support.
-// MediaSource is pretty much hosed on PowerPC OS X, so ... no.
-pref("media.mediasource.enabled", false);
+pref("media.mediasource.enabled", true);
 pref("media.mediasource.mp4.enabled", false);
-pref("media.mediasource.webm.enabled", false);
-pref("media.mediasource.webm.audio.enabled", false);
+pref("media.mediasource.webm.enabled", true);
+pref("media.mediasource.webm.audio.enabled", true);
 
 // Enable new MediaFormatReader architecture for plain webm.
 pref("media.format-reader.webm", true);
