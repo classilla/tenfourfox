@@ -144,10 +144,10 @@ class AsyncFreeSnowWhite : public nsRunnable
 public:
   NS_IMETHOD Run()
   {
-      TimeStamp start = TimeStamp::Now();
+      //TimeStamp start = TimeStamp::Now();
       bool hadSnowWhiteObjects = nsCycleCollector_doDeferredDeletion();
-      Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_ASYNC_SNOW_WHITE_FREEING,
-                            uint32_t((TimeStamp::Now() - start).ToMilliseconds()));
+      //Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_ASYNC_SNOW_WHITE_FREEING,
+      //                      uint32_t((TimeStamp::Now() - start).ToMilliseconds()));
       if (hadSnowWhiteObjects && !mContinuation) {
           mContinuation = true;
           if (NS_FAILED(NS_DispatchToCurrentThread(this))) {
@@ -3096,6 +3096,7 @@ JSSizeOfTab(JSObject* objArg, size_t* jsObjectsSize, size_t* jsStringsSize,
 static void
 AccumulateTelemetryCallback(int id, uint32_t sample, const char* key)
 {
+#if(0)
     switch (id) {
       case JS_TELEMETRY_GC_REASON:
         Telemetry::Accumulate(Telemetry::GC_REASON_2, sample);
@@ -3172,6 +3173,7 @@ AccumulateTelemetryCallback(int id, uint32_t sample, const char* key)
       default:
         MOZ_ASSERT_UNREACHABLE("Unexpected JS_TELEMETRY id");
     }
+#endif
 }
 
 static void
@@ -3491,7 +3493,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     if (PseudoStack* stack = mozilla_get_pseudo_stack())
         stack->sampleRuntime(runtime);
 #endif
-    JS_SetAccumulateTelemetryCallback(runtime, AccumulateTelemetryCallback);
+    //JS_SetAccumulateTelemetryCallback(runtime, AccumulateTelemetryCallback);
     js::SetScriptEnvironmentPreparer(runtime, &mEnvironmentPreparer);
     js::SetActivityCallback(runtime, ActivityCallback, this);
     JS_SetInterruptCallback(runtime, InterruptCallback);
