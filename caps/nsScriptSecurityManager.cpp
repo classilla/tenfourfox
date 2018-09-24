@@ -1144,6 +1144,11 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("synchrobox.adswizz.com") ||
                 BLOK("delivery-cdn-cf.adswizz.com") ||
+
+                BLOK("router.infolinks.com") ||
+
+                BLOK("rps-uk.rockpapershotgun.com") || // XXX?
+
                     0) {
 #undef BLOK
                 // Yup.
