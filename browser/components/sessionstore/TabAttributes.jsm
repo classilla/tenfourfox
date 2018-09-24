@@ -32,7 +32,8 @@ var TabAttributesInternal = {
   // 'muted' should not be accessed directly but handled by using the
   //         tab.linkedBrowser.audioMuted/toggleMuteAudio methods.
   // 'pending' is used internal by sessionstore and managed accordingly.
-  _skipAttrs: new Set(["image", "muted", "pending"]),
+  // 'skipbackgroundnotify' is used to speed up startup time (bug 1342849).
+  _skipAttrs: new Set(["image", "muted", "pending", "skipbackgroundnotify"]),
 
   persist: function (name) {
     if (this._attrs.has(name) || this._skipAttrs.has(name)) {
