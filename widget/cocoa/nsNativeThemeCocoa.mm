@@ -2484,7 +2484,6 @@ nsNativeThemeCocoa::DrawUnifiedToolbar(CGContextRef cgContext, const HIRect& inB
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-#if(0)
   CGContextSaveGState(cgContext);
   CGContextClipToRect(cgContext, inBoxRect);
 
@@ -2492,21 +2491,15 @@ nsNativeThemeCocoa::DrawUnifiedToolbar(CGContextRef cgContext, const HIRect& inB
                                    inBoxRect.size.height);
   BOOL isMain = [aWindow isMainWindow];
   CGFloat titlebarHeight = unifiedHeight - inBoxRect.size.height;
+#if(0)
   CGRect drawRect = CGRectMake(inBoxRect.origin.x, inBoxRect.origin.y - titlebarHeight,
                                inBoxRect.size.width, inBoxRect.size.height + titlebarHeight);
   DrawNativeTitlebarToolbarWithSquareCorners(cgContext, drawRect, unifiedHeight, isMain, YES);
 
-  CGContextRestoreGState(cgContext);
 #else
   // Backout bug 668195, 676241 et al.
   // XXX This is probably not the best solution for the future because we
   // aren't actually upgrading the component calls, but it will suffice for now.
-
-  float titlebarHeight = [(ToolbarWindow*)aWindow titlebarHeight];
-  // This may need modification (see above).
-  float unifiedHeight = titlebarHeight + inBoxRect.size.height;
-
-  BOOL isMain = [aWindow isMainWindow];
 
   // Draw the gradient
   UnifiedGradientInfo info = { titlebarHeight, inBoxRect.size.height, isMain, NO };
@@ -2521,7 +2514,6 @@ nsNativeThemeCocoa::DrawUnifiedToolbar(CGContextRef cgContext, const HIRect& inB
                                               NO, NO);
   CGColorSpaceRelease(colorSpace);
   CGFunctionRelease(function);
-  CGContextClipToRect(cgContext, inBoxRect);
   CGContextDrawShading(cgContext, shading);
   CGShadingRelease(shading);
 
@@ -2531,6 +2523,7 @@ nsNativeThemeCocoa::DrawUnifiedToolbar(CGContextRef cgContext, const HIRect& inB
                                  inBoxRect.size.width, 1.0f);
   DrawNativeGreyColorInRect(cgContext, headerBorderGrey, borderRect, isMain);
 #endif
+  CGContextRestoreGState(cgContext);
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
@@ -2584,9 +2577,9 @@ nsNativeThemeCocoa::DrawStatusBar(CGContextRef cgContext, const HIRect& inBoxRec
   if (inBoxRect.size.height < 2.0f)
     return;
 
+  CGContextSaveGState(cgContext);
 // backout bug 668195
 #if(0)
-  CGContextSaveGState(cgContext);
   CGContextClipToRect(cgContext, inBoxRect);
 
   // kCUIWidgetWindowFrame draws a complete window frame with both title bar
@@ -2606,7 +2599,6 @@ nsNativeThemeCocoa::DrawStatusBar(CGContextRef cgContext, const HIRect& inBoxRec
             [NSNumber numberWithBool:YES], @"is.flipped",
             nil]);
 
-  CGContextRestoreGState(cgContext);
 #else
   BOOL isMain = [NativeWindowForFrame(aFrame) isMainWindow] || ![NSView focusView];
 
@@ -2623,6 +2615,7 @@ nsNativeThemeCocoa::DrawStatusBar(CGContextRef cgContext, const HIRect& inBoxRec
                    NativeGreyColorAsFloat(statusbarGradientStartGrey, isMain),
                    NativeGreyColorAsFloat(statusbarGradientEndGrey, isMain));
 #endif
+  CGContextRestoreGState(cgContext);
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
