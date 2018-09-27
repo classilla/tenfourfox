@@ -87,6 +87,8 @@ public:
     bool IsShutdown() { return mShutdown; }
     bool IsLinkUp();
 
+    static bool IsDataURIUniqueOpaqueOrigin();
+
     // Should only be called from NeckoChild. Use SetAppOffline instead.
     void SetAppOfflineInternal(uint32_t appId, int32_t status);
 
@@ -174,7 +176,8 @@ private:
     // that is used especially in IsAppOffline
     nsDataHashtable<nsUint32HashKey, int32_t> mAppsOfflineStatus;
 
-    static bool                          sTelemetryEnabled;
+    //static bool                          sTelemetryEnabled;
+    static bool                          sIsDataURIUniqueOpaqueOrigin;
 
     // These timestamps are needed for collecting telemetry on PR_Connect,
     // PR_ConnectContinue and PR_Close blocking time.  If we spend very long

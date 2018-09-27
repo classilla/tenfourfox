@@ -2003,6 +2003,13 @@ pref("security.cert_pinning.enforcement_level", 0);
 // for tests.
 pref("security.cert_pinning.process_headers_from_non_builtin_roots", false);
 
+// Bug 1324406: Treat 'data:' documents as unique, opaque origins
+// If true, data: URIs will be treated as unique opaque origins, hence will use
+// a NullPrincipal as the security context.
+// Otherwise it will inherit the origin from parent node, this is the legacy
+// behavior of Firefox.
+pref("security.data_uri.unique_opaque_origin", true);
+
 // Modifier key prefs: default to Windows settings,
 // menu access key = alt, accelerator key = control.
 // Use 17 for Ctrl, 18 for Alt, 224 for Meta, 91 for Win, 0 for none. Mac settings in macprefs.js

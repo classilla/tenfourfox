@@ -166,7 +166,9 @@ static const char kNetworkActiveChanged[] = "network-active-changed";
 uint32_t   nsIOService::gDefaultSegmentSize = 4096;
 uint32_t   nsIOService::gDefaultSegmentCount = 24;
 
-bool nsIOService::sTelemetryEnabled = false;
+bool nsIOService::sIsDataURIUniqueOpaqueOrigin = false;
+
+//bool nsIOService::sTelemetryEnabled = false;
 
 NS_IMPL_ISUPPORTS(nsAppOfflineInfo, nsIAppOfflineInfo)
 
@@ -250,7 +252,8 @@ nsIOService::Init()
     else
         NS_WARNING("failed to get observer service");
 
-    Preferences::AddBoolVarCache(&sTelemetryEnabled, "toolkit.telemetry.enabled", false);
+    //Preferences::AddBoolVarCache(&sTelemetryEnabled, "toolkit.telemetry.enabled", false);
+    Preferences::AddBoolVarCache(&sIsDataURIUniqueOpaqueOrigin, "security.data_uri.unique_opaque_origin", true);
     Preferences::AddBoolVarCache(&mOfflineMirrorsConnectivity, OFFLINE_MIRRORS_CONNECTIVITY, true);
 
     gIOService = this;
@@ -715,6 +718,7 @@ nsIOService::NewChannelFromURIWithProxyFlagsInternal(nsIURI* aURI,
     if (NS_FAILED(rv))
         return rv;
 
+#if(0)
     if (sTelemetryEnabled) {
         nsAutoCString path;
         aURI->GetPath(path);
@@ -736,6 +740,7 @@ nsIOService::NewChannelFromURIWithProxyFlagsInternal(nsIURI* aURI,
         Telemetry::Accumulate(Telemetry::URL_PATH_CONTAINS_EXCLAMATION_DOUBLE_SLASH,
                               hasBangDoubleSlash);
     }
+#endif
 
     nsCOMPtr<nsIProtocolHandler> handler;
     rv = GetProtocolHandler(scheme.get(), getter_AddRefs(handler));
@@ -2065,4 +2070,10 @@ nsIOService::IsAppOffline(uint32_t aAppId, bool* aResult)
     }
 
     return NS_OK;
+}
+
+/*static*/ bool
+nsIOService::IsDataURIUniqueOpaqueOrigin()
+{
+    return sIsDataURIUniqueOpaqueOrigin;
 }
