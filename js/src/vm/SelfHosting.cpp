@@ -15,6 +15,7 @@
 #include "jscompartment.h"
 #include "jsdate.h"
 #include "jsfriendapi.h"
+#include "jsfun.h"
 #include "jshashutil.h"
 #include "jsweakmap.h"
 #include "jswrapper.h"
@@ -570,6 +571,26 @@ intrinsic_ActiveFunction(JSContext* cx, unsigned argc, Value* vp)
     ScriptFrameIter iter(cx);
     MOZ_ASSERT(iter.isFunctionFrame());
     args.rval().setObject(*iter.callee(cx));
+    return true;
+}
+
+static bool
+intrinsic_SetCanonicalName(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(args.length() == 2);
+
+    RootedFunction fun(cx, &args[0].toObject().as<JSFunction>());
+    MOZ_ASSERT(fun->isSelfHostedBuiltin());
+    RootedAtom atom(cx, AtomizeString(cx, args[1].toString()));
+    if (!atom)
+        return false;
+
+    fun->setAtom(atom);
+#ifdef DEBUG
+    fun->setExtendedSlot(HAS_SELFHOSTED_CANONICAL_NAME_SLOT, BooleanValue(true));
+#endif
+    args.rval().setUndefined();
     return true;
 }
 
@@ -1546,6 +1567,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
           CallNonGenericSelfhostedMethod<Is<ListIteratorObject>>,       2,0),
     JS_FN("ActiveFunction",          intrinsic_ActiveFunction,          0,0),
 
+    JS_FN("_SetCanonicalName",       intrinsic_SetCanonicalName,        2,0),
+
     JS_INLINABLE_FN("IsArrayIterator",
                     intrinsic_IsInstanceOfBuiltin<ArrayIteratorObject>, 1,0,
                     IntrinsicIsArrayIterator),
@@ -2005,8 +2028,10 @@ CloneObject(JSContext* cx, HandleNativeObject selfHostedObject)
                                        staticGlobalLexical, kind);
         // To be able to re-lazify the cloned function, its name in the
         // self-hosting compartment has to be stored on the clone.
-        if (clone && hasName)
-            clone->as<JSFunction>().setExtendedSlot(0, StringValue(selfHostedFunction->atom()));
+        if (clone && hasName) {
+            clone->as<JSFunction>().setExtendedSlot(LAZY_FUNCTION_NAME_SLOT,
+                                                    StringValue(selfHostedFunction->atom()));
+        }
     } else if (selfHostedObject->is<RegExpObject>()) {
         RegExpObject& reobj = selfHostedObject->as<RegExpObject>();
         RootedAtom source(cx, reobj.getSource());
@@ -2074,15 +2099,36 @@ CloneValue(JSContext* cx, HandleValue selfHostedValue, MutableHandleValue vp)
 }
 
 bool
+JSRuntime::createLazySelfHostedFunctionClone(JSContext* cx, HandlePropertyName selfHostedName,
+                                             HandleAtom name, unsigned nargs,
+                                             MutableHandleFunction fun)
+{
+    RootedAtom funName(cx, name);
+    JSFunction* selfHostedFun = getUnclonedSelfHostedFunction(cx, selfHostedName);
+    if (!selfHostedFun)
+        return false;
+
+    if (selfHostedFun->atom() != selfHostedName) {
+        MOZ_ASSERT(selfHostedFun->getExtendedSlot(HAS_SELFHOSTED_CANONICAL_NAME_SLOT).toBoolean());
+        funName = selfHostedFun->atom();
+    }
+
+    fun.set(NewScriptedFunction(cx, nargs, JSFunction::INTERPRETED_LAZY,
+                                funName, gc::AllocKind::FUNCTION_EXTENDED, SingletonObject));
+    if (!fun)
+        return false;
+    fun->setIsSelfHostedBuiltin();
+    fun->setExtendedSlot(LAZY_FUNCTION_NAME_SLOT, StringValue(selfHostedName));
+    return true;
+}
+
+bool
 JSRuntime::cloneSelfHostedFunctionScript(JSContext* cx, HandlePropertyName name,
                                          HandleFunction targetFun)
 {
-    RootedId id(cx, NameToId(name));
-    RootedValue funVal(cx);
-    if (!GetUnclonedValue(cx, HandleNativeObject::fromMarkedLocation(&selfHostingGlobal_), id, &funVal))
+    RootedFunction sourceFun(cx, getUnclonedSelfHostedFunction(cx, name));
+    if (!sourceFun)
         return false;
-
-    RootedFunction sourceFun(cx, &funVal.toObject().as<JSFunction>());
     // JSFunction::generatorKind can't handle lazy self-hosted functions, so we make sure there
     // aren't any.
     MOZ_ASSERT(!sourceFun->isGenerator());
@@ -2112,11 +2158,28 @@ JSRuntime::cloneSelfHostedFunctionScript(JSContext* cx, HandlePropertyName name,
 }
 
 bool
-JSRuntime::cloneSelfHostedValue(JSContext* cx, HandlePropertyName name, MutableHandleValue vp)
+JSRuntime::getUnclonedSelfHostedValue(JSContext* cx, HandlePropertyName name,
+                                      MutableHandleValue vp)
 {
     RootedId id(cx, NameToId(name));
+    return GetUnclonedValue(cx, HandleNativeObject::fromMarkedLocation(&selfHostingGlobal_), id, vp);
+}
+
+JSFunction*
+JSRuntime::getUnclonedSelfHostedFunction(JSContext* cx, HandlePropertyName name)
+{
     RootedValue selfHostedValue(cx);
-    if (!GetUnclonedValue(cx, HandleNativeObject::fromMarkedLocation(&selfHostingGlobal_), id, &selfHostedValue))
+    if (!getUnclonedSelfHostedValue(cx, name, &selfHostedValue))
+        return nullptr;
+
+    return &selfHostedValue.toObject().as<JSFunction>();
+}
+
+bool
+JSRuntime::cloneSelfHostedValue(JSContext* cx, HandlePropertyName name, MutableHandleValue vp)
+{
+    RootedValue selfHostedValue(cx);
+    if (!getUnclonedSelfHostedValue(cx, name, &selfHostedValue))
         return false;
 
     /*
@@ -2130,6 +2193,16 @@ JSRuntime::cloneSelfHostedValue(JSContext* cx, HandlePropertyName name, MutableH
     }
 
     return CloneValue(cx, selfHostedValue, vp);
+}
+
+void
+JSRuntime::assertSelfHostedFunctionHasCanonicalName(JSContext* cx, HandlePropertyName name)
+{
+#ifdef DEBUG
+    JSFunction* selfHostedFun = getUnclonedSelfHostedFunction(cx, name);
+    MOZ_ASSERT(selfHostedFun);
+    MOZ_ASSERT(selfHostedFun->getExtendedSlot(HAS_SELFHOSTED_CANONICAL_NAME_SLOT).toBoolean());
+#endif
 }
 
 JSFunction*
