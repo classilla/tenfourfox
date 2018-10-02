@@ -40,6 +40,7 @@
 #include "vm/String.h"
 #include "vm/TypedArrayCommon.h"
 
+#include "jsatominlines.h"
 #include "jsfuninlines.h"
 #include "jsscriptinlines.h"
 
@@ -1282,6 +1283,23 @@ intrinsic_ConstructorForTypedArray(JSContext* cx, unsigned argc, Value* vp)
 }
 
 static bool
+intrinsic_NameForTypedArray(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(args.length() == 1);
+    MOZ_ASSERT(args[0].isObject());
+
+    RootedObject object(cx, &args[0].toObject());
+    MOZ_ASSERT(object->is<TypedArrayObject>());
+
+    JSProtoKey protoKey = StandardProtoKeyOrNull(object);
+    MOZ_ASSERT(protoKey);
+
+    args.rval().setString(ClassName(protoKey, cx));
+    return true;
+}
+
+static bool
 intrinsic_HostResolveImportedModule(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -1531,6 +1549,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("AssertionFailed",         intrinsic_AssertionFailed,         1,0),
     JS_FN("MakeConstructible",       intrinsic_MakeConstructible,       2,0),
     JS_FN("_ConstructorForTypedArray", intrinsic_ConstructorForTypedArray, 1,0),
+    JS_FN("_NameForTypedArray",      intrinsic_NameForTypedArray, 1,0),
     JS_FN("DecompileArg",            intrinsic_DecompileArg,            2,0),
     JS_FN("RuntimeDefaultLocale",    intrinsic_RuntimeDefaultLocale,    0,0),
     JS_FN("LocalTZA",                intrinsic_LocalTZA,                0,0),

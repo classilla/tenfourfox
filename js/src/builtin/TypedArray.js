@@ -1167,3 +1167,25 @@ function TypedArrayStaticOf(/*...items*/) {
     // Step 8.
     return newObj;
 }
+
+// ES 2016 draft Mar 25, 2016 22.2.2.4.
+function TypedArraySpecies() {
+    // Step 1.
+    return this;
+}
+
+// ES 2017 draft June 2, 2016 22.2.3.32
+function TypedArrayToStringTag() {
+    // Step 1.
+    var O = this;
+
+    // Steps 2-3.
+    if (!IsObject(O) || !IsTypedArray(O))
+        return undefined;
+
+    // Steps 4-6.
+    // Modified to retrieve the [[TypedArrayName]] from the constructor.
+    return _NameForTypedArray(O);
+}
+_SetCanonicalName(TypedArrayToStringTag, "get [Symbol.toStringTag]");
+
