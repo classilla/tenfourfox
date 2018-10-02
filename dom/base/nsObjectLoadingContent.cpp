@@ -2525,7 +2525,7 @@ nsObjectLoadingContent::OpenChannel()
                                                                mURI,
                                                                true,   // aInheritForAboutBlank
                                                                false); // aForceInherit
-  nsSecurityFlags securityFlags = nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL;
+  nsSecurityFlags securityFlags = nsILoadInfo::SEC_NORMAL;
 
   bool isData;
   bool isURIUniqueOrigin = nsIOService::IsDataURIUniqueOpaqueOrigin() &&
