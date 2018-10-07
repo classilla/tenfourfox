@@ -232,6 +232,7 @@ DataChannelConnection::Destroy()
 
   MOZ_ASSERT(mSTS);
   ASSERT_WEBRTC(NS_IsMainThread());
+  mListener = nullptr;
   // Must do this in Destroy() since we may then delete this object.
   // Do this before dispatching to create a consistent ordering of calls to
   // the SCTP stack.
