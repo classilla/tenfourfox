@@ -1149,6 +1149,9 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("rps-uk.rockpapershotgun.com") || // XXX?
 
+                BLOK("buy.tinypass.com") ||
+                BLOK("cdn.tinypass.com") ||
+
                     0) {
 #undef BLOK
                 // Yup.
