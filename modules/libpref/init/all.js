@@ -2008,7 +2008,8 @@ pref("security.cert_pinning.process_headers_from_non_builtin_roots", false);
 // a NullPrincipal as the security context.
 // Otherwise it will inherit the origin from parent node, this is the legacy
 // behavior of Firefox.
-pref("security.data_uri.unique_opaque_origin", true);
+// TenFourFox issue 525 -- hold until better chrome detection is working
+pref("security.data_uri.unique_opaque_origin", false);
 
 // Modifier key prefs: default to Windows settings,
 // menu access key = alt, accelerator key = control.
