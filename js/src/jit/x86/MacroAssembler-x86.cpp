@@ -35,6 +35,7 @@ static const double TO_DOUBLE_HIGH_SCALE = 0x100000000;
 void
 MacroAssemblerX86::convertUInt64ToDouble(Register64 src, Register temp, FloatRegister dest)
 {
+#error check TenFourFox issue 526 and bug 1499198. may be safest to just always use the SSE2 routine
     // SUBPD needs SSE2, HADDPD needs SSE3.
     if (!HasSSE3()) {
         convertUInt32ToDouble(src.high, dest);
