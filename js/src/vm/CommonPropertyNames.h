@@ -18,11 +18,13 @@
     macro(apply, apply, "apply") \
     macro(arguments, arguments, "arguments") \
     macro(as, as, "as") \
+    macro(ArrayIterator, ArrayIterator, "Array Iterator") \
     macro(ArrayIteratorNext, ArrayIteratorNext, "ArrayIteratorNext") \
     macro(ArrayType, ArrayType, "ArrayType") \
     macro(ArrayValues, ArrayValues, "ArrayValues") \
     macro(ArrayValuesAt, ArrayValuesAt, "ArrayValuesAt") \
     macro(Async, Async, "Async") \
+    macro(await, await, "await") \
     macro(breakdown, breakdown, "breakdown") \
     macro(buffer, buffer, "buffer") \
     macro(builder, builder, "builder") \
@@ -98,6 +100,7 @@
     macro(frame, frame, "frame") \
     macro(from, from, "from") \
     macro(gcCycleNumber, gcCycleNumber, "gcCycleNumber") \
+    macro(Generator, Generator, "Generator") \
     macro(GeneratorFunction, GeneratorFunction, "GeneratorFunction") \
     macro(get, get, "get") \
     macro(getInternals, getInternals, "getInternals") \
@@ -138,6 +141,7 @@
     macro(keys, keys, "keys") \
     macro(label, label, "label") \
     macro(lastIndex, lastIndex, "lastIndex") \
+    macro(LegacyGenerator, LegacyGenerator, "LegacyGenerator") \
     macro(LegacyGeneratorCloseInternal, LegacyGeneratorCloseInternal, "LegacyGeneratorCloseInternal") \
     macro(length, length, "length") \
     macro(let, let, "let") \
@@ -147,6 +151,7 @@
     macro(locale, locale, "locale") \
     macro(lookupGetter, lookupGetter, "__lookupGetter__") \
     macro(lookupSetter, lookupSetter, "__lookupSetter__") \
+    macro(MapIterator, MapIterator, "Map Iterator") \
     macro(maximumFractionDigits, maximumFractionDigits, "maximumFractionDigits") \
     macro(maximumSignificantDigits, maximumSignificantDigits, "maximumSignificantDigits") \
     macro(message, message, "message") \
@@ -170,15 +175,18 @@
     macro(NumberFormat, NumberFormat, "NumberFormat") \
     macro(NumberFormatFormatGet, NumberFormatFormatGet, "Intl_NumberFormat_format_get") \
     macro(numeric, numeric, "numeric") \
-    macro(objectArray, objectArray, "[object Array]") \
-    macro(objectFunction, objectFunction, "[object Function]") \
-    macro(objectNull, objectNull, "[object Null]") \
-    macro(objectNumber, objectNumber, "[object Number]") \
-    macro(objectObject, objectObject, "[object Object]") \
-    macro(objects, objects, "objects") \
-    macro(objectString, objectString, "[object String]") \
     macro(objectUndefined, objectUndefined, "[object Undefined]") \
-    macro(objectWindow, objectWindow, "[object Window]") \
+    macro(objectNull, objectNull, "[object Null]") \
+    macro(objectArray, objectArray, "[object Array]") \
+    macro(objectString, objectString, "[object String]") \
+    macro(objectArguments, objectArguments, "[object Arguments]") \
+    macro(objectFunction, objectFunction, "[object Function]") \
+    macro(objectError, objectError, "[object Error]") \
+    macro(objectBoolean, objectBoolean, "[object Boolean]") \
+    macro(objectNumber, objectNumber, "[object Number]") \
+    macro(objectDate, objectDate, "[object Date]") \
+    macro(objectRegExp, objectRegExp, "[object RegExp]") \
+    macro(objects, objects, "objects") \
     macro(of, of, "of") \
     macro(offset, offset, "offset") \
     macro(optimizedOut, optimizedOut, "optimizedOut") \
@@ -203,6 +211,7 @@
     macro(scripts, scripts, "scripts") \
     macro(sensitivity, sensitivity, "sensitivity") \
     macro(set, set, "set") \
+    macro(SetIterator, SetIterator, "Set Iterator") \
     macro(shape, shape, "shape") \
     macro(signMask, signMask, "signMask") \
     macro(size, size, "size") \
@@ -214,6 +223,7 @@
     macro(static, static_, "static") \
     macro(sticky, sticky, "sticky") \
     macro(strings, strings, "strings") \
+    macro(StringIterator, StringIterator, "String Iterator") \
     macro(StructType, StructType, "StructType") \
     macro(style, style, "style") \
     macro(super, super, "super") \
@@ -276,6 +286,7 @@
     macro(match, match, "match") \
     macro(species, species, "species") \
     macro(toPrimitive, toPrimitive, "toPrimitive") \
+    macro(toStringTag, toStringTag, "toStringTag") \
     macro(unscopables, unscopables, "unscopables") \
     /* Same goes for the descriptions of the well-known symbols. */ \
     macro(Symbol_hasInstance, Symbol_hasInstance, "Symbol.hasInstance") \
@@ -284,6 +295,7 @@
     macro(Symbol_match,    Symbol_match,    "Symbol.match") \
     macro(Symbol_species,  Symbol_species,  "Symbol.species") \
     macro(Symbol_toPrimitive, Symbol_toPrimitive, "Symbol.toPrimitive") \
+    macro(Symbol_toStringTag, Symbol_toStringTag, "Symbol.toStringTag") \
     macro(Symbol_unscopables, Symbol_unscopables, "Symbol.unscopables") \
     /* Function names for properties named by symbols. */ \
     macro(Symbol_iterator_fun, Symbol_iterator_fun, "[Symbol.iterator]") \

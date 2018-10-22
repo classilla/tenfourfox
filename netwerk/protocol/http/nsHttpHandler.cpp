@@ -437,6 +437,7 @@ nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request,
             !hostLine.EqualsLiteral("i.imgur.com") &&
             !hostLine.EqualsLiteral("imgur.com") &&
             !hostLine.EqualsLiteral("github.com") &&
+            !hostLine.EqualsLiteral("gist.github.com") &&
     1)) {
         rv = request->SetHeader(nsHttp::User_Agent, UserAgent(),
                                 false, nsHttpHeaderArray::eVarietyDefault);

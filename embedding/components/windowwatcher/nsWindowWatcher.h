@@ -70,7 +70,9 @@ protected:
 
   // Unlike GetWindowByName this will look for a caller on the JS
   // stack, and then fall back on aCurrentWindow if it can't find one.
+  // It also knows to not look for things if aForceNoOpener is set.
   nsPIDOMWindow* SafeGetWindowByName(const nsAString& aName,
+                                     bool aForceNoOpener,
                                      nsIDOMWindow* aCurrentWindow);
 
   // Just like OpenWindowJS, but knows whether it got called via OpenWindowJS
@@ -84,6 +86,9 @@ protected:
                               bool aNavigate,
                               nsITabParent* aOpeningTab,
                               nsIArray* aArgv,
+                              bool aIsPopupSpam,
+                              bool aForceNoOpener,
+                              nsIDocShellLoadInfo* aLoadInfo,
                               nsIDOMWindow** aResult);
 
   static nsresult URIfromURL(const char* aURL,
@@ -105,6 +110,7 @@ protected:
   static nsresult ReadyOpenedDocShellItem(nsIDocShellTreeItem* aOpenedItem,
                                           nsIDOMWindow* aParent,
                                           bool aWindowIsNew,
+                                          bool aForceNoOpener,
                                           nsIDOMWindow** aOpenedWindow);
   static void SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
                                      nsIDOMWindow* aParent,

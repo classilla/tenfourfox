@@ -282,7 +282,14 @@ GlobalObject::initLegacyGeneratorProto(JSContext* cx, Handle<GlobalObject*> glob
     RootedObject proto(cx, NewSingletonObjectWithObjectPrototype(cx, global));
     if (!proto || !proto->setDelegate(cx))
         return false;
+#if(0)
+    /* XXX: Stub @@toStringTag for legacy generators.
+       TenFourFox issue 392 */
+    if (!DefinePropertiesAndFunctions(cx, proto, nullptr, legacy_generator_methods) ||
+        !DefineToStringTag(cx, proto, cx->names().LegacyGenerator))
+#else
     if (!DefinePropertiesAndFunctions(cx, proto, nullptr, legacy_generator_methods))
+#endif
         return false;
 
     global->setReservedSlot(LEGACY_GENERATOR_OBJECT_PROTO, ObjectValue(*proto));
@@ -304,13 +311,15 @@ GlobalObject::initStarGenerators(JSContext* cx, Handle<GlobalObject*> global)
                                                                            iteratorProto));
     if (!genObjectProto)
         return false;
-    if (!DefinePropertiesAndFunctions(cx, genObjectProto, nullptr, star_generator_methods))
+    if (!DefinePropertiesAndFunctions(cx, genObjectProto, nullptr, star_generator_methods) ||
+        !DefineToStringTag(cx, genObjectProto, cx->names().Generator))
         return false;
 
     RootedObject genFunctionProto(cx, NewSingletonObjectWithFunctionPrototype(cx, global));
     if (!genFunctionProto || !genFunctionProto->setDelegate(cx))
         return false;
-    if (!LinkConstructorAndPrototype(cx, genFunctionProto, genObjectProto))
+    if (!LinkConstructorAndPrototype(cx, genFunctionProto, genObjectProto) ||
+        !DefineToStringTag(cx, genFunctionProto, cx->names().GeneratorFunction))
         return false;
 
     RootedValue function(cx, global->getConstructor(JSProto_Function));

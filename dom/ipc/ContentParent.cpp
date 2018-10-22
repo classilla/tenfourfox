@@ -5576,8 +5576,13 @@ ContentParent::RecvCreateWindow(PBrowserParent* aThisTab,
     const char* name = aName.IsVoid() ? nullptr : NS_ConvertUTF16toUTF8(aName).get();
     const char* features = aFeatures.IsVoid() ? nullptr : aFeatures.get();
 
+#if(0)
+// Needs update for issue 522
     *aResult = pwwatch->OpenWindow2(parent, uri, name, features, aCalledFromJS,
                                     false, false, thisTabParent, nullptr, getter_AddRefs(window));
+#else
+    MOZ_ASSERT(0);
+#endif
 
     if (NS_WARN_IF(NS_FAILED(*aResult))) {
         return true;

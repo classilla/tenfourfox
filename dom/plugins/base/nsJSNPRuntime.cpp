@@ -1327,6 +1327,7 @@ static bool
 NPObjWrapper_SetProperty(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
                          JS::MutableHandle<JS::Value> vp, JS::ObjectOpResult &result)
 {
+  MOZ_ASSERT(false, "See bug 1114580, 2f9eb93beee9"); // NYI XXX TenFourFox 392
   NPObject *npobj = GetNPObject(cx, obj);
 
   if (!npobj || !npobj->_class || !npobj->_class->hasProperty ||

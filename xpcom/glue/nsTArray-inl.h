@@ -111,6 +111,23 @@ bool IsTwiceTheRequiredBytesRepresentableAsUint32(size_t aCapacity,
 template<class Alloc, class Copy>
 template<typename ActualAlloc>
 typename ActualAlloc::ResultTypeProxy
+nsTArray_base<Alloc, Copy>::ExtendCapacity(size_type aLength,
+                                           size_type aCount,
+                                           size_type aElemSize)
+{
+  mozilla::CheckedInt<size_type> newLength = aLength;
+  newLength += aCount;
+
+  if (!newLength.isValid()) {
+    return ActualAlloc::FailureResult();
+  }
+
+  return this->EnsureCapacity<ActualAlloc>(newLength.value(), aElemSize);
+}
+
+template<class Alloc, class Copy>
+template<typename ActualAlloc>
+typename ActualAlloc::ResultTypeProxy
 nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type aCapacity,
                                            size_type aElemSize)
 {
@@ -275,26 +292,22 @@ nsTArray_base<Alloc, Copy>::ShiftData(index_type aStart,
 
 template<class Alloc, class Copy>
 template<typename ActualAlloc>
-bool
+typename ActualAlloc::ResultTypeProxy
 nsTArray_base<Alloc, Copy>::InsertSlotsAt(index_type aIndex, size_type aCount,
                                           size_type aElemSize,
                                           size_t aElemAlign)
 {
   MOZ_ASSERT(aIndex <= Length(), "Bogus insertion index");
-  size_type newLen = Length() + aCount;
 
-  EnsureCapacity<ActualAlloc>(newLen, aElemSize);
-
-  // Check for out of memory conditions
-  if (Capacity() < newLen) {
-    return false;
+  if (!ActualAlloc::Successful(this->ExtendCapacity<ActualAlloc>(Length(), aCount, aElemSize))) {
+    return ActualAlloc::FailureResult();
   }
 
   // Move the existing elements as needed.  Note that this will
   // change our mLength, so no need to call IncrementLength.
   ShiftData<ActualAlloc>(aIndex, 0, aCount, aElemSize, aElemAlign);
 
-  return true;
+  return ActualAlloc::SuccessResult();
 }
 
 // nsTArray_base::IsAutoArrayRestorer is an RAII class which takes

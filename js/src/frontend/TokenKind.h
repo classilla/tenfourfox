@@ -107,6 +107,7 @@
     macro(THROW,        "keyword 'throw'") \
     macro(DEBUGGER,     "keyword 'debugger'") \
     macro(YIELD,        "keyword 'yield'") \
+    macro(AWAIT,        "keyword 'await'") \
     macro(LET,          "keyword 'let'") \
     macro(EXPORT,       "keyword 'export'") \
     macro(IMPORT,       "keyword 'import'") \

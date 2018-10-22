@@ -608,6 +608,13 @@ private:
                            nullptr,
                            nullptr,
                            false, false, true, nullptr, nullptr,
+                           // Not a spammy popup; we got permission, we swear!
+                           /* aIsPopupSpam = */ false,
+                           // Don't force noopener.  We're not passing in an
+                           // opener anyway, and we _do_ want the returned
+                           // window.
+                           /* aForceNoOpener = */ false,
+                           /* aLoadInfo = */ nullptr,
                            getter_AddRefs(newWindow));
       nsCOMPtr<nsPIDOMWindow> pwindow = do_QueryInterface(newWindow);
       pwindow.forget(aWindow);

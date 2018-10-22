@@ -2932,6 +2932,7 @@ var SessionStoreInternal = {
                 tabbrowser.addTab("about:blank", {
                   skipAnimation: true,
                   forceNotRemote: true,
+                  skipBackgroundNotify: true,
                 }));
 
       if (winData.tabs[t].pinned)

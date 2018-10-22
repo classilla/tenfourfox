@@ -493,11 +493,10 @@ pref("media.webvtt.regions.enabled", false);
 pref("media.track.enabled", false);
 
 // Whether to enable MediaSource support.
-// MediaSource is pretty much hosed on PowerPC OS X, so ... no.
-pref("media.mediasource.enabled", false);
+pref("media.mediasource.enabled", true);
 pref("media.mediasource.mp4.enabled", false);
-pref("media.mediasource.webm.enabled", false);
-pref("media.mediasource.webm.audio.enabled", false);
+pref("media.mediasource.webm.enabled", true);
+pref("media.mediasource.webm.audio.enabled", true);
 
 // Enable new MediaFormatReader architecture for plain webm.
 pref("media.format-reader.webm", true);
@@ -2003,6 +2002,14 @@ pref("security.cert_pinning.enforcement_level", 0);
 // This is to prevent accidental pinning from MITM devices and is used
 // for tests.
 pref("security.cert_pinning.process_headers_from_non_builtin_roots", false);
+
+// Bug 1324406: Treat 'data:' documents as unique, opaque origins
+// If true, data: URIs will be treated as unique opaque origins, hence will use
+// a NullPrincipal as the security context.
+// Otherwise it will inherit the origin from parent node, this is the legacy
+// behavior of Firefox.
+// TenFourFox issue 525 -- hold until better chrome detection is working
+pref("security.data_uri.unique_opaque_origin", false);
 
 // Modifier key prefs: default to Windows settings,
 // menu access key = alt, accelerator key = control.

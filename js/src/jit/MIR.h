@@ -7423,30 +7423,28 @@ class MDefLexical
 };
 
 class MDefFun
-  : public MUnaryInstruction,
-    public NoTypePolicy::Data
+  : public MBinaryInstruction,
+    public SingleObjectPolicy::Data
 {
-    CompilerFunction fun_;
-
   private:
-    MDefFun(JSFunction* fun, MDefinition* scopeChain)
-      : MUnaryInstruction(scopeChain),
-        fun_(fun)
+    MDefFun(MDefinition* fun, MDefinition* scopeChain)
+      : MBinaryInstruction(fun, scopeChain)
     {}
 
   public:
     INSTRUCTION_HEADER(DefFun)
 
-    static MDefFun* New(TempAllocator& alloc, JSFunction* fun, MDefinition* scopeChain) {
+    static MDefFun* New(TempAllocator& alloc, MDefinition* fun, MDefinition* scopeChain) {
         return new(alloc) MDefFun(fun, scopeChain);
     }
 
-    JSFunction* fun() const {
-        return fun_;
-    }
-    MDefinition* scopeChain() const {
+    MDefinition* fun() const {
         return getOperand(0);
     }
+    MDefinition* scopeChain() const {
+        return getOperand(1);
+    }
+
     bool possiblyCalls() const override {
         return true;
     }

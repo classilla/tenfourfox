@@ -1684,6 +1684,7 @@ nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
     endCCTime = PR_Now();
   }
 
+#if(0)
   // Log information about the CC via telemetry, JSON and the console.
   Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_FINISH_IGC, gCCStats.mAnyLockedOut);
   Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_SYNC_SKIPPABLE, gCCStats.mRanSyncForgetSkippable);
@@ -1695,10 +1696,11 @@ nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
     uint32_t timeBetween = TimeBetween(sLastCCEndTime, gCCStats.mBeginTime) / 1000;
     Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_TIME_BETWEEN, timeBetween);
   }
+#endif
   sLastCCEndTime = endCCTimeStamp;
 
-  Telemetry::Accumulate(Telemetry::FORGET_SKIPPABLE_MAX,
-                        sMaxForgetSkippableTime / PR_USEC_PER_MSEC);
+//  Telemetry::Accumulate(Telemetry::FORGET_SKIPPABLE_MAX,
+//                        sMaxForgetSkippableTime / PR_USEC_PER_MSEC);
 
   PRTime delta = GetCollectionTimeDelta();
 

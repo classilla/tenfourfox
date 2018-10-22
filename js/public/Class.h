@@ -847,6 +847,10 @@ enum ESClassValue {
     ESClass_Boolean, ESClass_RegExp, ESClass_ArrayBuffer, ESClass_SharedArrayBuffer,
     ESClass_Date, ESClass_Set, ESClass_Map,
 
+    /** Not yet implemented (TenFourFox issue 392). */
+    ESClass_Promise, ESClass_MapIterator, ESClass_SetIterator,
+    ESClass_Arguments, ESClass_Error,
+
     /** None of the above. */
     ESClass_Other
 };

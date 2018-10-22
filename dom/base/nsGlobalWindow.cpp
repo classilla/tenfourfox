@@ -51,6 +51,7 @@
 #include "nsJSUtils.h"
 #include "jsapi.h"              // for JSAutoRequest
 #include "jswrapper.h"
+#include "nsCharSeparatedTokenizer.h"
 #include "nsReadableUtils.h"
 #include "nsDOMClassInfo.h"
 #include "nsJSEnvironment.h"
@@ -1483,9 +1484,20 @@ void
 nsGlobalWindow::MaybeForgiveSpamCount()
 {
   if (IsOuterWindow() &&
-      IsPopupSpamWindow())
-  {
-    SetPopupSpamWindow(false);
+      IsPopupSpamWindow()) {
+    SetIsPopupSpamWindow(false);
+  }
+}
+
+void
+nsGlobalWindow::SetIsPopupSpamWindow(bool aIsPopupSpam)
+{
+  MOZ_ASSERT(IsOuterWindow());
+
+  mIsPopupSpam = aIsPopupSpam;
+  if (aIsPopupSpam) {
+    ++gOpenPopupSpamCount;
+  } else {
     --gOpenPopupSpamCount;
     NS_ASSERTION(gOpenPopupSpamCount >= 0,
                  "Unbalanced decrement of gOpenPopupSpamCount");
@@ -1644,7 +1656,7 @@ nsGlobalWindow::ClearControllers()
 }
 
 void
-nsGlobalWindow::FreeInnerObjects()
+nsGlobalWindow::FreeInnerObjects(bool aForDocumentOpen)
 {
   NS_ASSERTION(IsInnerWindow(), "Don't free inner objects on an outer window");
 
@@ -1697,8 +1709,10 @@ nsGlobalWindow::FreeInnerObjects()
     mDocumentURI = mDoc->GetDocumentURI();
     mDocBaseURI = mDoc->GetDocBaseURI();
 
-    while (mDoc->EventHandlingSuppressed()) {
-      mDoc->UnsuppressEventHandlingAndFireEvents(nsIDocument::eEvents, false);
+    if (!aForDocumentOpen) {
+      while (mDoc->EventHandlingSuppressed()) {
+        mDoc->UnsuppressEventHandlingAndFireEvents(nsIDocument::eEvents, false);
+      }
     }
 
     // Note: we don't have to worry about eAnimationsOnly suppressions because
@@ -2510,6 +2524,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   nsCOMPtr<WindowStateHolder> wsh = do_QueryInterface(aState);
   NS_ASSERTION(!aState || wsh, "What kind of weird state are you giving me here?");
 
+  bool handleDocumentOpen = false;
+
   JS::Rooted<JSObject*> newInnerGlobal(cx);
   if (reUseInnerWindow) {
     // We're reusing the current inner window.
@@ -2592,6 +2608,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
     if (currentInner && currentInner->GetWrapperPreserveColor()) {
       if (oldDoc == aDocument) {
+        handleDocumentOpen = true;
         // Move the navigator from the old inner window to the new one since
         // this is a document.write. This is safe from a same-origin point of
         // view because document.write can only be used by the same origin.
@@ -2617,7 +2634,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       // Don't free objects on our current inner window if it's going to be
       // held in the bfcache.
       if (!currentInner->IsFrozen()) {
-        currentInner->FreeInnerObjects();
+        currentInner->FreeInnerObjects(handleDocumentOpen);
       }
     }
 
@@ -5718,10 +5735,17 @@ GetCallerDocShellTreeItem()
 
 bool
 nsGlobalWindow::WindowExists(const nsAString& aName,
+                             bool aForceNoOpener,
                              bool aLookForCallerOnJSStack)
 {
   NS_PRECONDITION(IsOuterWindow(), "Must be outer window");
   NS_PRECONDITION(mDocShell, "Must have docshell");
+
+  if (aForceNoOpener) {
+    return aName.LowerCaseEqualsLiteral("_self") ||
+           aName.LowerCaseEqualsLiteral("_top") ||
+           aName.LowerCaseEqualsLiteral("_parent");
+  }
 
   nsCOMPtr<nsIDocShellTreeItem> caller;
   if (aLookForCallerOnJSStack) {
@@ -7532,14 +7556,6 @@ nsGlobalWindow::FirePopupBlockedEvent(nsIDocument* aDoc,
   aDoc->DispatchEvent(event, &defaultActionEnabled);
 }
 
-static void FirePopupWindowEvent(nsIDocument* aDoc)
-{
-  // Fire a "PopupWindow" event
-  nsContentUtils::DispatchTrustedEvent(aDoc, aDoc,
-                                       NS_LITERAL_STRING("PopupWindow"),
-                                       true, true);
-}
-
 // static
 bool
 nsGlobalWindow::CanSetProperty(const char *aPrefName)
@@ -7608,13 +7624,9 @@ nsGlobalWindow::RevisePopupAbuseLevel(PopupControlState aControl)
   return abuse;
 }
 
-/* If a window open is blocked, fire the appropriate DOM events.
-   aBlocked signifies we just blocked a popup.
-   aWindow signifies we just opened what is probably a popup.
-*/
+/* If a window open is blocked, fire the appropriate DOM events. */
 void
-nsGlobalWindow::FireAbuseEvents(bool aBlocked, bool aWindow,
-                                const nsAString &aPopupURL,
+nsGlobalWindow::FireAbuseEvents(const nsAString &aPopupURL,
                                 const nsAString &aPopupWindowName,
                                 const nsAString &aPopupWindowFeatures)
 {
@@ -7645,13 +7657,8 @@ nsGlobalWindow::FireAbuseEvents(bool aBlocked, bool aWindow,
     ios->NewURI(NS_ConvertUTF16toUTF8(aPopupURL), 0, baseURL,
                 getter_AddRefs(popupURI));
 
-  // fire an event chock full of informative URIs
-  if (aBlocked) {
-    FirePopupBlockedEvent(topDoc, popupURI, aPopupWindowName,
-                          aPopupWindowFeatures);
-  }
-  if (aWindow)
-    FirePopupWindowEvent(topDoc);
+  FirePopupBlockedEvent(topDoc, popupURI, aPopupWindowName,
+                        aPopupWindowFeatures);
 }
 
 already_AddRefed<nsIDOMWindow>
@@ -7675,9 +7682,11 @@ nsGlobalWindow::Open(const nsAString& aUrl, const nsAString& aName,
 
 nsresult
 nsGlobalWindow::Open(const nsAString& aUrl, const nsAString& aName,
-                     const nsAString& aOptions, nsPIDOMWindow **_retval)
+                     const nsAString& aOptions, nsIDocShellLoadInfo* aLoadInfo,
+                     bool aForceNoOpener, nsPIDOMWindow **_retval)
 {
-  FORWARD_TO_OUTER(Open, (aUrl, aName, aOptions, _retval),
+  FORWARD_TO_OUTER(Open, (aUrl, aName, aOptions, aLoadInfo, aForceNoOpener,
+                          _retval),
                    NS_ERROR_NOT_INITIALIZED);
   nsCOMPtr<nsIDOMWindow> window;
   nsresult rv = OpenInternal(aUrl, aName, aOptions,
@@ -7687,6 +7696,8 @@ nsGlobalWindow::Open(const nsAString& aUrl, const nsAString& aName,
                              false,          // aDoJSFixups
                              true,           // aNavigate
                              nullptr, nullptr,  // No args
+                             aLoadInfo,
+                             aForceNoOpener,
                              GetPrincipal(),    // aCalleePrincipal
                              nullptr,           // aJSCallerContext
                              getter_AddRefs(window));
@@ -7708,6 +7719,8 @@ nsGlobalWindow::OpenJS(const nsAString& aUrl, const nsAString& aName,
                       true,           // aDoJSFixups
                       true,           // aNavigate
                       nullptr, nullptr,  // No args
+                      nullptr,           // aLoadInfo
+                      false,             // aForceNoOpener
                       GetPrincipal(),    // aCalleePrincipal
                       nsContentUtils::GetCurrentJSContext(), // aJSCallerContext
                       _retval);
@@ -7728,6 +7741,8 @@ nsGlobalWindow::OpenDialog(const nsAString& aUrl, const nsAString& aName,
                       false,                   // aDoJSFixups
                       true,                    // aNavigate
                       nullptr, aExtraArgument,    // Arguments
+                      nullptr,                    // aLoadInfo
+                      false,                      // aForceNoOpener
                       GetPrincipal(),             // aCalleePrincipal
                       nullptr,                    // aJSCallerContext
                       _retval);
@@ -7748,6 +7763,8 @@ nsGlobalWindow::OpenNoNavigate(const nsAString& aUrl,
                       false,          // aDoJSFixups
                       false,          // aNavigate
                       nullptr, nullptr,  // No args
+                      nullptr,           // aLoadInfo
+                      false,             // aForceNoOpener
                       GetPrincipal(),    // aCalleePrincipal
                       nullptr,           // aJSCallerContext
                       _retval);
@@ -7778,6 +7795,8 @@ nsGlobalWindow::OpenDialogOuter(JSContext* aCx, const nsAString& aUrl,
                         false,            // aDoJSFixups
                         true,                // aNavigate
                         argvArray, nullptr,  // Arguments
+                        nullptr,             // aLoadInfo
+                        false,               // aForceNoOpener
                         GetPrincipal(),      // aCalleePrincipal
                         aCx,                 // aJSCallerContext
                         getter_AddRefs(dialog));
@@ -8858,6 +8877,8 @@ nsGlobalWindow::ShowModalDialogOuter(const nsAString& aUrl, nsIVariant* aArgumen
                         true,           // aDoJSFixups
                         true,           // aNavigate
                         nullptr, argHolder, // args
+                        nullptr,            // aLoadInfo
+                        false,              // aForceNoOpener
                         GetPrincipal(),     // aCalleePrincipal
                         nullptr,            // aJSCallerContext
                         getter_AddRefs(dlgWin));
@@ -11292,6 +11313,8 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
                              bool aDoJSFixups, bool aNavigate,
                              nsIArray *argv,
                              nsISupports *aExtraArgument,
+                             nsIDocShellLoadInfo* aLoadInfo,
+                             bool aForceNoOpener,
                              nsIPrincipal *aCalleePrincipal,
                              JSContext *aJSCallerContext,
                              nsIDOMWindow **aReturn)
@@ -11333,8 +11356,32 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
               nsIPrincipal::APP_STATUS_INSTALLED;
   }
 
+  nsAutoCString options;
+  bool forceNoOpener = aForceNoOpener;
+  // Unlike other window flags, "noopener" comes from splitting on commas with
+  // HTML whitespace trimming...
+  nsCharSeparatedTokenizerTemplate<nsContentUtils::IsHTMLWhitespace> tok(
+    aOptions, ',');
+  while (tok.hasMoreTokens()) {
+    auto nextTok = tok.nextToken();
+    if (nextTok.EqualsLiteral("noopener")) {
+      forceNoOpener = true;
+      continue;
+    }
+    // Want to create a copy of the options without 'noopener' because having
+    // 'noopener' in the options affects other window features.
+    if (!options.IsEmpty()) {
+      options.Append(',');
+    }
+    AppendUTF16toUTF8(nextTok, options);
+  }
+
+  // XXXbz When this gets fixed to not use LegacyIsCallerNativeCode()
+  // (indirectly) maybe we can nix the AutoJSAPI usage OnLinkClickEvent::Run.
+  // But note that if you change this to GetEntryGlobal(), say, then
+  // OnLinkClickEvent::Run will need a full-blown AutoEntryScript.
   const bool checkForPopup = !nsContentUtils::LegacyIsCallerChromeOrNativeCode() &&
-    !isApp && !aDialog && !WindowExists(aName, !aCalledNoScript);
+    !isApp && !aDialog && !WindowExists(aName, forceNoOpener, !aCalledNoScript);
 
   // Note: it's very important that this be an nsXPIDLCString, since we want
   // .get() on it to return nullptr until we write stuff to it.  The window
@@ -11377,7 +11424,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
         }
       }
 
-      FireAbuseEvents(true, false, aUrl, aName, aOptions);
+      FireAbuseEvents(aUrl, aName, aOptions);
       return aDoJSFixups ? NS_OK : NS_ERROR_FAILURE;
     }
   }
@@ -11388,14 +11435,20 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
     do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
   NS_ENSURE_TRUE(wwatch, rv);
 
-  NS_ConvertUTF16toUTF8 options(aOptions);
   NS_ConvertUTF16toUTF8 name(aName);
 
-  const char *options_ptr = aOptions.IsEmpty() ? nullptr : options.get();
+  const char *options_ptr  = options.IsEmpty() ? nullptr : options.get();
   const char *name_ptr = aName.IsEmpty() ? nullptr : name.get();
 
   nsCOMPtr<nsPIWindowWatcher> pwwatch(do_QueryInterface(wwatch));
   NS_ENSURE_STATE(pwwatch);
+
+  MOZ_ASSERT_IF(checkForPopup, abuseLevel < openAbused);
+  // At this point we should know for a fact that if checkForPopup then
+  // abuseLevel < openAbused, so we could just check for abuseLevel ==
+  // openControlled.  But let's be defensive just in case and treat anything
+  // that fails the above assert as a spam popup too, if it ever happens.
+  bool isPopupSpamWindow = checkForPopup && (abuseLevel >= openControlled);
 
   {
     // Reset popup state while opening a window to prevent the
@@ -11409,6 +11462,9 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
       rv = pwwatch->OpenWindow2(this, url.get(), name_ptr, options_ptr,
                                 /* aCalledFromScript = */ true,
                                 aDialog, aNavigate, nullptr, argv,
+                                isPopupSpamWindow,
+                                forceNoOpener,
+                                aLoadInfo,
                                 getter_AddRefs(domReturn));
     } else {
       // Force a system caller here so that the window watcher won't screw us
@@ -11425,10 +11481,12 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
         nojsapi.emplace();
       }
 
-
       rv = pwwatch->OpenWindow2(this, url.get(), name_ptr, options_ptr,
                                 /* aCalledFromScript = */ false,
                                 aDialog, aNavigate, nullptr, aExtraArgument,
+                                isPopupSpamWindow,
+                                forceNoOpener,
+                                aLoadInfo,
                                 getter_AddRefs(domReturn));
 
     }
@@ -11461,18 +11519,6 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
       nsCOMPtr<nsIDocument> doc = static_cast<nsPIDOMWindow*>(*aReturn)->GetDoc();
       Unused << doc;
     }
-  }
-
-  if (checkForPopup) {
-    if (abuseLevel >= openControlled) {
-      nsGlobalWindow *opened = static_cast<nsGlobalWindow *>(*aReturn);
-      if (!opened->IsPopupSpamWindow()) {
-        opened->SetPopupSpamWindow(true);
-        ++gOpenPopupSpamCount;
-      }
-    }
-    if (abuseLevel >= openAbused)
-      FireAbuseEvents(false, true, aUrl, aName, aOptions);
   }
 
   return rv;

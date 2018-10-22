@@ -1128,12 +1128,9 @@ const char*
 ScriptedDirectProxyHandler::className(JSContext* cx, HandleObject proxy) const
 {
     // Right now the caller is not prepared to handle failures.
-    RootedObject target(cx, proxy->as<ProxyObject>().target());
-    if (!target)
-        return BaseProxyHandler::className(cx, proxy);
-
-    return GetObjectClassName(cx, target);
+    return BaseProxyHandler::className(cx, proxy);
 }
+
 JSString*
 ScriptedDirectProxyHandler::fun_toString(JSContext* cx, HandleObject proxy,
                                          unsigned indent) const

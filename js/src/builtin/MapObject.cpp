@@ -171,7 +171,8 @@ GlobalObject::initMapIteratorProto(JSContext* cx, Handle<GlobalObject*> global)
     RootedPlainObject proto(cx, NewObjectWithGivenProto<PlainObject>(cx, base));
     if (!proto)
         return false;
-    if (!JS_DefineFunctions(cx, proto, MapIteratorObject::methods))
+    if (!JS_DefineFunctions(cx, proto, MapIteratorObject::methods) ||
+        !DefineToStringTag(cx, proto, cx->names().MapIterator))
         return false;
     global->setReservedSlot(MAP_ITERATOR_PROTO, ObjectValue(*proto));
     return true;
@@ -319,6 +320,10 @@ MapObject::initClass(JSContext* cx, JSObject* obj)
         RootedValue funval(cx, ObjectValue(*fun));
         RootedId iteratorId(cx, SYMBOL_TO_JSID(cx->wellKnownSymbols().iterator));
         if (!JS_DefinePropertyById(cx, proto, iteratorId, funval, 0))
+            return nullptr;
+
+        // Define Map.prototype[@@toStringTag].
+        if (!DefineToStringTag(cx, proto, cx->names().Map))
             return nullptr;
     }
     return proto;
@@ -897,7 +902,8 @@ GlobalObject::initSetIteratorProto(JSContext* cx, Handle<GlobalObject*> global)
     RootedPlainObject proto(cx, NewObjectWithGivenProto<PlainObject>(cx, base));
     if (!proto)
         return false;
-    if (!JS_DefineFunctions(cx, proto, SetIteratorObject::methods))
+    if (!JS_DefineFunctions(cx, proto, SetIteratorObject::methods) ||
+        !DefineToStringTag(cx, proto, cx->names().SetIterator))
         return false;
     global->setReservedSlot(SET_ITERATOR_PROTO, ObjectValue(*proto));
     return true;
@@ -1050,6 +1056,10 @@ SetObject::initClass(JSContext* cx, JSObject* obj)
 
         RootedId iteratorId(cx, SYMBOL_TO_JSID(cx->wellKnownSymbols().iterator));
         if (!JS_DefinePropertyById(cx, proto, iteratorId, funval, 0))
+            return nullptr;
+
+        // Define Set.prototype[@@toStringTag].
+        if (!DefineToStringTag(cx, proto, cx->names().Set))
             return nullptr;
     }
     return proto;
