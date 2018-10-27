@@ -5,6 +5,10 @@ var names = [
     "iterator",
     "match",
     "species",
+    "hasInstance",
+    "toPrimitive",
+    "toStringTag",
+    "unscopables"
 ];
 
 for (var name of names) {

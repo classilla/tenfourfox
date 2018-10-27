@@ -4560,6 +4560,7 @@ GetSymbolDescription(HandleSymbol symbol);
     macro(iterator) \
     macro(match) \
     macro(species) \
+    macro(hasInstance) \
     macro(toPrimitive) \
     macro(toStringTag) \
     macro(unscopables)
