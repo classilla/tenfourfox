@@ -467,6 +467,26 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
 
   NS_ASSERTION(!aElement->IsMalformed(), "Executing malformed script");
 
+  // TenFourFox issue 517. Complete the illusion by just not loading
+  // the Rocket Loader script in the first place. Not only is this much
+  // faster, but it also can be very reliably detected by looking for a
+  // |data-cf-nonce| property on the script tag which appears nowhere else
+  // in the Cloudflare stack presently, eliminates a hack in querying
+  // attributes for that property, and works better for certain sites
+  // where the load can clash with certain inline script elements.
+  nsCOMPtr<nsIDOMElement> domElement = do_QueryInterface(aElement);
+  NS_ASSERTION(domElement, "script could not be QIed to nsIDOMElement");
+  if (MOZ_LIKELY(domElement)) {
+    nsAutoString foo;
+    domElement->GetAttribute(NS_LITERAL_STRING("data-cf-nonce"), foo);
+    if (MOZ_UNLIKELY(!foo.IsEmpty())) {
+#if DEBUG
+      fprintf(stderr, "TenFourFox blocking Rocket Loader main script.\n");
+#endif
+      return false;
+    }
+  }
+
   nsCOMPtr<nsIContent> scriptContent = do_QueryInterface(aElement);
 
   // Step 12. Check that the script is not an eventhandler
