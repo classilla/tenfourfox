@@ -800,7 +800,7 @@ NativeRegExpMacroAssembler::CheckNotBackReference(int start_reg, Label* on_no_ma
 
 #ifndef JS_CODEGEN_PPC_OSX
     // Fail on partial or illegal capture (start of capture after end of capture).
-    masm.branch32(Assembler::LessThan, temp0, ImmWord(0), BranchOrBacktrack(on_no_match));
+    masm.branchPtr(Assembler::LessThan, temp0, ImmWord(0), BranchOrBacktrack(on_no_match));
     // Succeed on empty capture (including no capture).
     masm.branchPtr(Assembler::Equal, temp0, ImmWord(0), &fallthrough);
 #else
@@ -811,7 +811,11 @@ NativeRegExpMacroAssembler::CheckNotBackReference(int start_reg, Label* on_no_ma
     // Check that there are sufficient characters left in the input.
     masm.movePtr(current_position, temp1);
     masm.addPtr(temp0, temp1);
+#ifndef JS_CODEGEN_PPC_OSX
+    masm.branchPtr(Assembler::GreaterThan, temp1, ImmWord(0), BranchOrBacktrack(on_no_match));
+#else
     masm.branch32(Assembler::GreaterThan, temp1, ImmWord(0), BranchOrBacktrack(on_no_match));
+#endif
 
     // Save register to make it available below.
     masm.push(backtrack_stack_pointer);
@@ -895,7 +899,7 @@ NativeRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, Label
     // The length of a capture should not be negative. This can only happen
     // if the end of the capture is unrecorded, or at a point earlier than
     // the start of the capture.
-    masm.branch32(Assembler::LessThan, temp1, ImmWord(0), BranchOrBacktrack(on_no_match));
+    masm.branchPtr(Assembler::LessThan, temp1, ImmWord(0), BranchOrBacktrack(on_no_match));
 
     // If length is zero, either the capture is empty or it is completely
     // uncaptured. In either case succeed immediately.
@@ -908,7 +912,11 @@ NativeRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, Label
     // Check that there are sufficient characters left in the input.
     masm.movePtr(current_position, temp0);
     masm.addPtr(temp1, temp0);
+#ifndef JS_CODEGEN_PPC_OSX
+    masm.branchPtr(Assembler::GreaterThan, temp0, ImmWord(0), BranchOrBacktrack(on_no_match));
+#else
     masm.branch32(Assembler::GreaterThan, temp0, ImmWord(0), BranchOrBacktrack(on_no_match));
+#endif
 
     if (mode_ == ASCII) {
         Label success, fail;
@@ -1488,8 +1496,13 @@ void
 NativeRegExpMacroAssembler::CheckPosition(int cp_offset, Label* on_outside_input)
 {
     JitSpew(SPEW_PREFIX "CheckPosition(%d)", cp_offset);
+#ifndef JS_CODEGEN_PPC_OSX
+    masm.branchPtr(Assembler::GreaterThanOrEqual, current_position,
+                   ImmWord(-cp_offset * char_size()), BranchOrBacktrack(on_outside_input));
+#else
     masm.branch32(Assembler::GreaterThanOrEqual, current_position,
                    ImmWord(-cp_offset * char_size()), BranchOrBacktrack(on_outside_input));
+#endif
 }
 
 Label*
