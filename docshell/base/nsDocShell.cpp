@@ -10591,6 +10591,25 @@ nsDocShell::DoURILoad(nsIURI* aURI,
     triggeringPrincipal = nsContentUtils::GetSystemPrincipal();
   }
 
+  if (!inherit) {
+    // We can confidently assume this is a channel that does not inherit
+    // the principal, and thus does not have flags on the protocol that
+    // ask for it. If the load is for a data: URI, inherit the principal if
+    // the system principal initiated the load to maintain compatibility
+    // with addons, but warn the user as a penalty (TenFourFox issue 525).
+    bool isData = false;
+    rv = aURI->SchemeIs("data", &isData);
+    if (NS_SUCCEEDED(rv) && isData) {
+      if (nsContentUtils::IsSystemPrincipal(triggeringPrincipal)) {
+        fprintf(stderr,
+"Warning: TenFourFox enabling inherited principal for data: URI from system.\n"
+"Warning: Make sure you are using a minimum set of up-to-date addons.\n"
+        );
+        inherit = true;
+      }
+    }
+  }
+
   nsSecurityFlags securityFlags = nsILoadInfo::SEC_NORMAL;
   if (inherit) {
     securityFlags |= nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL;
