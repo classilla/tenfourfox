@@ -685,6 +685,44 @@ js::Execute(JSContext* cx, HandleScript script, JSObject& scopeChainArg, Value* 
                          NullFramePtr() /* evalInFrame */, rval);
 }
 
+/*
+ * ES6 (4-25-16) 12.10.4 InstanceofOperator
+ */
+extern bool
+js::InstanceOfOperator(JSContext* cx, HandleObject obj, MutableHandleValue v, bool* bp)
+{
+    /* Step 1. is handled by caller. */
+
+    /* Step 2. */
+    RootedValue hasInstance(cx);
+    RootedId id(cx, SYMBOL_TO_JSID(cx->wellKnownSymbols().hasInstance));
+    if (!GetProperty(cx, obj, obj, id, &hasInstance))
+        return false;
+
+    if (!hasInstance.isNullOrUndefined()) {
+        if (!IsCallable(hasInstance))
+            ReportIsNotFunction(cx, hasInstance);
+
+        /* Step 3. */
+        RootedValue rval(cx);
+        RootedValue vv(cx, v);
+        if (!Call(cx, obj, hasInstance, HandleValueArray(vv), &rval))
+            return false;
+        *bp = ToBoolean(rval);
+        return true;
+    }
+
+    /* Step 4. */
+    if (!obj->isCallable()) {
+        RootedValue val(cx, ObjectValue(*obj));
+        ReportIsNotFunction(cx, val);
+        return false;
+    }
+
+    /* Step 5. */
+    return js::OrdinaryHasInstance(cx, obj, v, bp);
+}
+
 bool
 js::HasInstance(JSContext* cx, HandleObject obj, HandleValue v, bool* bp)
 {
@@ -693,10 +731,7 @@ js::HasInstance(JSContext* cx, HandleObject obj, HandleValue v, bool* bp)
     if (clasp->hasInstance)
         return clasp->hasInstance(cx, obj, &local, bp);
 
-    RootedValue val(cx, ObjectValue(*obj));
-    ReportValueError(cx, JSMSG_BAD_INSTANCEOF_RHS,
-                        JSDVG_SEARCH_STACK, val, nullptr);
-    return false;
+    return js::InstanceOfOperator(cx, obj, &local, bp);
 }
 
 static inline bool

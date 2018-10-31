@@ -7216,10 +7216,10 @@ nsContentUtils::IsJavascriptMIMEType(const nsAString& aMIMEType)
     }
   }
 
-  // Workaround for Rocket Script; current versions do not load properly.
+  // Workaround for Rocket Loader; current versions do not work properly.
   // This version just relaxes the limits on the MIME type so that the
-  // browser loads the scripts for us and RocketScript is not involved.
-  // Old-school Rocket Script that used text/rocketscript is OK; we don't
+  // browser loads the scripts for us and Rocket Loader is not involved.
+  // Old-school Rocket Loader that used text/rocketscript works OK; we don't
   // interfere with that.
   // (TenFourFox issue 517.)
   if (StringEndsWith(aMIMEType, NS_LITERAL_STRING("-text/javascript"),
@@ -7227,7 +7227,7 @@ nsContentUtils::IsJavascriptMIMEType(const nsAString& aMIMEType)
       // Don't use Find(). We really care just if it's at the end.
       // If we need to look elsewhere, use FindInReadable().
 #if DEBUG
-    fprintf(stderr, "TenFourFox: Rocket Script detected\n");
+    fprintf(stderr, "TenFourFox: Rocket Loader dependent script detected\n");
 #endif
     return true;
   }

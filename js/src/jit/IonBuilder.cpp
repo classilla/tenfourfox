@@ -7929,6 +7929,51 @@ IonBuilder::testSingletonPropertyTypes(MDefinition* obj, jsid id)
 }
 
 bool
+IonBuilder::testNotDefinedProperty(MDefinition* obj, jsid id)
+{
+    TemporaryTypeSet* types = obj->resultTypeSet();
+    if (!types || types->unknownObject() || types->getKnownMIRType() != MIRType_Object)
+        return false;
+
+    for (unsigned i = 0, count = types->getObjectCount(); i < count; i++) {
+        TypeSet::ObjectKey* key = types->getObject(i);
+        if (!key)
+            continue;
+
+        while (true) {
+            if (!key->hasStableClassAndProto(constraints()) || key->unknownProperties())
+                return false;
+
+            const Class* clasp = key->clasp();
+            if (!ClassHasEffectlessLookup(clasp) || ObjectHasExtraOwnProperty(compartment, key,
+id))
+                return false;
+
+            // If the object is a singleton, we can do a lookup now to avoid
+            // unnecessary invalidations later on, in case the property types
+            // have not yet been instantiated.
+            if (key->isSingleton() &&
+                key->singleton()->is<NativeObject>() &&
+                key->singleton()->as<NativeObject>().lookupPure(id))
+            {
+                return false;
+            }
+
+            HeapTypeSetKey property = key->property(id);
+            if (property.isOwnProperty(constraints()))
+                return false;
+
+            JSObject* proto = checkNurseryObject(key->proto().toObjectOrNull());
+            if (!proto)
+                break;
+            key = TypeSet::ObjectKey::get(proto);
+        }
+    }
+
+    return true;
+}
+
+bool
 IonBuilder::pushTypeBarrier(MDefinition* def, TemporaryTypeSet* observed, BarrierKind kind)
 {
     MOZ_ASSERT(def == current->peek(-1));
@@ -8926,6 +8971,13 @@ IonBuilder::getElemTryGetProp(bool* emitted, MDefinition* obj, MDefinition* inde
 
     trackOptimizationAttempt(TrackedStrategy::GetProp_Constant);
     if (!getPropTryConstant(emitted, obj, id, types) || *emitted) {
+        if (*emitted)
+            index->setImplicitlyUsedUnchecked();
+        return *emitted;
+    }
+
+    trackOptimizationAttempt(TrackedStrategy::GetProp_NotDefined);
+    if (!getPropTryNotDefined(emitted, obj, id, types) || *emitted) {
         if (*emitted)
             index->setImplicitlyUsedUnchecked();
         return *emitted;
@@ -10966,6 +11018,11 @@ IonBuilder::jsop_getprop(PropertyName* name)
         if (!getPropTryConstant(&emitted, obj, NameToId(name), types) || emitted)
             return emitted;
 
+        // Try to hardcode known not-defined
+        trackOptimizationAttempt(TrackedStrategy::GetProp_NotDefined);
+        if (!getPropTryNotDefined(&emitted, obj, NameToId(name), types) || emitted)
+            return emitted;
+
         // Try to emit SIMD getter loads
         trackOptimizationAttempt(TrackedStrategy::GetProp_SimdGetter);
         if (!getPropTrySimdGetter(&emitted, obj, name) || emitted)
@@ -11206,6 +11263,30 @@ IonBuilder::getPropTryConstant(bool* emitted, MDefinition* obj, jsid id, Tempora
     obj->setImplicitlyUsedUnchecked();
 
     pushConstant(ObjectValue(*singleton));
+
+    trackOptimizationSuccess();
+    *emitted = true;
+    return true;
+}
+
+bool
+IonBuilder::getPropTryNotDefined(bool* emitted, MDefinition* obj, jsid id, TemporaryTypeSet* types)
+{
+    MOZ_ASSERT(*emitted == false);
+
+    if (!types->mightBeMIRType(MIRType_Undefined)) {
+        // Only optimize if we expect this property access to return undefined.
+        trackOptimizationOutcome(TrackedOutcome::NotUndefined);
+        return true;
+    }
+
+    if (!testNotDefinedProperty(obj, id)) {
+        trackOptimizationOutcome(TrackedOutcome::GenericFailure);
+        return true;
+    }
+
+    obj->setImplicitlyUsedUnchecked();
+    pushConstant(UndefinedValue());
 
     trackOptimizationSuccess();
     *emitted = true;
@@ -13289,21 +13370,13 @@ IonBuilder::jsop_in()
     MDefinition* obj = convertUnboxedObjects(current->pop());
     MDefinition* id = current->pop();
 
-    do {
-        if (shouldAbortOnPreliminaryGroups(obj))
-            break;
+    bool emitted = false;
 
-        JSValueType unboxedType = UnboxedArrayElementType(constraints(), obj, id);
-        if (unboxedType == JSVAL_TYPE_MAGIC) {
-            if (!ElementAccessIsDenseNative(constraints(), obj, id))
-                break;
-        }
+    if (!inTryDense(&emitted, obj, id) || emitted)
+        return emitted;
 
-        if (ElementAccessHasExtraIndexedProperty(this, obj))
-            break;
-
-        return jsop_in_dense(obj, id, unboxedType);
-    } while (false);
+    if (!inTryFold(&emitted, obj, id) || emitted)
+        return emitted;
 
     MIn* ins = MIn::New(alloc(), id, obj);
 
@@ -13314,8 +13387,24 @@ IonBuilder::jsop_in()
 }
 
 bool
-IonBuilder::jsop_in_dense(MDefinition* obj, MDefinition* id, JSValueType unboxedType)
+IonBuilder::inTryDense(bool* emitted, MDefinition* obj, MDefinition* id)
 {
+    MOZ_ASSERT(!*emitted);
+
+    if (shouldAbortOnPreliminaryGroups(obj))
+        return true;
+
+    JSValueType unboxedType = UnboxedArrayElementType(constraints(), obj, id);
+    if (unboxedType == JSVAL_TYPE_MAGIC) {
+        if (!ElementAccessIsDenseNative(constraints(), obj, id))
+            return true;
+    }
+
+    if (ElementAccessHasExtraIndexedProperty(this, obj))
+        return true;
+
+    *emitted = true;
+
     bool needsHoleCheck = !ElementAccessIsPacked(constraints(), obj);
 
     // Ensure id is an integer.
@@ -13342,6 +13431,32 @@ IonBuilder::jsop_in_dense(MDefinition* obj, MDefinition* id, JSValueType unboxed
     current->add(ins);
     current->push(ins);
 
+    return true;
+}
+
+bool
+IonBuilder::inTryFold(bool* emitted, MDefinition* obj, MDefinition* id)
+{
+    // Fold |id in obj| to |false|, if we know the object (or an object on its
+    // prototype chain) does not have this property.
+
+    MOZ_ASSERT(!*emitted);
+
+    jsid propId;
+    if (!id->isConstantValue() || !ValueToIdPure(id->constantValue(), &propId))
+        return true;
+
+    if (propId != IdToTypeId(propId))
+        return true;
+
+    if (!testNotDefinedProperty(obj, propId))
+        return true;
+
+    *emitted = true;
+
+    pushConstant(BooleanValue(false));
+    obj->setImplicitlyUsedUnchecked();
+    id->setImplicitlyUsedUnchecked();
     return true;
 }
 
@@ -13440,8 +13555,34 @@ IonBuilder::jsop_instanceof()
         if (!rhsObject || !rhsObject->is<JSFunction>() || rhsObject->isBoundFunction())
             break;
 
+        // Refuse to optimize anything whose [[Prototype]] isn't Function.prototype
+        // since we can't guarantee that it uses the default @@hasInstance method.
+        if (rhsObject->hasUncacheableProto() || rhsObject->hasLazyPrototype())
+            break;
+
+        Value funProto = script()->global().getPrototype(JSProto_Function);
+        if (!funProto.isObject() || rhsObject->getProto() != &funProto.toObject())
+            break;
+
+        // If the user has supplied their own @@hasInstance method we shouldn't
+        // clobber it.
+        JSFunction* fun = &rhsObject->as<JSFunction>();
+        const WellKnownSymbols* symbols = &compartment->runtime()->wellKnownSymbols();
+        if (!js::FunctionHasDefaultHasInstance(fun, *symbols))
+            break;
+
+        // Ensure that we will bail if the @@hasInstance property or [[Prototype]]
+        // change.
         TypeSet::ObjectKey* rhsKey = TypeSet::ObjectKey::get(rhsObject);
+        if (!rhsKey->hasStableClassAndProto(constraints()))
+            break;
+
         if (rhsKey->unknownProperties())
+            break;
+
+        HeapTypeSetKey hasInstanceObject =
+            rhsKey->property(SYMBOL_TO_JSID(symbols->hasInstance));
+        if (hasInstanceObject.isOwnProperty(constraints()))
             break;
 
         HeapTypeSetKey protoProperty =

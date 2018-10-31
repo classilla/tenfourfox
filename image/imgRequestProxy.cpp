@@ -338,13 +338,19 @@ imgRequestProxy::CancelAndForgetObserver(nsresult aStatus)
 
   mCanceled = true;
 
+  imgRequest* owner = GetOwner();
+  if (owner) {
+    imgCacheValidator* validator = owner->GetValidator();
+    if (validator) {
+      validator->RemoveProxy(this);
+    }
+
+    owner->RemoveProxy(this, aStatus);
+  }
+
   // Now cheat and make sure our removal from loadgroup happens async
   bool oldIsInLoadGroup = mIsInLoadGroup;
   mIsInLoadGroup = false;
-
-  if (GetOwner()) {
-    GetOwner()->RemoveProxy(this, aStatus);
-  }
 
   mIsInLoadGroup = oldIsInLoadGroup;
 

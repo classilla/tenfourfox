@@ -135,9 +135,9 @@ function withinIf(i) {
 // Check case where one successor can have multiple times the same predecessor.
 function unknownLoad(i) {
     var obj = { foo: i };
+    // Unknown properties are inlined as undefined.
     assertEq(obj.bar, undefined);
-    // Unknown properties are using GetPropertyCache.
-    assertRecoveredOnBailout(obj, false);
+    assertRecoveredOnBailout(obj, true);
 }
 
 // Check with dynamic slots.

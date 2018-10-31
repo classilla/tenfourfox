@@ -431,6 +431,7 @@ class IonBuilder
     bool getPropTryArgumentsLength(bool* emitted, MDefinition* obj);
     bool getPropTryArgumentsCallee(bool* emitted, MDefinition* obj, PropertyName* name);
     bool getPropTryConstant(bool* emitted, MDefinition* obj, jsid id, TemporaryTypeSet* types);
+    bool getPropTryNotDefined(bool* emitted, MDefinition* obj, jsid id, TemporaryTypeSet* types);
     bool getPropTryDefiniteSlot(bool* emitted, MDefinition* obj, PropertyName* name,
                                 BarrierKind barrier, TemporaryTypeSet* types);
     bool getPropTryModuleNamespace(bool* emitted, MDefinition* obj, PropertyName* name,
@@ -503,12 +504,16 @@ class IonBuilder
     // jsop_bitnot helpers.
     bool bitnotTrySpecialized(bool* emitted, MDefinition* input);
 
-    // jsop_compare helpes.
+    // jsop_compare helpers.
     bool compareTrySpecialized(bool* emitted, JSOp op, MDefinition* left, MDefinition* right);
     bool compareTryBitwise(bool* emitted, JSOp op, MDefinition* left, MDefinition* right);
     bool compareTrySpecializedOnBaselineInspector(bool* emitted, JSOp op, MDefinition* left,
                                                   MDefinition* right);
     bool compareTrySharedStub(bool* emitted, JSOp op, MDefinition* left, MDefinition* right);
+
+    // jsop_in helpers.
+    bool inTryDense(bool* emitted, MDefinition* obj, MDefinition* id);
+    bool inTryFold(bool* emitted, MDefinition* obj, MDefinition* id);
 
     // binary data lookup helpers.
     TypedObjectPrediction typedObjectPrediction(MDefinition* typedObj);
@@ -732,7 +737,6 @@ class IonBuilder
     bool jsop_isnoiter();
     bool jsop_iterend();
     bool jsop_in();
-    bool jsop_in_dense(MDefinition* obj, MDefinition* id, JSValueType unboxedType);
     bool jsop_instanceof();
     bool jsop_getaliasedvar(ScopeCoordinate sc);
     bool jsop_setaliasedvar(ScopeCoordinate sc);
@@ -979,6 +983,8 @@ class IonBuilder
 
     JSObject* testSingletonProperty(JSObject* obj, jsid id);
     JSObject* testSingletonPropertyTypes(MDefinition* obj, jsid id);
+
+    bool testNotDefinedProperty(MDefinition* obj, jsid id);
 
     uint32_t getDefiniteSlot(TemporaryTypeSet* types, PropertyName* name, uint32_t* pnfixed);
     MDefinition* convertUnboxedObjects(MDefinition* obj);

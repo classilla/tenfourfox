@@ -975,6 +975,12 @@ Service::Observe(nsISupports *, const char *aTopic, const char16_t *)
       getConnections(connections);
       for (uint32_t i = 0, n = connections.Length(); i < n; i++) {
         if (!connections[i]->isClosed()) {
+          // This seems to happen with uBlock origin ...
+          fprintf(stderr, "FATAL ERROR: Storage connections not closed! Bad add-on! %s:%i\n", __FILE__, __LINE__);
+#if __ppc__
+          // Drop into the debugger.
+          __asm__("trap\n");
+#endif
           MOZ_CRASH();
         }
       }
