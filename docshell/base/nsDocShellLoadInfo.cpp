@@ -19,6 +19,7 @@ nsDocShellLoadInfo::nsDocShellLoadInfo()
   , mReferrerPolicy(mozilla::net::RP_Default)
   , mLoadType(nsIDocShellLoadInfo::loadNormal)
   , mIsSrcdocLoad(false)
+  , mIsFromProcessingFrameAttributes(false)
 {
 }
 
@@ -296,5 +297,21 @@ NS_IMETHODIMP
 nsDocShellLoadInfo::SetBaseURI(nsIURI* aBaseURI)
 {
   mBaseURI = aBaseURI;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShellLoadInfo::GetIsFromProcessingFrameAttributes(bool* aIsFromProcessingFrameAttributes)
+{
+  NS_ENSURE_ARG_POINTER(aIsFromProcessingFrameAttributes);
+
+  *aIsFromProcessingFrameAttributes = mIsFromProcessingFrameAttributes;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShellLoadInfo::SetIsFromProcessingFrameAttributes(bool aIsFromProcessingFrameAttributes)
+{
+  mIsFromProcessingFrameAttributes = aIsFromProcessingFrameAttributes;
   return NS_OK;
 }
