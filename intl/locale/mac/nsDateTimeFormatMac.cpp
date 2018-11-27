@@ -164,6 +164,8 @@ nsresult nsDateTimeFormatMac::FormatTMTime(nsILocale* locale,
   // Create the formatter and fix up its formatting as necessary:
   CFDateFormatterRef formatter =
     CFDateFormatterCreate(nullptr, formatterLocale, dateStyle, timeStyle);
+  if (MOZ_UNLIKELY(!formatter))
+    return NS_ERROR_FAILURE; // don't continue
   
   CFRelease(formatterLocale);
   
