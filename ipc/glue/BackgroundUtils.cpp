@@ -255,7 +255,9 @@ LoadInfoToLoadInfoArgs(nsILoadInfo *aLoadInfo,
       redirectChain,
       aLoadInfo->CorsUnsafeHeaders(),
       aLoadInfo->GetForcePreflight(),
-      aLoadInfo->GetIsPreflight());
+      aLoadInfo->GetIsPreflight(),
+      aLoadInfo->GetIsFromProcessingFrameAttributes()
+      );
 
   return NS_OK;
 }
@@ -296,7 +298,7 @@ LoadInfoArgsToLoadInfo(const OptionalLoadInfoArgs& aOptionalLoadInfoArgs,
     redirectChain.AppendElement(redirectedPrincipal.forget());
   }
 
-  nsCOMPtr<nsILoadInfo> loadInfo =
+  RefPtr<mozilla::LoadInfo> loadInfo =
     new mozilla::LoadInfo(requestingPrincipal,
                           triggeringPrincipal,
                           loadInfoArgs.securityFlags(),
@@ -315,6 +317,10 @@ LoadInfoArgsToLoadInfo(const OptionalLoadInfoArgs& aOptionalLoadInfoArgs,
                           loadInfoArgs.corsUnsafeHeaders(),
                           loadInfoArgs.forcePreflight(),
                           loadInfoArgs.isPreflight());
+
+  if (loadInfoArgs.isFromProcessingFrameAttributes()) {
+    loadInfo->SetIsFromProcessingFrameAttributes();
+  }
 
    loadInfo.forget(outLoadInfo);
    return NS_OK;

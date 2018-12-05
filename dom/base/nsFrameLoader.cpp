@@ -427,6 +427,8 @@ nsFrameLoader::ReallyStartLoadingInternal()
             nsIWebNavigation::LOAD_FLAGS_DISALLOW_INHERIT_OWNER;
   }
 
+  loadInfo->SetIsFromProcessingFrameAttributes(true);
+
   // Kick off the load...
   bool tmpState = mNeedsAsyncDestroy;
   mNeedsAsyncDestroy = true;

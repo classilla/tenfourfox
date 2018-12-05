@@ -528,4 +528,11 @@ interface nsILoadInfo : nsISupports
     MOZ_ALWAYS_TRUE(NS_SUCCEEDED(MaybeIncreaseTainting(tainting)));
   }
 %}
+
+  /**
+   * This attribute will be true if this is a load triggered by
+   * https://html.spec.whatwg.org/multipage/iframe-embed-object.html#process-the-iframe-attributes
+   * or https://html.spec.whatwg.org/multipage/obsolete.html#process-the-frame-attributes
+   */
+  [infallible] readonly attribute boolean isFromProcessingFrameAttributes;
 };

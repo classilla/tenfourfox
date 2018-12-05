@@ -431,7 +431,7 @@ public:
   }
 
 protected:
-  virtual ~HTMLSelectElement();
+  virtual ~HTMLSelectElement() = default;
 
   friend class SafeOptionListMutation;
 

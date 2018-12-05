@@ -3526,6 +3526,10 @@ TypeNewScript::make(JSContext* cx, ObjectGroup* group, JSFunction* fun)
     MOZ_ASSERT(!group->newScript());
     MOZ_ASSERT(!group->maybeUnboxedLayout());
 
+    // rollbackPartiallyInitializedObjects expects function_ to be
+    // canonicalized.
+    MOZ_ASSERT(fun->maybeCanonicalFunction() == fun);
+
     if (group->unknownProperties())
         return true;
 
@@ -3883,8 +3887,15 @@ TypeNewScript::rollbackPartiallyInitializedObjects(JSContext* cx, ObjectGroup* g
                 oomUnsafe.crash("rollbackPartiallyInitializedObjects");
         }
 
-        if (!iter.isConstructing() || !iter.matchCallee(cx, function))
+        if (!iter.isConstructing()) {
             continue;
+        }
+
+        MOZ_ASSERT(iter.calleeTemplate()->maybeCanonicalFunction());
+
+        if (iter.calleeTemplate()->maybeCanonicalFunction() != function) {
+            continue;
+        }
 
         // Derived class constructors initialize their this-binding later and
         // we shouldn't run the definite properties analysis on them.

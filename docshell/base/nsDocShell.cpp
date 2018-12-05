@@ -1275,6 +1275,7 @@ nsDocShell::LoadURI(nsIURI* aURI,
   nsCOMPtr<nsIURI> referrer;
   nsCOMPtr<nsIURI> originalURI;
   bool loadReplace = false;
+  bool isFromProcessingFrameAttributes = false;
   nsCOMPtr<nsIInputStream> postStream;
   nsCOMPtr<nsIInputStream> headersStream;
   nsCOMPtr<nsISupports> owner;
@@ -1303,6 +1304,7 @@ nsDocShell::LoadURI(nsIURI* aURI,
     aLoadInfo->GetReferrer(getter_AddRefs(referrer));
     aLoadInfo->GetOriginalURI(getter_AddRefs(originalURI));
     aLoadInfo->GetLoadReplace(&loadReplace);
+    aLoadInfo->GetIsFromProcessingFrameAttributes(&isFromProcessingFrameAttributes);
     nsDocShellInfoLoadType lt = nsIDocShellLoadInfo::loadNormal;
     aLoadInfo->GetLoadType(&lt);
     // Get the appropriate loadType from nsIDocShellLoadInfo type
@@ -1558,6 +1560,7 @@ nsDocShell::LoadURI(nsIURI* aURI,
   return InternalLoad(aURI,
                       originalURI,
                       loadReplace,
+                      isFromProcessingFrameAttributes,
                       referrer,
                       referrerPolicy,
                       owner,
@@ -5252,7 +5255,7 @@ nsDocShell::LoadErrorPage(nsIURI* aURI, const char16_t* aURL,
   rv = NS_NewURI(getter_AddRefs(errorPageURI), errorPageUrl);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return InternalLoad(errorPageURI, nullptr, false, nullptr,
+  return InternalLoad(errorPageURI, nullptr, false, false, nullptr,
                       mozilla::net::RP_Default,
                       nullptr, INTERNAL_LOAD_FLAGS_INHERIT_OWNER, nullptr,
                       nullptr, NullString(), nullptr, nullptr, LOAD_ERROR_PAGE,
@@ -5334,6 +5337,7 @@ nsDocShell::Reload(uint32_t aReloadFlags)
     rv = InternalLoad(currentURI,
                       originalURI,
                       loadReplace,
+                      false,           // IsFromProcessingFrameAttributes
                       referrerURI,
                       referrerPolicy,
                       principal,
@@ -9412,6 +9416,7 @@ class InternalLoadEvent : public nsRunnable
 public:
   InternalLoadEvent(nsDocShell* aDocShell, nsIURI* aURI,
                     nsIURI* aOriginalURI, bool aLoadReplace,
+                    bool aIsFromProcessingFrameAttributes,
                     nsIURI* aReferrer, uint32_t aReferrerPolicy,
                     nsISupports* aOwner, uint32_t aFlags,
                     const char* aTypeHint, nsIInputStream* aPostData,
@@ -9424,6 +9429,7 @@ public:
     , mURI(aURI)
     , mOriginalURI(aOriginalURI)
     , mLoadReplace(aLoadReplace)
+    , mIsFromProcessingFrameAttributes(aIsFromProcessingFrameAttributes)
     , mReferrer(aReferrer)
     , mReferrerPolicy(aReferrerPolicy)
     , mOwner(aOwner)
@@ -9447,6 +9453,7 @@ public:
   {
     return mDocShell->InternalLoad(mURI, mOriginalURI,
                                    mLoadReplace,
+                                   mIsFromProcessingFrameAttributes,
                                    mReferrer,
                                    mReferrerPolicy,
                                    mOwner, mFlags,
@@ -9467,6 +9474,7 @@ private:
   nsCOMPtr<nsIURI> mURI;
   nsCOMPtr<nsIURI> mOriginalURI;
   bool mLoadReplace;
+  bool mIsFromProcessingFrameAttributes;
   nsCOMPtr<nsIURI> mReferrer;
   uint32_t mReferrerPolicy;
   nsCOMPtr<nsISupports> mOwner;
@@ -9513,6 +9521,7 @@ NS_IMETHODIMP
 nsDocShell::InternalLoad(nsIURI* aURI,
                          nsIURI* aOriginalURI,
                          bool aLoadReplace,
+                         bool aIsFromProcessingFrameAttributes,
                          nsIURI* aReferrer,
                          uint32_t aReferrerPolicy,
                          nsISupports* aOwner,
@@ -9782,6 +9791,7 @@ nsDocShell::InternalLoad(nsIURI* aURI,
                                     INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER));
         loadInfo->SetOriginalURI(aOriginalURI);
         loadInfo->SetLoadReplace(aLoadReplace);
+        loadInfo->SetIsFromProcessingFrameAttributes(aIsFromProcessingFrameAttributes);
         loadInfo->SetOwner(loadingPrincipal); // SetTriggeringPrincipal
         loadInfo->SetInheritOwner( /* SetInheritPrincipal _INHERIT_PRINCIPAL */
           !!(aFlags & INTERNAL_LOAD_FLAGS_INHERIT_OWNER));
@@ -9831,6 +9841,7 @@ nsDocShell::InternalLoad(nsIURI* aURI,
       rv = targetDocShell->InternalLoad(aURI,
                                         aOriginalURI,
                                         aLoadReplace,
+                                        aIsFromProcessingFrameAttributes,
                                         aReferrer,
                                         aReferrerPolicy,
                                         owner,
@@ -9912,6 +9923,7 @@ nsDocShell::InternalLoad(nsIURI* aURI,
       // Do this asynchronously
       nsCOMPtr<nsIRunnable> ev =
         new InternalLoadEvent(this, aURI, aOriginalURI, aLoadReplace,
+                              aIsFromProcessingFrameAttributes,
                               aReferrer, aReferrerPolicy, aOwner, aFlags,
                               aTypeHint, aPostData, aHeadersData,
                               aLoadType, aSHEntry, aFirstParty, aSrcdoc,
@@ -10392,7 +10404,9 @@ nsDocShell::InternalLoad(nsIURI* aURI,
                         nsINetworkPredictor::PREDICT_LOAD, this, nullptr);
 
   nsCOMPtr<nsIRequest> req;
-  rv = DoURILoad(aURI, aOriginalURI, aLoadReplace, aReferrer,
+  rv = DoURILoad(aURI, aOriginalURI, aLoadReplace,
+                 aIsFromProcessingFrameAttributes,
+                 aReferrer,
                  !(aFlags & INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER),
                  aReferrerPolicy,
                  owner, aTypeHint, aFileName, aPostData, aHeadersData,
@@ -10471,6 +10485,7 @@ nsresult
 nsDocShell::DoURILoad(nsIURI* aURI,
                       nsIURI* aOriginalURI,
                       bool aLoadReplace,
+                      bool aIsFromProcessingFrameAttributes,
                       nsIURI* aReferrerURI,
                       bool aSendReferrer,
                       uint32_t aReferrerPolicy,
@@ -10619,6 +10634,14 @@ nsDocShell::DoURILoad(nsIURI* aURI,
   if (isSandBoxed) {
     securityFlags |= nsILoadInfo::SEC_SANDBOXED;
   }
+
+#if(0)
+  // XXX: bug 1487964 has this code, but we have no nsILoadInfo set up yet.
+  // Do we need it?
+  if (aIsFromProcessingFrameAttributes) {
+    loadInfo->SetIsFromProcessingFrameAttributes();
+  }
+#endif
 
   if (!isSrcdoc) {
     rv = NS_NewChannelInternal(getter_AddRefs(channel),
@@ -12184,6 +12207,7 @@ nsDocShell::LoadHistoryEntry(nsISHEntry* aEntry, uint32_t aLoadType)
   rv = InternalLoad(uri,
                     originalURI,
                     loadReplace,
+                    false,              // IsFromProcessingFrameAttributes
                     referrerURI,
                     referrerPolicy,
                     owner,
@@ -13646,6 +13670,7 @@ nsDocShell::OnLinkClickSync(nsIContent* aContent,
   nsresult rv = InternalLoad(clonedURI,                 // New URI
                              nullptr,                   // Original URI
                              false,                     // LoadReplace
+                             false,                     // IsFromProcessingFrameAttributes
                              referer,                   // Referer URI
                              refererPolicy,             // Referer policy
                              aContent->NodePrincipal(), // Owner is our node's

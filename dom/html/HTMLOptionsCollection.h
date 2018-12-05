@@ -46,7 +46,7 @@ public:
   using nsWrapperCache::GetWrapper;
   virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 protected:
-  virtual ~HTMLOptionsCollection();
+  virtual ~HTMLOptionsCollection() = default;
 
   virtual JSObject* GetWrapperPreserveColorInternal() override
   {
@@ -113,11 +113,6 @@ public:
   }
 
   /**
-   * Drop the reference to the select.  Called during select destruction.
-   */
-  void DropReference();
-
-  /**
    * Finds the index of a given option element.
    * If the option isn't part of the collection, return NS_ERROR_FAILURE
    * without setting aIndex.
@@ -162,7 +157,7 @@ private:
    * various members such as InsertOptionAt are also infallible. */
   nsTArray<RefPtr<mozilla::dom::HTMLOptionElement> > mElements;
   /** The select element that contains this array */
-  HTMLSelectElement* mSelect;
+  RefPtr<HTMLSelectElement> mSelect;
 };
 
 } // namespace dom
