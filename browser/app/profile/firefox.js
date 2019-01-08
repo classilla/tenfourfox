@@ -1638,3 +1638,5 @@ pref("media.webspeech.synth.enabled", true);
 #endif
 
 pref("browser.esedbreader.loglevel", "Error");
+
+pref("browser.pagethumbnails.capturing_disabled", true);
