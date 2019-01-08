@@ -1436,6 +1436,9 @@ protected:
   // All data from successfully parsed properties are placed into |mData|.
   nsCSSExpandedDataBlock mData;
 
+  // Value to make sure our resolved variable results stay within sane limits.
+  const uint32_t MAX_CSS_VAR_LENGTH = 10240;
+
 public:
   // Used from nsCSSParser constructors and destructors
   CSSParserImpl* mNextFree;
@@ -2610,6 +2613,12 @@ CSSParserImpl::ResolveValueWithVariableReferencesRec(
             mScanner->StartRecording();
             if (!valid) {
               // Invalid variable with no fallback.
+              return false;
+            }
+            // Make sure we are still using sane sizes for value and
+            // variableValue, and abort if OOB.
+            if (MOZ_UNLIKELY((value.Length() > MAX_CSS_VAR_LENGTH) ||
+                             (variableValue.Length() > MAX_CSS_VAR_LENGTH))) {
               return false;
             }
             // Valid variable with no fallback.
