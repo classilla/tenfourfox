@@ -695,7 +695,7 @@ nsLocation::SetProtocol(const nsAString& aProtocol)
   nsAString::const_iterator start, end;
   aProtocol.BeginReading(start);
   aProtocol.EndReading(end);
-  nsAstring::const_iterator iter(start);
+  nsAString::const_iterator iter(start);
   Unused << FindCharInReadable(':', iter, end);
   rv = uri->SetScheme(NS_ConvertUTF16toUTF8(Substring(start, iter)));
   if (NS_WARN_IF(NS_FAILED(rv))) {
