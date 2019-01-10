@@ -298,6 +298,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("use.typekit.net", "/af/430cc5/0000000000000000000177da/");
                     HTTP_OR_HTTPS_SUBDIR("platform-assets.typekit.net", "/AND-Regular.");
 
+                    HTTP_OR_HTTPS_SUBDIR("ici.radio-canada.ca", "/unit/app/assets/fonts/Radio-Canada/");
+
                     // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");
                     HOST_AND_KEY("www.nerdwallet.com", "Gotham-Book--critical");
