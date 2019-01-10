@@ -356,6 +356,12 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
   
   nsCOMPtr<nsISupports> parserKungFuDeathGrip(mParser);
   mozilla::Unused << parserKungFuDeathGrip;
+  RefPtr<nsHtml5StreamParser> streamParserGrip;
+  if (mParser) {
+    streamParserGrip = GetParser()->GetStreamParser();
+  }
+  mozilla::Unused
+      << streamParserGrip;  // Intentionally not used within function
 
   // Remember the entry time
   (void) nsContentSink::WillParseImpl();
@@ -414,11 +420,6 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
         mOpQueue.Clear(); // clear in order to be able to assert in destructor
         return;
       }
-      // Not sure if this grip is still needed, but previously, the code
-      // gripped before calling ParseUntilBlocked();
-      RefPtr<nsHtml5StreamParser> streamKungFuDeathGrip = 
-        GetParser()->GetStreamParser();
-      mozilla::Unused << streamKungFuDeathGrip;
       // Now parse content left in the document.write() buffer queue if any.
       // This may generate tree ops on its own or dequeue a speculation.
       nsresult rv = GetParser()->ParseUntilBlocked();
