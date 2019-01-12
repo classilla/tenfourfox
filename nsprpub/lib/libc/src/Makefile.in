@@ -40,8 +40,11 @@ LIBRARY_VERSION	= $(MOD_MAJOR_VERSION)
 RELEASE_LIBS = $(TARGETS)
 
 ifeq ($(TENFOURFOX_VMX),1)
-CSRCS += plvmx.c
-CFLAGS += -faltivec
+SSRCS += \
+	vmx_haschr.S \
+	vmx_memchr.S \
+	vmx_strchr.S \
+	$(NULL)
 endif
 
 ifeq ($(OS_ARCH),WINNT)

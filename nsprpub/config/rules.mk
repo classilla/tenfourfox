@@ -134,6 +134,7 @@ endif
 
 ifndef OBJS
 OBJS		= $(addprefix $(OBJDIR)/,$(CSRCS:.c=.$(OBJ_SUFFIX))) \
+                  $(addprefix $(OBJDIR)/,$(SSRCS:.S=.$(OBJ_SUFFIX))) \
 		  $(addprefix $(OBJDIR)/,$(ASFILES:.$(ASM_SUFFIX)=.$(OBJ_SUFFIX)))
 endif
 
@@ -458,6 +459,13 @@ endif
 endif
 endif
 
+$(OBJDIR)/%.$(OBJ_SUFFIX): %.S
+	@$(MAKE_OBJDIR)
+ifdef NEED_ABSOLUTE_PATH
+	$(CC) -o $@ -c $(CFLAGS) $(call pr_abspath,$<)
+else
+	$(CC) -o $@ -c $(CFLAGS) $<
+endif
 
 $(OBJDIR)/%.$(OBJ_SUFFIX): %.s
 	@$(MAKE_OBJDIR)
@@ -509,7 +517,7 @@ endif
 # hundreds of built-in suffix rules for stuff we don't need.
 #
 .SUFFIXES:
-.SUFFIXES: .a .$(OBJ_SUFFIX) .c .cpp .s .h .i .pl
+.SUFFIXES: .a .$(OBJ_SUFFIX) .c .cpp .s .h .i .pl .S
 
 #
 # Fake targets.  Always run these rules, even if a file/directory with that
