@@ -16,6 +16,7 @@
 #include "nsBMPDecoder.h"
 #include "nsICODecoder.h"
 #include "nsIconDecoder.h"
+#include "nsWEBPDecoder.h"
 
 namespace mozilla {
 
@@ -62,6 +63,10 @@ DecoderFactory::GetDecoderType(const char* aMimeType)
   // Icon
   } else if (!strcmp(aMimeType, IMAGE_ICON_MS)) {
     type = DecoderType::ICON;
+
+  // WEBP
+  } else if (!strcmp(aMimeType, IMAGE_WEBP)) {
+    type = DecoderType::WEBP;
   }
 
   return type;
@@ -96,6 +101,9 @@ DecoderFactory::GetDecoder(DecoderType aType,
       break;
     case DecoderType::ICON:
       decoder = new nsIconDecoder(aImage);
+      break;
+    case DecoderType::WEBP:
+      decoder = new nsWEBPDecoder(aImage);
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("Unknown decoder type");
