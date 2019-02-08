@@ -65,7 +65,8 @@ DecoderFactory::GetDecoderType(const char* aMimeType)
     type = DecoderType::ICON;
 
   // WEBP
-  } else if (!strcmp(aMimeType, IMAGE_WEBP)) {
+  } else if (!strcmp(aMimeType, IMAGE_WEBP) &&
+             MOZ_LIKELY(gfxPrefs::ImageWebPEnabled())) {
     type = DecoderType::WEBP;
   }
 
@@ -161,7 +162,8 @@ DecoderFactory::CreateAnimationDecoder(DecoderType aType,
     return nullptr;
   }
 
-  MOZ_ASSERT(aType == DecoderType::GIF || aType == DecoderType::PNG,
+  MOZ_ASSERT(aType == DecoderType::GIF || aType == DecoderType::PNG ||
+             aType == DecoderType::WEBP,
              "Calling CreateAnimationDecoder for non-animating DecoderType");
 
   RefPtr<Decoder> decoder =
