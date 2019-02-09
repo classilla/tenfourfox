@@ -56,7 +56,11 @@ nsWEBPDecoder::InitInternal()
 
   MOZ_ASSERT(!mImageData, "Shouldn't have a buffer yet");
 
+#ifdef __ppc__
+  mDecBuf.colorspace = MODE_Argb;
+#else
   mDecBuf.colorspace = MODE_bgrA;
+#endif
   mDecBuf.is_external_memory = 1;
   mDecBuf.u.RGBA.rgba = mImageData; // nullptr right now
   mDecoder = WebPINewDecoder(&mDecBuf);
