@@ -3,14 +3,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* Contributor(s):
- *   Vikas Arora <vikasa@google.com> */
+
+/* WebP for TenFourFox. Actually works on big endian.
+   Incorporates original version from bug 600919 with later updates.
+   See also bug 1294490. */
 
 #include "nsWEBPDecoder.h"
 
 #include "ImageLogging.h"
 #include "gfxColor.h"
 #include "gfxPlatform.h"
+#include "webp/demux.h"
 
 namespace mozilla {
 namespace image {
@@ -29,6 +32,8 @@ nsWEBPDecoder::nsWEBPDecoder(RasterImage* aImage)
   , mWidth(0)
   , mHeight(0)
   , haveSize(false)
+  , mProfile(nullptr)
+  , mTransform(nullptr)
 {
   MOZ_LOG(gWEBPDecoderAccountingLog, LogLevel::Debug,
          ("nsWEBPDecoder::nsWEBPDecoder: Creating WEBP decoder %p",
@@ -56,7 +61,9 @@ nsWEBPDecoder::InitInternal()
 
   MOZ_ASSERT(!mImageData, "Shouldn't have a buffer yet");
 
-#ifdef __ppc__
+  // Premultiplied alpha required. We may change the colourspace
+  // if colour management is required (see below).
+#if MOZ_BIG_ENDIAN
   mDecBuf.colorspace = MODE_Argb;
 #else
   mDecBuf.colorspace = MODE_bgrA;
@@ -74,72 +81,134 @@ void
 nsWEBPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
 {
   const uint8_t* buf = (const uint8_t*)aBuffer;
+  uint32_t flags = 0;
 
-  if (IsMetadataDecode() || !haveSize) {
-    WebPBitstreamFeatures features;
-    const VP8StatusCode rv = WebPGetFeatures(buf, aCount, &features);
+  if (!haveSize) {
+    WebPDemuxer *demux = nullptr;
+    WebPDemuxState state;
+    WebPData fragment;
 
-    if (rv == VP8_STATUS_OK) {
-      if (features.has_animation) {
-        PostDecoderError(NS_ERROR_FAILURE);
-        return;
-      }
-      if (features.has_alpha) {
-        PostHasTransparency();
-      }
-      // Post our size to the superclass
-      if (IsMetadataDecode()) {
-        PostSize(features.width, features.height);
-      }
-      mWidth = features.width;
-      mHeight = features.height;
-      mDecBuf.width = mWidth;
-      mDecBuf.height = mHeight;
-      mDecBuf.u.RGBA.stride = mWidth * sizeof(uint32_t);
-      mDecBuf.u.RGBA.size = mDecBuf.u.RGBA.stride * mHeight;
-      haveSize = true;
-    } else if (rv != VP8_STATUS_NOT_ENOUGH_DATA) {
-      PostDecoderError(NS_ERROR_FAILURE);
+    if (!aCount) return;
+
+    fragment.bytes = buf;
+    fragment.size = aCount;
+    demux = WebPDemuxPartial(&fragment, &state);
+    if (!demux) {
+      // We don't even have enough data to determine if we have headers.
       return;
-    } else {
-#if DEBUG
-      fprintf(stderr, "WebP had unexpected return code: %d\n", rv);
-#endif
+    }
+    if (state == WEBP_DEMUX_PARSE_ERROR) {
+      // Hmm.
+      NS_WARNING("Parse error on WebP image");
+      WebPDemuxDelete(demux);
+      return;
+    }
+    if (state == WEBP_DEMUX_PARSING_HEADER) {
+      // Not enough data yet.
+      WebPDemuxDelete(demux);
       return;
     }
 
-    // If we're doing a size decode, we're done.
-    if (IsMetadataDecode()) return;
+    flags = WebPDemuxGetI(demux, WEBP_FF_FORMAT_FLAGS);
+
+    // Make sure chunks are available, if we need them.
+    if (flags & ICCP_FLAG) {
+      // Embedded colour profile chunk.
+      if (state != WEBP_DEMUX_DONE) {
+        // Not enough data yet.
+        NS_WARNING("Waiting for WebP chunks to load");
+        WebPDemuxDelete(demux);
+        return;
+      }
+    }
+
+    // Valid demuxer available.
+    if (flags & ANIMATION_FLAG) {
+       NS_WARNING("animated WebP not yet supported"); // XXX
+    }
+    if (flags & ALPHA_FLAG) {
+      PostHasTransparency();
+    }
+
+    // Handle embedded colour profiles.
+    if (!mProfile && (flags & ICCP_FLAG)) {
+      if (gfxPlatform::GetCMSOutputProfile()) {
+        WebPChunkIterator chunk_iter;
+
+        if (WebPDemuxGetChunk(demux, "ICCP", 1, &chunk_iter)) {
+#if DEBUG
+          fprintf(stderr, "WebP has embedded colour profile (%d bytes).\n", chunk_iter.chunk.size);
+#endif
+          mProfile = qcms_profile_from_memory(
+            reinterpret_cast<const char*>(chunk_iter.chunk.bytes),
+            chunk_iter.chunk.size);
+          if (mProfile) {
+            int intent = gfxPlatform::GetRenderingIntent();
+            if (intent == -1)
+              intent = qcms_profile_get_rendering_intent(mProfile);
+            mTransform = qcms_transform_create(mProfile,
+                                               QCMS_DATA_RGBA_8,
+                                               gfxPlatform::GetCMSOutputProfile(),
+                                               QCMS_DATA_RGBA_8,
+                                               (qcms_intent)intent);
+            mDecBuf.colorspace = MODE_rgbA; // byte-swapped later
+          }
+          WebPDemuxReleaseChunkIterator(&chunk_iter);
+        }
+      }
+    }
+
+    mWidth = WebPDemuxGetI(demux, WEBP_FF_CANVAS_WIDTH);
+    mHeight = WebPDemuxGetI(demux, WEBP_FF_CANVAS_HEIGHT);
+    // Post our size to the superclass
+    PostSize(mWidth, mHeight);
+    mDecBuf.width = mWidth;
+    mDecBuf.height = mHeight;
+    mDecBuf.u.RGBA.stride = mWidth * sizeof(uint32_t);
+    mDecBuf.u.RGBA.size = mDecBuf.u.RGBA.stride * mHeight;
+    haveSize = true;
+
+    WebPDemuxDelete(demux);
   }
 
-  MOZ_ASSERT(!mImageData, "Already have a buffer allocated?");
-  MOZ_ASSERT(haveSize, "Didn't fetch metadata?");
-  PostSize(mWidth, mHeight);
-  nsresult rv_ = AllocateBasicFrame();
-  if (NS_FAILED(rv_)) {
+  if (IsMetadataDecode()) {
+    // Nothing else to do.
+    return;
+  }
+
+  if (!mImageData) {
+    MOZ_ASSERT(haveSize, "Didn't fetch metadata?");
+    nsresult rv_ = AllocateBasicFrame();
+    if (NS_FAILED(rv_)) {
       return;
+    }
   }
-
   MOZ_ASSERT(mImageData, "Should have a buffer now");
   MOZ_ASSERT(mDecoder, "Should have a decoder now");
   mDecBuf.u.RGBA.rgba = mImageData; // no longer null
   const VP8StatusCode rv = WebPIAppend(mDecoder, buf, aCount);
 
   if (rv == VP8_STATUS_OUT_OF_MEMORY) {
+    NS_WARNING("WebP out of memory");
     PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
     return;
   } else if (rv == VP8_STATUS_INVALID_PARAM ||
              rv == VP8_STATUS_BITSTREAM_ERROR) {
+    NS_WARNING("WebP bitstream error");
     PostDataError();
     return;
   } else if (rv == VP8_STATUS_UNSUPPORTED_FEATURE ||
              rv == VP8_STATUS_USER_ABORT) {
+    NS_WARNING("WebP unsupported feature");
     PostDecoderError(NS_ERROR_FAILURE);
     return;
   }
 
   // Catch any remaining erroneous return value.
   if (rv != VP8_STATUS_OK && rv != VP8_STATUS_SUSPENDED) {
+#if DEBUG
+    fprintf(stderr, "WebP unexpected parsing error %d\n", rv);
+#endif
     PostDecoderError(NS_ERROR_FAILURE);
     return;
   }
@@ -149,7 +218,7 @@ nsWEBPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
   int height = 0;
   int stride = 0;
 
-  const uint8_t* data =
+  uint8_t* data =
     WebPIDecGetRGB(mDecoder, &lastLineRead, &width, &height, &stride);
 
   // WebP encoded image data hasn't been read yet, return.
@@ -164,11 +233,35 @@ nsWEBPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
   }
 
   if (!mImageData) {
+    NS_WARNING("WebP y u no haz image");
     PostDecoderError(NS_ERROR_FAILURE);
     return;
   }
 
   if (lastLineRead > mLastLine) {
+    if (mTransform) {
+      for (int row = mLastLine; row < lastLineRead; row++) {
+        MOZ_ASSERT(!(stride % 4)); // should be RGBA alignment
+        uint8_t* src = data + row * stride;
+        qcms_transform_data(mTransform, src, src, width);
+        for (uint8_t* i = src; i < src + stride; i+=4) {
+#if MOZ_BIG_ENDIAN
+          // RGBA -> ARGB
+          uint8_t a = i[3];
+          i[3] = i[2];
+          i[2] = i[1];
+          i[1] = i[0];
+          i[0] = a;
+#else
+          // RGBA -> BGRA
+          uint8_t r = i[2];
+          i[2] = i[0];
+          i[0] = r;
+#endif
+        }
+      }
+    }
+
     // Invalidate
     nsIntRect r(0, mLastLine, width, lastLineRead - mLastLine);
     PostInvalidation(r);
@@ -192,6 +285,15 @@ nsWEBPDecoder::FinishInternal()
     PostDecodeDone();
 
     mDecoder = nullptr;
+
+    if (mProfile) {
+      if (mTransform) {
+        qcms_transform_release(mTransform);
+        mTransform = nullptr;
+      }
+      qcms_profile_release(mProfile);
+      mProfile = nullptr;
+    }
   }
 }
 

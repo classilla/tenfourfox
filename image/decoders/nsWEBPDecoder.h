@@ -70,6 +70,9 @@ private:
   int mWidth;              // Image Width
   int mHeight;             // Image Height
   bool haveSize;           // True if mDecBuf contains image dimension
+
+  qcms_profile* mProfile;  // embedded ICC profile
+  qcms_transform* mTransform; // resulting qcms transform
 };
 
 } // namespace image

@@ -4,13 +4,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-
 src_dir = 'src/'
 moz_dir = src_dir + 'moz/'
 dec_dir = src_dir + 'dec/'
 dsp_dir = src_dir + 'dsp/'
 utils_dir = src_dir + 'utils/'
 webp_dir = src_dir + 'webp/'
+demux_dir = src_dir + 'demux/'
 
 EXPORTS.webp += [
     webp_dir + 'decode.h',
@@ -30,6 +30,10 @@ dec_sources = [
     dec_dir + 'vp8_dec.c',
     dec_dir + 'vp8l_dec.c',
     dec_dir + 'webp_dec.c',
+]
+
+demux_sources = [
+    demux_dir + 'demux.c',
 ]
 
 dsp_sources = [
@@ -68,30 +72,9 @@ utils_sources = [
 ]
 
 # NB: dsp especially isn't UNIFIED_SOURCES friendly.
-SOURCES += dec_sources + dsp_sources + moz_sources + utils_sources
-
-if CONFIG['OS_TARGET'] == 'Android':
-    # Older versions of the Android NDK don't pre-define anything to indicate
-    # the OS they're on, so do it for them.
-    DEFINES['__linux__'] = True
-    CFLAGS += [
-        '-I%s/sources/android/cpufeatures/' % CONFIG['ANDROID_NDK'],
-    ]
-
-    if not CONFIG['MOZ_WEBRTC']:
-        SOURCES += [
-            '%s/sources/android/cpufeatures/cpu-features.c' % CONFIG['ANDROID_NDK'],
-        ]
-
-# TODO: aarch64?
-if CONFIG['CPU_ARCH'] == 'arm' and CONFIG['GNU_CC']:
-    for f in dsp_sources:
-        if f.endswith('.c') and 'neon' in f:
-            SOURCES[f].flags += ['-mfloat-abi=softfp', '-mfpu=neon']
+SOURCES += dec_sources + demux_sources + dsp_sources + moz_sources + utils_sources
 
 Library('mozwebp')
-
-#MSVC_ENABLE_PGO = True
 
 if CONFIG['GKMEDIAS_SHARED_LIBRARY']:
     NO_VISIBILITY_FLAGS = True
