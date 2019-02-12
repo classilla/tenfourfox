@@ -281,9 +281,9 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   NSUInteger index = 0;
   NSMutableArray *windowArray = [NSMutableArray array];
   
-  PRUint32 length;
+  uint32_t length;
   windows->GetLength(&length);
-  for (PRUint32 i = 0; i < length; ++i) {
+  for (uint32_t i = 0; i < length; ++i) {
     nsCOMPtr<nsIXULWindow> xulWindow(do_QueryElementAt(windows, i));
     if (xulWindow) {
       GeckoWindow *window = [GeckoWindow windowWithIndex:index andXULWindow:xulWindow];
@@ -324,10 +324,13 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   // have to insert at index 0 instead of at the end like we do for tabs or
   // we start talking to the wrong window and things show up in the wrong
   // place. In practise it seems the index really works more like Z-order.
+  // We get away with this because the indices get rebuilt by scriptWindows:
+  // off the actual XUL indexes; we don't really have multiple index 0s
+  // because there isn't a persistent array of GeckoWindows.
   NSUInteger index = 0;
   GeckoWindow *window = (GeckoWindow*)value;
   [window _setIndex:index];
-  
+
   nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
   if (applescriptService) {
     (void)applescriptService->CreateWindowAtIndex(index);
@@ -483,9 +486,9 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   NSUInteger index = 0;
   NSMutableArray *tabArray = [NSMutableArray array];
   
-  PRUint32 length;
+  uint32_t length;
   tabs->GetLength(&length);
-  for (PRUint32 i = 0; i < length; ++i) {
+  for (uint32_t i = 0; i < length; ++i) {
     nsCOMPtr<nsIDOMWindow> contentWindow(do_QueryElementAt(tabs, i));
     if (contentWindow) {
       GeckoTab *tab = [GeckoTab tabWithIndex:index andContentWindow:contentWindow andWindow:self];
@@ -504,7 +507,7 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   }
   
   nsCOMPtr<nsIDOMWindow> contentWindow;
-	PRUint32 tabIndex = 0;
+	uint32_t tabIndex = 0;
   if (NS_FAILED(applescriptService->GetCurrentTabInWindow(mIndex, &tabIndex, getter_AddRefs(contentWindow))) || !contentWindow) {
     return nil;
   }
@@ -726,7 +729,7 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
     
     nsCOMPtr<nsIDocumentEncoder> encoder(do_CreateInstance(formatType.get(), &rv));
     if (NS_SUCCEEDED(rv) && encoder) {
-      PRUint32 flags = nsIDocumentEncoder::SkipInvisibleContent;
+      uint32_t flags = nsIDocumentEncoder::SkipInvisibleContent;
       nsAutoString readstring;
       readstring.AssignASCII("text/plain");
       
