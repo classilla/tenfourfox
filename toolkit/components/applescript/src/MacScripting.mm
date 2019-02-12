@@ -134,6 +134,7 @@ typedef unsigned int NSUInteger;
 
 // Gecko Scripting Dictionary
 - (NSArray*)scriptTabs;
+- (void)insertInScriptTabs:(id)value;
 - (GeckoTab*)selectedScriptTab;
 
 // Helper Methods
@@ -468,6 +469,7 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 }
 
 - (void)insertObject:(NSObject*)object inScriptTabsAtIndex:(NSUInteger)index {
+  NS_WARNING("AppleScript: window insertObject:inScriptTabsAtIndex");
   if (![object isKindOfClass:[GeckoTab class]]) {
     return;
   }
@@ -481,7 +483,13 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   }
 }
 
+- (void)insertInScriptTabs:(id)value {
+  NS_WARNING("AppleScript: window insertInScriptTabs");
+  [self insertObject:value inScriptTabsAtIndex:[[self scriptTabs] count]];
+}
+
 - (void)removeObjectFromScriptTabsAtIndex:(NSUInteger)index {
+  NS_WARNING("AppleScript: window removeObjectFromScriptTabsAtIndex");
   NSArray *tabs = [self scriptTabs];
   if (tabs && index < [tabs count]) {
     NSCloseCommand *closeCommend = [[[NSCloseCommand alloc] init] autorelease];
