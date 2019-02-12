@@ -141,6 +141,22 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>webp</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>document.icns</string>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string>image/webp</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>WebP Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>firefox</string>
@@ -211,6 +227,8 @@
 	<string>%MAC_BUNDLE_VERSION%</string>
 	<key>NSAppleScriptEnabled</key>
 	<true/>
+	<key>OSAScriptingDefinition</key>
+	<string>%MAC_APP_NAME%.sdef</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
         <key>LSMinimumSystemVersion</key>

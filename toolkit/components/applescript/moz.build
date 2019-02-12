@@ -1,0 +1,5 @@
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    DIRS += [
+        'public',
+        'src',
+    ]

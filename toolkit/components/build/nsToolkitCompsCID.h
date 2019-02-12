@@ -12,6 +12,9 @@
 #define NS_SYSTEMALERTSERVICE_CONTRACTID \
   "@mozilla.org/system-alerts-service;1"
 
+#define NS_APPLESCRIPTSERVICE_CONTRACTID \
+  "@mozilla.org/applescript-service;1"
+
 #define NS_AUTOCOMPLETECONTROLLER_CONTRACTID \
   "@mozilla.org/autocomplete/controller;1"
 
@@ -100,6 +103,10 @@
 // {A0CCAAF8-09DA-44D8-B250-9AC3E93C8117}
 #define NS_ALERTSSERVICE_CID \
 { 0xa0ccaaf8, 0x9da, 0x44d8, { 0xb2, 0x50, 0x9a, 0xc3, 0xe9, 0x3c, 0x81, 0x17 } }
+
+// {BC5F5505-86BE-41A3-942D-36ABDA9A85F5}
+#define NS_APPLESCRIPTSERVICE_CID \
+{ 0xbc5f5505, 0x86be, 0x41a3, { 0x94, 0x2d, 0x36, 0xab, 0xda, 0x9a, 0x85, 0xf5 } }
 
 // {84E11F80-CA55-11DD-AD8B-0800200C9A66}
 #define NS_SYSTEMALERTSSERVICE_CID \

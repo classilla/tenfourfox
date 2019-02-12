@@ -1,0 +1,691 @@
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Mozilla XUL Toolkit.
+ *
+ * The Initial Developer of the Original Code is
+ * the Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2010-2019
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Based on original works by Scott Greenlay <scott@greenlay.net> (bug 608049).
+ * Ported to TenFourFox and 10.4 SDK by Cameron Kaiser
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+#import <Cocoa/Cocoa.h>
+#import <objc/objc-runtime.h>
+extern "C" {
+    IMP class_lookupMethod(Class, SEL);
+};
+#define class_getMethodImplementation(x,y) class_lookupMethod(x,y)
+
+#import "MacScripting.h"
+
+#include "nsIApplescriptService.h"
+
+#include "nsCOMPtr.h"
+#include "nsComponentManagerUtils.h"
+#include "nsArrayUtils.h"
+#include "nsString.h"
+#include "nsContentCID.h"
+#include "nsIServiceManager.h"
+#include "nsServiceManagerUtils.h"
+#include "nsIAppStartup.h"
+#include "nsISelection.h"
+#include "nsIDOMNode.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMHTMLDocument.h"
+#include "nsIDOMSerializer.h"
+#include "nsIDocument.h"
+#include "nsIDocumentEncoder.h"
+#include "nsIWindowMediator.h"
+#include "nsISimpleEnumerator.h"
+#include "nsIBaseWindow.h"
+#include "nsIWidget.h"
+#include "nsIXULWindow.h"
+#include "nsIDOMWindow.h"
+#include "nsPIDOMWindow.h"
+#include "nsIDOMWindowUtils.h"
+#include "nsIInterfaceRequestor.h"
+#include "nsIDOMLocation.h"
+#include "nsIPresShell.h"
+#include "nsObjCExceptions.h"
+#include "nsToolkitCompsCID.h"
+
+// 10.4 no haz.
+typedef int NSInteger;
+typedef unsigned int NSUInteger;
+
+#define NSIntegerMax    LONG_MAX
+#define NSIntegerMin    LONG_MIN
+#define NSUIntegerMax   ULONG_MAX
+
+@class GeckoObject;
+@class GeckoWindow;
+@class GeckoTab;
+
+#pragma mark -
+
+@interface GeckoScriptingRoot : NSObject
+{
+  @private
+  // These must persist for the life of the scripting application.
+  struct objc_method swinMeth;
+  struct objc_method insoMeth;
+  struct objc_method remoMeth;
+  struct objc_method_list methodList;
+  BOOL didInit;
+}
+
++ (GeckoScriptingRoot*)sharedScriptingRoot;
+- (id)init;
+- (void)makeApplicationScriptable:(NSApplication*)application;
+
+@end
+
+#pragma mark -
+
+@interface GeckoWindow : NSObject
+{
+  NSUInteger                mIndex;
+  nsCOMPtr<nsIXULWindow>    mXULWindow;
+}
+
+- (id)initWithIndex:(NSUInteger)index andXULWindow:(nsIXULWindow*)xulWindow;
++ (id)windowWithIndex:(NSUInteger)index andXULWindow:(nsIXULWindow*)xulWindow;
+
+// Default Scripting Dictionary
+- (NSString*)title;
+- (NSUInteger)orderedIndex;
+- (BOOL)isMiniaturizable;
+- (BOOL)isMiniaturized;
+- (void)setIsMiniaturized:(BOOL)miniaturized;
+- (BOOL)isResizable;
+- (BOOL)isVisible;
+- (void)setIsVisible:(BOOL)visible;
+- (BOOL)isZoomable;
+- (BOOL)isZoomed;
+- (void)setIsZoomed:(BOOL)zoomed;
+
+- (id)handleCloseScriptCommand:(NSCloseCommand*)command;
+
+// Gecko Scripting Dictionary
+- (NSArray*)scriptTabs;
+- (GeckoTab*)selectedScriptTab;
+
+// Helper Methods
+- (void)_setIndex:(NSUInteger)index;
+
+@end
+
+#pragma mark -
+
+@interface GeckoTab : NSObject
+{
+  NSUInteger                mIndex;
+  GeckoWindow               *mWindow;
+  nsCOMPtr<nsIDOMWindow>    mContentWindow;
+}
+
+- (id)initWithIndex:(NSUInteger)index andContentWindow:(nsIDOMWindow*)contentWindow andWindow:(GeckoWindow*)window;
++ (id)tabWithIndex:(NSUInteger)index andContentWindow:(nsIDOMWindow*)contentWindow andWindow:(GeckoWindow*)window;
+
+// Gecko Scripting Dictionary
+- (NSString*)title;
+- (NSUInteger)orderedIndex;
+- (NSString*)URL;
+- (NSString*)source;
+- (NSString*)text;
+- (NSString*)selectedText;
+
+- (void)setURL:(NSString*)newURL;
+
+- (id)handleCloseScriptCommand:(NSCloseCommand*)command;
+
+// Helper Methods
+- (void)_setWindow:(GeckoWindow*)window;
+- (void)_setIndex:(NSUInteger)index;
+
+@end
+
+#pragma mark -
+
+@interface GeckoQuit : NSScriptCommand
+{
+}
+
+@end
+
+#pragma mark -
+void SetupMacScripting(void) {
+    NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
+ 
+    [[GeckoScriptingRoot sharedScriptingRoot] makeApplicationScriptable:[NSApplication sharedApplication]];
+
+    NS_OBJC_END_TRY_ABORT_BLOCK;
+}
+
+#pragma mark -
+
+static GeckoScriptingRoot *sharedScriptingRoot = nil;
+
+@implementation GeckoScriptingRoot
+
++ (GeckoScriptingRoot*)sharedScriptingRoot {
+  @synchronized (sharedScriptingRoot) {
+    if (!sharedScriptingRoot) {
+      sharedScriptingRoot = [[GeckoScriptingRoot alloc] init];
+    }
+  }
+  return sharedScriptingRoot;
+}
+
+- (id)init {
+  self = [super init];
+  if (self)
+    didInit = NO;
+  return self;
+}
+
+- (void)makeApplicationScriptable:(NSApplication*)application {
+  if (didInit) return;
+
+  NS_WARNING("starting Script Host");
+  IMP scriptWindows = class_getMethodImplementation([self class], @selector(scriptWindows));
+//  class_addMethod([application class], @selector(scriptWindows), scriptWindows, "@@:");
+  
+  IMP insertScriptWindows = class_getMethodImplementation([self class], @selector(insertObject:inScriptWindowsAtIndex:));
+//  class_addMethod([application class], @selector(insertObject:inScriptWindowsAtIndex:), insertScriptWindows, "v@:@I");
+  
+  IMP removeScriptWindows = class_getMethodImplementation([self class], @selector(removeObjectFromScriptWindowsAtIndex:));
+//  class_addMethod([application class], @selector(removeObjectFromScriptWindowsAtIndex:), removeScriptWindows, "v@:I");
+
+  // The 10.4 SDK doesn't have class_addMethod, but it does have class_addMethods.
+  swinMeth.method_name = @selector(scriptWindows);
+  swinMeth.method_imp = scriptWindows;
+  swinMeth.method_types = "@@:";
+
+  insoMeth.method_name = @selector(insertObject:inScriptWindowsAtIndex:);
+  insoMeth.method_imp = insertScriptWindows;
+  insoMeth.method_types = "v@:@l";
+
+  remoMeth.method_name = @selector(removeObjectFromScriptWindowsAtIndex:);
+  remoMeth.method_imp = removeScriptWindows;
+  remoMeth.method_types = "v@:l";
+
+  methodList.method_count = 3;
+  methodList.method_list[0] = swinMeth;
+  methodList.method_list[1] = insoMeth;
+  methodList.method_list[2] = remoMeth;
+
+  class_addMethods([application class], &methodList);
+  didInit = YES;
+}
+
+- (NSArray*)scriptWindows {
+  NS_WARNING("AppleScript: root scriptWindows");
+	nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (!applescriptService) {
+    return [NSArray arrayWithObjects:nil];
+  }
+  
+  nsCOMPtr<nsIArray> windows;
+  if (NS_FAILED(applescriptService->GetWindows(getter_AddRefs(windows))) || !windows) {
+    return [NSArray arrayWithObjects:nil];
+  }
+  
+  NSUInteger index = 0;
+  NSMutableArray *windowArray = [NSMutableArray array];
+  
+  PRUint32 length;
+  windows->GetLength(&length);
+  for (PRUint32 i = 0; i < length; ++i) {
+    nsCOMPtr<nsIXULWindow> xulWindow(do_QueryElementAt(windows, i));
+    if (xulWindow) {
+      GeckoWindow *window = [GeckoWindow windowWithIndex:index andXULWindow:xulWindow];
+      if (window) {
+        [windowArray addObject:window];
+        index++;
+      }
+    }
+  }
+  return windowArray;
+}
+
+- (void)insertObject:(NSObject*)object inScriptWindowsAtIndex:(NSUInteger)index {
+  if (![object isKindOfClass:[GeckoWindow class]]) {
+    return;
+  }
+  
+  GeckoWindow *window = (GeckoWindow*)object;
+  [window _setIndex:index];
+  
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (applescriptService) {
+    (void*)applescriptService->CreateWindowAtIndex(index);
+  }
+}
+
+- (void)removeObjectFromScriptWindowsAtIndex:(NSUInteger)index {
+  NSArray *windows = [self scriptWindows];
+  if (windows && index < [windows count]) {
+    NSCloseCommand *closeCommend = [[[NSCloseCommand alloc] init] autorelease];
+    [(GeckoWindow*)[windows objectAtIndex:index] handleCloseScriptCommand:closeCommend];
+  }
+}
+
+@end
+
+#pragma mark -
+
+@implementation GeckoWindow
+
++ (id)windowWithIndex:(NSUInteger)index andXULWindow:(nsIXULWindow*)xulWindow {
+  return [[[self alloc] initWithIndex:index andXULWindow:xulWindow] autorelease];
+}
+
+- (id)initWithIndex:(NSUInteger)index andXULWindow:(nsIXULWindow*)xulWindow {
+  self = [super init];
+  
+  if (self) {
+    mIndex = index;
+    mXULWindow = xulWindow;
+  }
+  
+  return self;
+}
+
+- (void)dealloc {
+  [super dealloc];
+}
+
+- (void)_setIndex:(NSUInteger)index {
+  mIndex = index;
+}
+
+- (id)uniqueID {
+  return [NSNumber numberWithInt:mIndex];
+}
+
+- (NSScriptObjectSpecifier*)objectSpecifier
+{
+  NSScriptObjectSpecifier *objectSpecifier = [[NSUniqueIDSpecifier alloc] initWithContainerClassDescription:[NSScriptClassDescription classDescriptionForClass:[NSApp class]] 
+                                                                                         containerSpecifier:[NSApp objectSpecifier]
+                                                                                                        key:@"scriptWindows"
+                                                                                                   uniqueID:[self uniqueID]];
+  
+  return [objectSpecifier autorelease];
+}
+
+- (NSWindow*)window
+{
+  nsresult rv;
+  nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(mXULWindow, &rv);
+  NS_ENSURE_SUCCESS(rv, nil);
+  
+  nsCOMPtr<nsIWidget> widget;
+  rv = baseWindow->GetMainWidget(getter_AddRefs(widget));
+  NS_ENSURE_SUCCESS(rv, nil);
+  
+  return (NSWindow*)widget->GetNativeData(NS_NATIVE_WINDOW);
+}
+
+- (NSString*)title
+{
+  NS_WARNING("AppleScript: window title");
+  NSWindow *window = [self window];
+  return window ? [window title] : @"";
+}
+
+- (NSUInteger)orderedIndex {
+  return mIndex; 
+}
+
+- (BOOL)isMiniaturizable {
+  NSWindow *window = [self window];
+  return window ? [window isMiniaturizable] : false;
+}
+
+- (BOOL)isMiniaturized {
+  NSWindow *window = [self window];
+  return window ? [window isMiniaturizable] : false;
+}
+
+- (void)setIsMiniaturized:(BOOL)miniaturized {
+  NSWindow *window = [self window];
+  if (window) {
+    [window setIsMiniaturized:miniaturized];
+  }
+}
+
+- (BOOL)isResizable {
+  NSWindow *window = [self window];
+  return window ? [window isResizable] : false;
+}
+
+- (BOOL)isVisible {
+  NSWindow *window = [self window];
+  return window ? [window isVisible] : false;
+}
+
+- (void)setIsVisible:(BOOL)visible {
+  NSWindow *window = [self window];
+  if (window) {
+    [window setIsVisible:visible];
+  }
+}
+
+- (BOOL)isZoomable {
+  NSWindow *window = [self window];
+  return window ? [window isZoomable] : false;
+}
+
+- (BOOL)isZoomed {
+  NSWindow *window = [self window];
+  return window ? [window isZoomed] : false;
+}
+
+- (void)setIsZoomed:(BOOL)zoomed {
+  NSWindow *window = [self window];
+  if (window) {
+    [window setIsZoomed:zoomed];
+  }
+}
+
+- (id)handleCloseScriptCommand:(NSCloseCommand*)command {
+  NSWindow *window = [self window];
+  if (window) {
+    return [window handleCloseScriptCommand:command];
+  }
+  return nil;
+}
+
+- (NSArray*)scriptTabs {
+  NS_WARNING("AppleScript: window scriptTabs");
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (!applescriptService) {
+    return [NSArray arrayWithObjects:nil];
+  }
+  
+  nsCOMPtr<nsIArray> tabs;
+  if (NS_FAILED(applescriptService->GetTabsInWindow(mIndex, getter_AddRefs(tabs))) || !tabs) {
+    return [NSArray arrayWithObjects:nil];
+  }
+  
+  NSUInteger index = 0;
+  NSMutableArray *tabArray = [NSMutableArray array];
+  
+  PRUint32 length;
+  tabs->GetLength(&length);
+  for (PRUint32 i = 0; i < length; ++i) {
+    nsCOMPtr<nsIDOMWindow> contentWindow(do_QueryElementAt(tabs, i));
+    if (contentWindow) {
+      GeckoTab *tab = [GeckoTab tabWithIndex:index andContentWindow:contentWindow andWindow:self];
+      [tabArray addObject:tab];
+      index++;
+    }
+  }
+  return tabArray;
+}
+
+- (GeckoTab*)selectedScriptTab {
+  NS_WARNING("AppleScript: window selectedScriptTab");
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (!applescriptService) {
+    return nil;
+  }
+  
+  nsCOMPtr<nsIDOMWindow> contentWindow;
+	PRUint32 tabIndex = 0;
+  if (NS_FAILED(applescriptService->GetCurrentTabInWindow(mIndex, &tabIndex, getter_AddRefs(contentWindow))) || !contentWindow) {
+    return nil;
+  }
+  
+  return [GeckoTab tabWithIndex:tabIndex andContentWindow:contentWindow andWindow:self];
+}
+
+- (void)insertObject:(NSObject*)object inScriptTabsAtIndex:(NSUInteger)index {
+  if (![object isKindOfClass:[GeckoTab class]]) {
+    return;
+  }
+  
+  [(GeckoTab*)object _setWindow:self];
+  [(GeckoTab*)object _setIndex:index];
+  
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (applescriptService) {
+    (void*)applescriptService->CreateTabAtIndexInWindow(index, mIndex);
+  }
+}
+
+- (void)removeObjectFromScriptTabsAtIndex:(NSUInteger)index {
+  NSArray *tabs = [self scriptTabs];
+  if (tabs && index < [tabs count]) {
+    NSCloseCommand *closeCommend = [[[NSCloseCommand alloc] init] autorelease];
+    [(GeckoTab*)[tabs objectAtIndex:index] handleCloseScriptCommand:closeCommend];
+  }
+}
+
+@end
+
+#pragma mark -
+
+@implementation GeckoTab
+
++ (id)tabWithIndex:(NSUInteger)index andContentWindow:(nsIDOMWindow*)contentWindow andWindow:(GeckoWindow*)window {
+  return [[[self alloc] initWithIndex:index andContentWindow:contentWindow andWindow:window] autorelease];
+}
+
+- (id)initWithIndex:(NSUInteger)index andContentWindow:(nsIDOMWindow*)contentWindow andWindow:(GeckoWindow*)window {
+  self = [super init];
+  
+  if (self) {
+    mIndex = index;
+    mWindow = [window retain];
+    mContentWindow = contentWindow;
+  }
+  
+  return self;
+}
+
+- (void)dealloc {
+  [mWindow release];
+  [super dealloc];
+}
+
+- (void)_setWindow:(GeckoWindow*)window {
+  if (mWindow) {
+    [mWindow release];
+  }
+  
+  mWindow = nil;
+  
+  if (window) {
+    mWindow = [window retain];
+  }
+}
+
+- (void)_setIndex:(NSUInteger)index {
+  mIndex = index;
+}
+
+- (NSScriptObjectSpecifier*)objectSpecifier
+{
+  if (!mWindow) {
+    return nil;
+  }
+  NSScriptObjectSpecifier *objectSpecifier = [[NSIndexSpecifier alloc] initWithContainerClassDescription:[NSScriptClassDescription classDescriptionForClass:[mWindow class]]
+                                                                                      containerSpecifier:[mWindow objectSpecifier]
+                                                                                                     key:@"scriptTabs"
+                                                                                                   index:[self orderedIndex]];
+  return [objectSpecifier autorelease];
+}
+
+- (NSString*)title
+{
+  NS_WARNING("AppleScript: tab title");
+  nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(mContentWindow);
+  if (!piWindow)
+    return @"";
+  nsCOMPtr<nsIDocument> pdoc = piWindow->GetDoc();
+  if (!pdoc)
+    return @"";
+  nsCOMPtr<nsIPresShell> p = pdoc->GetShell();
+  if (!p)
+    return @"";
+  nsIDocument* doc = p->GetDocument();
+  if (doc) {
+    nsCOMPtr<nsIDOMHTMLDocument> htmlDocument(do_QueryInterface(doc));
+    if (htmlDocument) {
+      nsAutoString title;
+      if (NS_SUCCEEDED(htmlDocument->GetTitle(title))) {
+        return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(title).get()];
+      }
+    }
+  }
+  return @"";
+}
+
+- (NSString*)URL {
+#if(0)
+  nsCOMPtr<nsIDOMWindowInternal> contentWinInternal(do_QueryInterface(mContentWindow));
+  if (contentWinInternal) {
+    nsCOMPtr<nsIDOMLocation> domLoc;
+    if (NS_SUCCEEDED(contentWinInternal->GetLocation(getter_AddRefs(domLoc))) && domLoc) {
+      nsAutoString url;
+      if (NS_SUCCEEDED(domLoc->ToString(url))) {
+        return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(url).get()];
+      }
+    }
+  }
+#endif
+  return @"";
+}
+
+- (void)setURL:(NSString*)newURL {
+#if(0)
+  nsCOMPtr<nsIDOMWindowInternal> contentWinInternal(do_QueryInterface(mContentWindow));
+  if (!contentWinInternal) {
+    return;
+  }
+  nsCOMPtr<nsIDOMLocation> domLoc;
+  if (!NS_SUCCEEDED(contentWinInternal->GetLocation(getter_AddRefs(domLoc))) || !domLoc) {
+    return;
+  }
+  nsAutoString url;
+  if (NS_SUCCEEDED(domLoc->ToString(url))) {
+    nsCAutoString geckoURL;
+    geckoURL.Assign([newURL UTF8String]);
+    domLoc->Assign(NS_ConvertUTF8toUTF16(geckoURL));
+  }
+#endif
+}
+
+- (NSString*)source {
+#if(0)
+  nsCOMPtr<nsIDOMDocument> document;
+  if (NS_SUCCEEDED(mContentWindow->GetDocument(getter_AddRefs(document))) && document) {
+    nsCOMPtr<nsIDOMSerializer> serializer(do_CreateInstance(NS_XMLSERIALIZER_CONTRACTID));
+    if (serializer) {
+      nsAutoString source;
+      if (NS_SUCCEEDED(serializer->SerializeToString(document, source))) {
+        return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(source).get()];
+      }
+    }
+  }
+#endif
+  return @"";
+}
+
+- (NSString*)text {
+#if(0)
+  nsCOMPtr<nsIDOMDocument> document;
+  if (NS_SUCCEEDED(mContentWindow->GetDocument(getter_AddRefs(document))) && document) {
+    nsresult rv = NS_OK;
+    
+    nsCAutoString formatType(NS_DOC_ENCODER_CONTRACTID_BASE);
+    formatType.Append("text/plain");
+    
+    nsCOMPtr<nsIDocumentEncoder> encoder(do_CreateInstance(formatType.get(), &rv));
+    if (NS_SUCCEEDED(rv) && encoder) {
+      PRUint32 flags = nsIDocumentEncoder::SkipInvisibleContent;
+      nsAutoString readstring;
+      readstring.AssignASCII("text/plain");
+      
+      if (NS_SUCCEEDED(encoder->Init(document, readstring, flags))) {
+        nsAutoString text;
+        if (NS_SUCCEEDED(encoder->EncodeToString(text))) {
+          return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(text).get()];
+        }
+      }
+    }
+  }
+#endif
+  return @"";
+}
+
+- (NSString*)selectedText {
+#if(0)
+  nsCOMPtr<nsISelection> selection;
+  if (NS_SUCCEEDED(mContentWindow->GetSelection(getter_AddRefs(selection))) && selection) {
+    nsXPIDLString selectedTextChars;
+    if (NS_SUCCEEDED(selection->ToString(getter_Copies(selectedTextChars)))) {
+      nsAutoString selectedText(selectedTextChars);
+      return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(selectedText).get()];
+    }
+  }
+#endif
+  return @"";
+}
+
+- (NSUInteger)orderedIndex {
+  return mIndex; 
+}
+
+- (id)handleCloseScriptCommand:(NSCloseCommand*)command {
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (applescriptService) {
+    (void*)applescriptService->CloseTabAtIndexInWindow(mIndex, [mWindow orderedIndex]);
+  }
+  return nil;
+}
+
+@end
+
+#pragma mark -
+
+@implementation GeckoQuit
+
+- (id)performDefaultImplementation {
+  NS_WARNING("AppleScript: quit");
+  nsCOMPtr<nsIAppStartup> appStartup = do_GetService(NS_APPSTARTUP_CONTRACTID);
+  if (appStartup) {
+    appStartup->Quit(nsIAppStartup::eAttemptQuit);
+  }
+  return nil;
+}
+
+@end

@@ -1,0 +1,12 @@
+
+SOURCES += [
+    'MacScripting.mm',
+    'nsApplescriptService.cpp',
+]
+
+EXPORTS += [
+    'nsApplescriptService.h',
+]
+
+FINAL_LIBRARY = 'xul'
+

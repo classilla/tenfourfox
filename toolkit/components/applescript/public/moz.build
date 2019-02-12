@@ -1,0 +1,6 @@
+XPIDL_SOURCES += [
+    'nsIApplescriptService.idl',
+]
+
+XPIDL_MODULE = 'applescript'
+

@@ -878,6 +878,85 @@ BrowserGlue.prototype = {
     PluginCrashReporter.init();
 #endif
 
+#ifdef XP_MACOSX
+    try {
+      var applescriptService = Cc["@mozilla.org/applescript-service;1"].getService(Ci.nsIApplescriptService);
+      var applescriptCallback = {
+        isFullBrowserWindow : function(win) {
+          try {
+            var domWindow = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIDOMWindowInternal)
+                               .QueryInterface(Ci.nsIDOMWindow);
+            return domWindow && !domWindow.closed && !domWindow.document.documentElement.getAttribute("chromehidden");
+          } catch(e) {}
+          return false;
+        },
+        getWindow : function(index) {
+          let windowList = Services.wm.getZOrderDOMWindowEnumerator("navigator:browser", true);
+          while (windowList.hasMoreElements() && index >= 0) {
+            let nextWin = windowList.getNext();
+            if (this.isFullBrowserWindow(nextWin)) {
+              if (index == 0) {
+                return nextWin;
+              }
+              index--;
+            }
+          }
+          return null;
+        },
+        createWindowAtIndex : function(index) {
+          var handler = Cc["@mozilla.org/browser/clh;1"].getService(Ci.nsIBrowserHandler);
+          var defaultArgs = handler.defaultArgs;
+          var topWindow = Services.wm.getMostRecentWindow('');
+          topWindow.openDialog("chrome://browser/content/", "_blank", "chrome,all,dialog=no,non-remote", defaultArgs);
+        },
+        getWindows : function() {
+          var array = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
+          let windowList = Services.wm.getZOrderXULWindowEnumerator("navigator:browser", true);
+          while (windowList.hasMoreElements()) {
+            let nextWin = windowList.getNext();
+            if (this.isFullBrowserWindow(nextWin)) {
+              array.appendElement(nextWin, false);
+            }
+          }
+          return array;
+        },
+        getTabsInWindow : function(index) {
+          var array = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
+          let win = this.getWindow(index);
+          Array.forEach(win.gBrowser.browsers, function (b) {
+            array.appendElement(b.contentWindow, false);
+          });
+          return array;
+        },
+        getCurrentTabInWindow : function(index, tab_index) {
+          let win = this.getWindow(index);
+          return win.content;
+        },
+        createTabAtIndexInWindow : function(index, window_index) {
+          let win = this.getWindow(window_index);
+          if (win != null) {
+            let tab = win.gBrowser.addTab();
+            win.gBrowser.moveTabTo(tab, index);
+          }
+        },
+        closeTabAtIndexInWindow : function(index, window_index) {
+          let win = this.getWindow(window_index);
+          if (win != null) {
+            var tab = win.gBrowser.tabs[index];
+            win.gBrowser.removeTab(tab);
+          }
+        }
+      }
+
+      applescriptService.registerWindowCallback(applescriptCallback);
+      applescriptService.registerTabCallback(applescriptCallback);
+    }
+    catch (e) {
+      dump("nsIApplescriptService could not be found\n");
+    }
+#endif
+
     Services.obs.notifyObservers(null, "browser-ui-startup-complete", "");
 
 #ifdef NIGHTLY_BUILD

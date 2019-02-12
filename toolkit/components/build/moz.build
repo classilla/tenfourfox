@@ -28,6 +28,11 @@ LOCAL_INCLUDES += [
     '../url-classifier',
 ]
 
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    LOCAL_INCLUDES += [
+        '../applescript/src',
+    ]
+
 if not CONFIG['MOZ_DISABLE_PARENTAL_CONTROLS']:
     LOCAL_INCLUDES += [
         '../parentalcontrols',

@@ -154,6 +154,9 @@
 ; [Components]
 @RESPATH@/browser/components/components.manifest
 @RESPATH@/components/alerts.xpt
+#ifdef XP_MACOSX
+@RESPATH@/components/applescript.xpt
+#endif
 #ifdef ACCESSIBILITY
 #ifdef XP_WIN32
 @BINPATH@/AccessibleMarshal.dll

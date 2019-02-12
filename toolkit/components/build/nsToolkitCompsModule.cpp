@@ -18,6 +18,10 @@
 
 #include "nsAlertsService.h"
 
+#if defined(MOZ_WIDGET_COCOA)
+#include "nsApplescriptService.h"
+#endif
+
 #include "nsDownloadManager.h"
 #include "DownloadPlatform.h"
 #include "nsDownloadProxy.h"
@@ -84,6 +88,10 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsParentalControlsService)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsAlertsService)
 
+#if defined(MOZ_WIDGET_COCOA)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsApplescriptService)
+#endif
+
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsDownloadManager,
                                          nsDownloadManager::GetSingleton)
 NS_GENERIC_FACTORY_CONSTRUCTOR(DownloadPlatform)
@@ -139,6 +147,9 @@ NS_DEFINE_NAMED_CID(NS_TOOLKIT_TERMINATOR_CID);
 #endif
 NS_DEFINE_NAMED_CID(NS_USERINFO_CID);
 NS_DEFINE_NAMED_CID(NS_ALERTSSERVICE_CID);
+#if defined(MOZ_WIDGET_COCOA)
+NS_DEFINE_NAMED_CID(NS_APPLESCRIPTSERVICE_CID);
+#endif
 #if !defined(MOZ_DISABLE_PARENTAL_CONTROLS)
 NS_DEFINE_NAMED_CID(NS_PARENTALCONTROLSSERVICE_CID);
 #endif
@@ -174,6 +185,9 @@ static const Module::CIDEntry kToolkitCIDs[] = {
 #endif // defined (MOZ_HAS_PERFSTATS)
   { &kNS_USERINFO_CID, false, nullptr, nsUserInfoConstructor },
   { &kNS_ALERTSSERVICE_CID, false, nullptr, nsAlertsServiceConstructor },
+#if defined(MOZ_WIDGET_COCOA)
+  { &kNS_APPLESCRIPTSERVICE_CID, false, nullptr, nsApplescriptServiceConstructor },
+#endif
 #if !defined(MOZ_DISABLE_PARENTAL_CONTROLS)
   { &kNS_PARENTALCONTROLSSERVICE_CID, false, nullptr, nsParentalControlsServiceConstructor },
 #endif
@@ -211,6 +225,9 @@ static const Module::ContractIDEntry kToolkitContracts[] = {
 #endif // defined (MOZ_HAS_PERFSTATS)
   { NS_USERINFO_CONTRACTID, &kNS_USERINFO_CID },
   { NS_ALERTSERVICE_CONTRACTID, &kNS_ALERTSSERVICE_CID },
+#if defined(MOZ_WIDGET_COCOA)
+  { NS_APPLESCRIPTSERVICE_CONTRACTID, &kNS_APPLESCRIPTSERVICE_CID },
+#endif
 #if !defined(MOZ_DISABLE_PARENTAL_CONTROLS)
   { NS_PARENTALCONTROLSSERVICE_CONTRACTID, &kNS_PARENTALCONTROLSSERVICE_CID },
 #endif
