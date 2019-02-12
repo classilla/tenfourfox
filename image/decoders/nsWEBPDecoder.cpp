@@ -124,7 +124,10 @@ nsWEBPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
 
     // Valid demuxer available.
     if (flags & ANIMATION_FLAG) {
-       NS_WARNING("animated WebP not yet supported"); // XXX
+// XXX
+fprintf(stderr, "Warning: TenFourFox doesn't support animated WebP.\n");
+PostDecoderError(NS_ERROR_FAILURE);
+return;
     }
     if (flags & ALPHA_FLAG) {
       PostHasTransparency();
