@@ -261,6 +261,9 @@
       <property name="version" code="vers" type="text" access="r" description="The version of the application.">
         <cocoa key="version"/>
       </property>
+      <property name="opening" code="Opng" type="boolean" access="r" description="Whether the application is still opening a window.">
+        <cocoa key="opening"/>
+      </property>
 <!--
       <responds-to name="open">
         <cocoa method="handleOpenScriptCommand:"/>

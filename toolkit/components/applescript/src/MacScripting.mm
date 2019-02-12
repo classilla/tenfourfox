@@ -105,8 +105,10 @@ typedef unsigned int NSUInteger;
   struct objc_method insoMeth;
   struct objc_method insiMeth;
   struct objc_method remoMeth;
+  struct objc_method openMeth;
   struct objc_method_list methodList;
   BOOL didInit;
+  NSUInteger openExpected;
 }
 
 + (GeckoScriptingRoot*)sharedScriptingRoot;
@@ -220,6 +222,7 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   self = [super init];
   if (self)
     didInit = NO;
+  openExpected = 0;
   return self;
 }
 
@@ -239,6 +242,9 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   IMP removeScriptWindows = class_getMethodImplementation([self class], @selector(removeObjectFromScriptWindowsAtIndex:));
 //  class_addMethod([application class], @selector(removeObjectFromScriptWindowsAtIndex:), removeScriptWindows, "v@:I");
 
+  IMP openingP = class_getMethodImplementation([self class], @selector(opening));
+//  class_addMethod([application class], @selector(opening), openingP, "c@:");
+
   // The 10.4 SDK doesn't have class_addMethod, but it does have class_addMethods.
   swinMeth.method_name = @selector(scriptWindows);
   swinMeth.method_imp = scriptWindows;
@@ -256,11 +262,16 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   remoMeth.method_imp = removeScriptWindows;
   remoMeth.method_types = "v@:l";
 
-  methodList.method_count = 4;
+  openMeth.method_name = @selector(opening);
+  openMeth.method_imp = openingP;
+  openMeth.method_types = "c@:";
+
+  methodList.method_count = 5;
   methodList.method_list[0] = swinMeth;
   methodList.method_list[1] = insoMeth;
   methodList.method_list[2] = insiMeth;
   methodList.method_list[3] = remoMeth;
+  methodList.method_list[4] = openMeth;
 
   class_addMethods([application class], &methodList);
   didInit = YES;
@@ -297,17 +308,18 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 }
 
 - (void)insertObject:(NSObject*)object inScriptWindowsAtIndex:(NSUInteger)index {
+  NS_WARNING("AppleScript: root insertObject inScriptWindowsAtIndex");
   if (![object isKindOfClass:[GeckoWindow class]]) {
     return;
   }
-  
-  GeckoWindow *window = (GeckoWindow*)object;
-  [window _setIndex:index];
-  
+
   nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
   if (applescriptService) {
     (void)applescriptService->CreateWindowAtIndex(index);
   }
+
+  openExpected = [[self scriptWindows] count] + 1;
+  [(GeckoWindow*)object _setIndex:index];
 }
 
 - (void)insertInScriptWindows:(id)value {
@@ -315,10 +327,6 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   if (![(NSObject*)value isKindOfClass:[GeckoWindow class]])
     return;
 
-  // XXX: For some reason we can't call insertObject:inScriptWindowsAtIndex:
-  // directly (???), likely due to our mucking around with
-  // GeckoNSApplication, so we just repeat the code here.
-  //
   // The ordering works rather oddly for windows. The frontmost window is
   // zero, so for things like set w to make new browser window / tell w, we
   // have to insert at index 0 instead of at the end like we do for tabs or
@@ -327,14 +335,18 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   // We get away with this because the indices get rebuilt by scriptWindows:
   // off the actual XUL indexes; we don't really have multiple index 0s
   // because there isn't a persistent array of GeckoWindows.
-  NSUInteger index = 0;
-  GeckoWindow *window = (GeckoWindow*)value;
-  [window _setIndex:index];
-
+  //
+  // For some reason [self insertObject:inScriptWindowsAtIndex:] doesn't
+  // work properly, and trying to access it through the singleton
+  // sharedScriptingRoot causes memory failures, so we just copy the
+  // logic here. On 10.4, [s iO:iSWAI:] doesn't even seem to be called.
   nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
   if (applescriptService) {
-    (void)applescriptService->CreateWindowAtIndex(index);
+    (void)applescriptService->CreateWindowAtIndex(0);
   }
+
+  openExpected = [[self scriptWindows] count] + 1;
+  [(GeckoWindow*)value _setIndex:0];
 }
 
 - (void)removeObjectFromScriptWindowsAtIndex:(NSUInteger)index {
@@ -345,6 +357,13 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   }
 }
 
+- (BOOL)opening {
+  NS_WARNING("AppleScript: root opening");
+  // XXX: We don't decrement openExpected for closed windows since it will
+  // be resynchronized after any new window operation. Should we? Is it useful
+  // to call this method at any other time than after opening?
+  return [[self scriptWindows] count] < openExpected;
+}
 @end
 
 #pragma mark -
@@ -384,7 +403,6 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
                                                                                          containerSpecifier:[NSApp objectSpecifier]
                                                                                                         key:@"scriptWindows"
                                                                                                    uniqueID:[self uniqueID]];
-  
   return [objectSpecifier autorelease];
 }
 
@@ -393,11 +411,11 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   nsresult rv;
   nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(mXULWindow, &rv);
   NS_ENSURE_SUCCESS(rv, nil);
-  
+
   nsCOMPtr<nsIWidget> widget;
   rv = baseWindow->GetMainWidget(getter_AddRefs(widget));
   NS_ENSURE_SUCCESS(rv, nil);
-  
+
   return (NSWindow*)widget->GetNativeData(NS_NATIVE_WINDOW);
 }
 
@@ -473,11 +491,24 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 
 - (NSArray*)scriptTabs {
   NS_WARNING("AppleScript: window scriptTabs");
+  NSScriptCommand* c = [NSScriptCommand currentCommand];
+
+  if (!mXULWindow) {
+    // A newly created but not instantiated window the user held a reference to,
+    // e.g., |set w to make new browser window| and then trying to |tell w|.
+    // XXX: Right now, this is an error.
+    if (c) {
+      [c setScriptErrorNumber:-10003]; // errAENotModifiable
+      [c setScriptErrorString:@"Parameter Error: Don't keep references to new windows."];
+    }
+    return [NSArray arrayWithObjects:nil];
+  }
+
   nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
   if (!applescriptService) {
     return [NSArray arrayWithObjects:nil];
   }
-  
+
   nsCOMPtr<nsIArray> tabs;
   if (NS_FAILED(applescriptService->GetTabsInWindow(mIndex, getter_AddRefs(tabs))) || !tabs) {
     return [NSArray arrayWithObjects:nil];
@@ -520,14 +551,14 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   if (![object isKindOfClass:[GeckoTab class]]) {
     return;
   }
-  
-  [(GeckoTab*)object _setWindow:self];
-  [(GeckoTab*)object _setIndex:index];
-  
+
   nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
   if (applescriptService) {
     (void)applescriptService->CreateTabAtIndexInWindow(index, mIndex);
   }
+
+  [(GeckoTab*)object _setWindow:self];
+  [(GeckoTab*)object _setIndex:index];
 }
 
 - (void)insertInScriptTabs:(id)value {
