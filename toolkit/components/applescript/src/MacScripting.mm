@@ -493,6 +493,9 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 
 - (void)insertInScriptTabs:(id)value {
   NS_WARNING("AppleScript: window insertInScriptTabs");
+  if (![(NSObject*)value isKindOfClass:[GeckoTab class]])
+    return;
+
   [self insertObject:value inScriptTabsAtIndex:[[self scriptTabs] count]];
 }
 
@@ -515,6 +518,10 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   return [[[self alloc] initWithIndex:index andContentWindow:contentWindow andWindow:window] autorelease];
 }
 
+- (id)init {
+  /* AppleScript may call directly. */
+}
+
 - (id)initWithIndex:(NSUInteger)index andContentWindow:(nsIDOMWindow*)contentWindow andWindow:(GeckoWindow*)window {
   self = [super init];
   
@@ -523,7 +530,7 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
     mWindow = [window retain];
     mContentWindow = contentWindow;
   }
-  
+
   return self;
 }
 
@@ -603,21 +610,54 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   return @"";
 }
 
+- (BOOL)busy
+{
+  NS_WARNING("AppleScript: tab busy");
+
+  // This is deliberately inexact and is designed to mostly tell the caller when
+  // it's okay to start working with the tab's properties.
+  nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(mContentWindow);
+  if (!piWindow)
+    return YES; // Gecko is still creating this tab.
+  nsCOMPtr<nsIDocShell> d = piWindow->GetDocShell();
+  if (!d)
+    return YES; // Ditto.
+  uint32_t bz;
+  if (NS_FAILED(d->GetBusyFlags(&bz)))
+    return YES; // Hmmm.
+  return (bz == nsIDocShell::BUSY_FLAGS_NONE) ? NO : YES;
+}
+
 - (void)setURL:(NSString*)newURL
 {
   NS_WARNING("AppleScript: tab newURL");
   nsAutoCString geckoURL;
   nsIURI* uri;
+  NSScriptCommand* c = [NSScriptCommand currentCommand];
+  nsCOMPtr<nsIDocShell> d;
 
   geckoURL.Assign([newURL UTF8String]);
-  if (NS_FAILED(NS_NewURI(&uri, geckoURL, nullptr, nullptr, nsContentUtils::GetIOService())))
+  if (NS_FAILED(NS_NewURI(&uri, geckoURL, nullptr, nullptr, nsContentUtils::GetIOService()))) {
+    if (c) {
+      [c setScriptErrorNumber:-1700]; // errAECoercionFail
+      [c setScriptErrorString:@"Parameter Error: URL is not valid."];
+    }
     return;
+  }
   nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(mContentWindow);
-  if (!piWindow)
+  if (piWindow)
+    d = piWindow->GetDocShell();
+  if (!d) {
+    // XXX: This usually happens when we try to open a new tab with properties.
+    // Gecko's asynchronous nature doesn't work well with this, so right now
+    // we just return a fatal error so people learn right away this won't fly.
+    // The busy property would tell the caller if we're ready.
+    if (c) {
+      [c setScriptErrorNumber:-10003]; // errAENotModifiable
+      [c setScriptErrorString:@"Parameter Error: The tab is busy. Don't use properties when creating a tab. Check busy first."];
+    }
     return;
-  nsCOMPtr<nsIDocShell> d = piWindow->GetDocShell();
-  if (!d)
-    return;
+  }
   d->LoadURI(uri, nullptr, nsIWebNavigation::LOAD_FLAGS_NONE, true);
 }
 

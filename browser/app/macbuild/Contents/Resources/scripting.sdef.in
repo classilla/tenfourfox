@@ -290,6 +290,9 @@
       <property name="name" code="pnam" type="text" access="r" description="The name of the tab.">
         <cocoa key="title"/>
       </property>
+      <property name="busy" code="pBzy" type="boolean" access="r" description="Whether the tab is busy.">
+        <cocoa key="busy"/>
+      </property>
       <property name="index" code="pidx" type="integer" access="r" description="The index of the tab, ordered left to right.">
         <cocoa key="orderedIndex"/>
       </property>
