@@ -51,13 +51,16 @@ extern "C" {
 #include "nsArrayUtils.h"
 #include "nsString.h"
 #include "nsContentCID.h"
+#include "nsNetUtil.h"
 #include "nsIServiceManager.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIAppStartup.h"
 #include "nsISelection.h"
+#include "nsIDocShell.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMHTMLDocument.h"
+#include "nsIDOMLocation.h"
 #include "nsIDOMSerializer.h"
 #include "nsIDocument.h"
 #include "nsIDocumentEncoder.h"
@@ -66,6 +69,8 @@ extern "C" {
 #include "nsIBaseWindow.h"
 #include "nsIWidget.h"
 #include "nsIXULWindow.h"
+#include "nsIURI.h"
+#include "nsIWebNavigation.h"
 #include "nsIDOMWindow.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMWindowUtils.h"
@@ -74,6 +79,9 @@ extern "C" {
 #include "nsIPresShell.h"
 #include "nsObjCExceptions.h"
 #include "nsToolkitCompsCID.h"
+#include "nsContentUtils.h"
+
+class nsLocation;
 
 // 10.4 no haz.
 typedef int NSInteger;
@@ -577,39 +585,40 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   return @"";
 }
 
-- (NSString*)URL {
-#if(0)
-  nsCOMPtr<nsIDOMWindowInternal> contentWinInternal(do_QueryInterface(mContentWindow));
-  if (contentWinInternal) {
-    nsCOMPtr<nsIDOMLocation> domLoc;
-    if (NS_SUCCEEDED(contentWinInternal->GetLocation(getter_AddRefs(domLoc))) && domLoc) {
-      nsAutoString url;
-      if (NS_SUCCEEDED(domLoc->ToString(url))) {
-        return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(url).get()];
-      }
-    }
+- (NSString*)URL
+{
+  NS_WARNING("AppleScript: tab URL");
+  nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(mContentWindow);
+  if (!piWindow)
+    return @"";
+  nsCOMPtr<nsIDocument> pdoc = piWindow->GetDoc();
+  if (!pdoc)
+    return @"";
+  nsCOMPtr<nsIURI> u = pdoc->GetDocumentURI();
+  if (u) {
+    nsAutoCString url;
+    u->GetAsciiSpec(url);
+    return [NSString stringWithUTF8String:url.get()];
   }
-#endif
   return @"";
 }
 
-- (void)setURL:(NSString*)newURL {
-#if(0)
-  nsCOMPtr<nsIDOMWindowInternal> contentWinInternal(do_QueryInterface(mContentWindow));
-  if (!contentWinInternal) {
+- (void)setURL:(NSString*)newURL
+{
+  NS_WARNING("AppleScript: tab newURL");
+  nsAutoCString geckoURL;
+  nsIURI* uri;
+
+  geckoURL.Assign([newURL UTF8String]);
+  if (NS_FAILED(NS_NewURI(&uri, geckoURL, nullptr, nullptr, nsContentUtils::GetIOService())))
     return;
-  }
-  nsCOMPtr<nsIDOMLocation> domLoc;
-  if (!NS_SUCCEEDED(contentWinInternal->GetLocation(getter_AddRefs(domLoc))) || !domLoc) {
+  nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(mContentWindow);
+  if (!piWindow)
     return;
-  }
-  nsAutoString url;
-  if (NS_SUCCEEDED(domLoc->ToString(url))) {
-    nsCAutoString geckoURL;
-    geckoURL.Assign([newURL UTF8String]);
-    domLoc->Assign(NS_ConvertUTF8toUTF16(geckoURL));
-  }
-#endif
+  nsCOMPtr<nsIDocShell> d = piWindow->GetDocShell();
+  if (!d)
+    return;
+  d->LoadURI(uri, nullptr, nsIWebNavigation::LOAD_FLAGS_NONE, true);
 }
 
 - (NSString*)source {
