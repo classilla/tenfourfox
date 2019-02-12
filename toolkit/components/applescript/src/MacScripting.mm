@@ -103,6 +103,7 @@ typedef unsigned int NSUInteger;
   // These must persist for the life of the scripting application.
   struct objc_method swinMeth;
   struct objc_method insoMeth;
+  struct objc_method insiMeth;
   struct objc_method remoMeth;
   struct objc_method_list methodList;
   BOOL didInit;
@@ -111,6 +112,9 @@ typedef unsigned int NSUInteger;
 + (GeckoScriptingRoot*)sharedScriptingRoot;
 - (id)init;
 - (void)makeApplicationScriptable:(NSApplication*)application;
+- (void)insertObject:(NSObject*)object inScriptWindowsAtIndex:(NSUInteger)index;
+- (NSArray*)scriptWindows;
+- (void)insertInScriptWindows:(id)value;
 
 @end
 
@@ -225,10 +229,13 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   NS_WARNING("starting Script Host");
   IMP scriptWindows = class_getMethodImplementation([self class], @selector(scriptWindows));
 //  class_addMethod([application class], @selector(scriptWindows), scriptWindows, "@@:");
-  
-  IMP insertScriptWindows = class_getMethodImplementation([self class], @selector(insertObject:inScriptWindowsAtIndex:));
-//  class_addMethod([application class], @selector(insertObject:inScriptWindowsAtIndex:), insertScriptWindows, "v@:@I");
-  
+
+  IMP insertScriptWindowsAI = class_getMethodImplementation([self class], @selector(insertObject:inScriptWindowsAtIndex:));
+//  class_addMethod([application class], @selector(insertObject:inScriptWindowsAtIndex:), insertScriptWindowsAI, "v@:@I");
+
+  IMP insertScriptWindows = class_getMethodImplementation([self class], @selector(insertInScriptWindows:));
+//  class_addMethod([application class], @selector(insertInScriptWindows:), insertScriptWindows, "v@:@");
+
   IMP removeScriptWindows = class_getMethodImplementation([self class], @selector(removeObjectFromScriptWindowsAtIndex:));
 //  class_addMethod([application class], @selector(removeObjectFromScriptWindowsAtIndex:), removeScriptWindows, "v@:I");
 
@@ -238,17 +245,22 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   swinMeth.method_types = "@@:";
 
   insoMeth.method_name = @selector(insertObject:inScriptWindowsAtIndex:);
-  insoMeth.method_imp = insertScriptWindows;
+  insoMeth.method_imp = insertScriptWindowsAI;
   insoMeth.method_types = "v@:@l";
+
+  insiMeth.method_name = @selector(insertInScriptWindows:);
+  insiMeth.method_imp = insertScriptWindows;
+  insiMeth.method_types = "v@:@";
 
   remoMeth.method_name = @selector(removeObjectFromScriptWindowsAtIndex:);
   remoMeth.method_imp = removeScriptWindows;
   remoMeth.method_types = "v@:l";
 
-  methodList.method_count = 3;
+  methodList.method_count = 4;
   methodList.method_list[0] = swinMeth;
   methodList.method_list[1] = insoMeth;
-  methodList.method_list[2] = remoMeth;
+  methodList.method_list[2] = insiMeth;
+  methodList.method_list[3] = remoMeth;
 
   class_addMethods([application class], &methodList);
   didInit = YES;
@@ -294,7 +306,31 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   
   nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
   if (applescriptService) {
-    (void*)applescriptService->CreateWindowAtIndex(index);
+    (void)applescriptService->CreateWindowAtIndex(index);
+  }
+}
+
+- (void)insertInScriptWindows:(id)value {
+  NS_WARNING("AppleScript: root insertInScriptWindows");
+  if (![(NSObject*)value isKindOfClass:[GeckoWindow class]])
+    return;
+
+  // XXX: For some reason we can't call insertObject:inScriptWindowsAtIndex:
+  // directly (???), likely due to our mucking around with
+  // GeckoNSApplication, so we just repeat the code here.
+  //
+  // The ordering works rather oddly for windows. The frontmost window is
+  // zero, so for things like set w to make new browser window / tell w, we
+  // have to insert at index 0 instead of at the end like we do for tabs or
+  // we start talking to the wrong window and things show up in the wrong
+  // place. In practise it seems the index really works more like Z-order.
+  NSUInteger index = 0;
+  GeckoWindow *window = (GeckoWindow*)value;
+  [window _setIndex:index];
+  
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (applescriptService) {
+    (void)applescriptService->CreateWindowAtIndex(index);
   }
 }
 
@@ -487,7 +523,7 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   
   nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
   if (applescriptService) {
-    (void*)applescriptService->CreateTabAtIndexInWindow(index, mIndex);
+    (void)applescriptService->CreateTabAtIndexInWindow(index, mIndex);
   }
 }
 
@@ -520,6 +556,8 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 
 - (id)init {
   /* AppleScript may call directly. */
+  self = [super init];
+  return self;
 }
 
 - (id)initWithIndex:(NSUInteger)index andContentWindow:(nsIDOMWindow*)contentWindow andWindow:(GeckoWindow*)window {
@@ -725,7 +763,7 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 - (id)handleCloseScriptCommand:(NSCloseCommand*)command {
   nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
   if (applescriptService) {
-    (void*)applescriptService->CloseTabAtIndexInWindow(mIndex, [mWindow orderedIndex]);
+    (void)applescriptService->CloseTabAtIndexInWindow(mIndex, [mWindow orderedIndex]);
   }
   return nil;
 }
