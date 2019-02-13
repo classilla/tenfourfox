@@ -107,8 +107,6 @@ typedef unsigned int NSUInteger;
   struct objc_method remoMeth;
   struct objc_method openMeth;
   struct objc_method_list methodList;
-  BOOL didInit;
-  NSUInteger openExpected;
 }
 
 + (GeckoScriptingRoot*)sharedScriptingRoot;
@@ -208,6 +206,8 @@ void SetupMacScripting(void) {
 #pragma mark -
 
 static GeckoScriptingRoot *sharedScriptingRoot = nil;
+static NSUInteger openExpected = 1; // we always start with a window
+static BOOL didInit = NO;
 
 @implementation GeckoScriptingRoot
 
@@ -222,9 +222,6 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 
 - (id)init {
   self = [super init];
-  if (self)
-    didInit = NO;
-  openExpected = 0;
   return self;
 }
 
@@ -277,6 +274,7 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 
   class_addMethods([application class], &methodList);
   didInit = YES;
+  openExpected = 1;
 }
 
 - (NSArray*)scriptWindows {
@@ -676,12 +674,8 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   nsCOMPtr<nsIDocument> pdoc = piWindow->GetDoc();
   if (!pdoc)
     return @"";
-  nsCOMPtr<nsIPresShell> p = pdoc->GetShell();
-  if (!p)
-    return @"";
-  nsIDocument* doc = p->GetDocument();
-  if (doc) {
-    nsCOMPtr<nsIDOMHTMLDocument> htmlDocument(do_QueryInterface(doc));
+  if (pdoc) {
+    nsCOMPtr<nsIDOMHTMLDocument> htmlDocument(do_QueryInterface(pdoc));
     if (htmlDocument) {
       nsAutoString title;
       if (NS_SUCCEEDED(htmlDocument->GetTitle(title))) {
@@ -763,24 +757,54 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 
 - (NSString*)source {
 #if(0)
-  nsCOMPtr<nsIDOMDocument> document;
-  if (NS_SUCCEEDED(mContentWindow->GetDocument(getter_AddRefs(document))) && document) {
+  NS_WARNING("AppleScript: tab title");
+  nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(mContentWindow);
+  if (!piWindow)
+    return @"";
+  nsCOMPtr<nsIDocument> pdoc = piWindow->GetDoc();
+  if (pdoc) {
     nsCOMPtr<nsIDOMSerializer> serializer(do_CreateInstance(NS_XMLSERIALIZER_CONTRACTID));
     if (serializer) {
       nsAutoString source;
-      if (NS_SUCCEEDED(serializer->SerializeToString(document, source))) {
+      if (NS_SUCCEEDED(serializer->SerializeToString(pdoc, source))) {
         return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(source).get()];
       }
     }
   }
-#endif
   return @"";
+#endif
 }
 
 - (NSString*)text {
+  NS_WARNING("AppleScript: tab text");
+  nsresult rv;
+
+  nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(mContentWindow);
+  if (!piWindow)
+    return @"";
+  nsCOMPtr<nsIDocument> pdoc = piWindow->GetDoc();
+  if (!pdoc)
+    return @"";
+  nsCOMPtr<nsIDOMDocument> domdoc = do_QueryInterface(pdoc);
+  if (!domdoc)
+    return @"";
+
+  nsAutoString outbuf;
+  nsCOMPtr<nsIDocumentEncoder> encoder = do_CreateInstance(
+    "@mozilla.org/layout/documentEncoder;1?type=text/plain");
+  rv = encoder->Init(domdoc, NS_LITERAL_STRING("text/plain"), 0 |
+    nsIDocumentEncoder::SkipInvisibleContent |
+    nsIDocumentEncoder::OutputFormatted |
+    nsIDocumentEncoder::OutputLFLineBreak |
+    nsIDocumentEncoder::OutputFormatFlowed |
+    0);
+  if (NS_FAILED(rv))
+    return @"";
+  if (NS_SUCCEEDED(encoder->EncodeToString(outbuf))) {
+    return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(outbuf).get()];
+  }
 #if(0)
-  nsCOMPtr<nsIDOMDocument> document;
-  if (NS_SUCCEEDED(mContentWindow->GetDocument(getter_AddRefs(document))) && document) {
+  if (pdoc) {
     nsresult rv = NS_OK;
     
     nsCAutoString formatType(NS_DOC_ENCODER_CONTRACTID_BASE);

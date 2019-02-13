@@ -302,10 +302,10 @@
       <property name="URL" code="pURL" type="text" access="rw" description="The current URL of the tab.">
         <cocoa key="URL"/>
       </property>
-      <property name="source" code="pSrc" type="text" access="r" description="The HTML source of the web page currently loaded in the tab.">
+      <property name="HTML" code="pHTM" type="text" access="r" description="The HTML source of the web page currently loaded in the tab.">
         <cocoa key="source"/>
       </property>
-      <property name="text" code="pTxt" type="text" access="r" description="The text of the web page currently loaded in the tab. Modifications to text aren&apos;t reflected on the web page.">
+      <property name="plaintext" code="pTxt" type="text" access="r" description="The text of the web page currently loaded in the tab. Modifications to text aren&apos;t reflected on the web page.">
         <cocoa key="text"/>
       </property>
       <property name="selected" code="pSTx" type="text" access="r" description="The selected text on the web page currently loaded in the tab.">
