@@ -19,7 +19,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Based on original works by Scott Greenlay <scott@greenlay.net> (bug 608049).
- * Ported to TenFourFox and 10.4 SDK by Cameron Kaiser
+ * Expanded and ported to TenFourFox and 10.4 SDK by Cameron Kaiser
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -756,27 +756,35 @@ static BOOL didInit = NO;
 }
 
 - (NSString*)source {
-#if(0)
-  NS_WARNING("AppleScript: tab title");
+  NS_WARNING("AppleScript: tab HTML");
+  nsresult rv;
+
   nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(mContentWindow);
   if (!piWindow)
     return @"";
   nsCOMPtr<nsIDocument> pdoc = piWindow->GetDoc();
-  if (pdoc) {
-    nsCOMPtr<nsIDOMSerializer> serializer(do_CreateInstance(NS_XMLSERIALIZER_CONTRACTID));
-    if (serializer) {
-      nsAutoString source;
-      if (NS_SUCCEEDED(serializer->SerializeToString(pdoc, source))) {
-        return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(source).get()];
-      }
-    }
+  if (!pdoc)
+    return @"";
+  nsCOMPtr<nsIDOMDocument> domdoc = do_QueryInterface(pdoc);
+  if (!domdoc)
+    return @"";
+
+  nsAutoString outbuf;
+  nsCOMPtr<nsIDocumentEncoder> encoder = do_CreateInstance(
+    "@mozilla.org/layout/documentEncoder;1?type=text/html");
+  rv = encoder->Init(domdoc, NS_LITERAL_STRING("text/html"), 0 |
+    nsIDocumentEncoder::OutputLFLineBreak |
+    0);
+  if (NS_FAILED(rv))
+    return @"";
+  if (NS_SUCCEEDED(encoder->EncodeToString(outbuf))) {
+    return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(outbuf).get()];
   }
   return @"";
-#endif
 }
 
 - (NSString*)text {
-  NS_WARNING("AppleScript: tab text");
+  NS_WARNING("AppleScript: tab plaintext");
   nsresult rv;
 
   nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(mContentWindow);
@@ -803,28 +811,6 @@ static BOOL didInit = NO;
   if (NS_SUCCEEDED(encoder->EncodeToString(outbuf))) {
     return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(outbuf).get()];
   }
-#if(0)
-  if (pdoc) {
-    nsresult rv = NS_OK;
-    
-    nsCAutoString formatType(NS_DOC_ENCODER_CONTRACTID_BASE);
-    formatType.Append("text/plain");
-    
-    nsCOMPtr<nsIDocumentEncoder> encoder(do_CreateInstance(formatType.get(), &rv));
-    if (NS_SUCCEEDED(rv) && encoder) {
-      uint32_t flags = nsIDocumentEncoder::SkipInvisibleContent;
-      nsAutoString readstring;
-      readstring.AssignASCII("text/plain");
-      
-      if (NS_SUCCEEDED(encoder->Init(document, readstring, flags))) {
-        nsAutoString text;
-        if (NS_SUCCEEDED(encoder->EncodeToString(text))) {
-          return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(text).get()];
-        }
-      }
-    }
-  }
-#endif
   return @"";
 }
 
