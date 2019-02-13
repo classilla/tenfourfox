@@ -274,7 +274,7 @@
 -->
     </class>
     <class name="browser window" code="BWin" description="A %MAC_APP_NAME% browser window." inherits="window" plural="browser windows">
-      <contents name="current tab" code="pCTb" type="tab" access="r" description="The currently selected tab in the browser window.">
+      <contents name="current tab" code="pCTb" type="tab" access="rw" description="The currently selected tab in the browser window.">
         <cocoa key="selectedScriptTab"/>
       </contents>
       <cocoa class="GeckoWindow"/>

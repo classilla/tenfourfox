@@ -150,6 +150,7 @@ typedef unsigned int NSUInteger;
 - (NSArray*)scriptTabs;
 - (void)insertInScriptTabs:(id)value;
 - (GeckoTab*)selectedScriptTab;
+- (void)setSelectedScriptTab:(id)value;
 
 // Helper Methods
 - (void)_setIndex:(NSUInteger)index;
@@ -183,6 +184,7 @@ typedef unsigned int NSUInteger;
 // Helper Methods
 - (void)_setWindow:(GeckoWindow*)window;
 - (void)_setIndex:(NSUInteger)index;
+- (NSUInteger)_index;
 
 @end
 
@@ -482,6 +484,16 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 }
 
 - (id)handleCloseScriptCommand:(NSCloseCommand*)command {
+  NS_WARNING("AppleScript: window handleCloseScriptCommand");
+  // Try to close with the scripted handler, since it's faster. If not,
+  // fallback on Cocoa.
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (applescriptService) {
+    if (NS_SUCCEEDED(applescriptService->CloseWindowAtIndex(mIndex))) {
+      return nil;
+    }
+  }
+  NS_WARNING("window close from Gecko failed; trying from NSWindow");
   NSWindow *window = [self window];
   if (window) {
     return [window handleCloseScriptCommand:command];
@@ -536,14 +548,26 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
   if (!applescriptService) {
     return nil;
   }
-  
+
   nsCOMPtr<nsIDOMWindow> contentWindow;
-	uint32_t tabIndex = 0;
+  uint32_t tabIndex = 0;
   if (NS_FAILED(applescriptService->GetCurrentTabInWindow(mIndex, &tabIndex, getter_AddRefs(contentWindow))) || !contentWindow) {
     return nil;
   }
-  
+
   return [GeckoTab tabWithIndex:tabIndex andContentWindow:contentWindow andWindow:self];
+}
+
+- (void)setSelectedScriptTab:(id)value {
+  NS_WARNING("AppleScript: window setSelectedScriptTab");
+  if (![(NSObject*)value isKindOfClass:[GeckoTab class]]) {
+    return;
+  }
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (!applescriptService) {
+    return;
+  }
+  (void)applescriptService->SetCurrentTabInWindow([(GeckoTab*)value _index], mIndex);
 }
 
 - (void)insertObject:(NSObject*)object inScriptTabsAtIndex:(NSUInteger)index {
@@ -625,6 +649,10 @@ static GeckoScriptingRoot *sharedScriptingRoot = nil;
 
 - (void)_setIndex:(NSUInteger)index {
   mIndex = index;
+}
+
+- (NSUInteger)_index {
+  return mIndex;
 }
 
 - (NSScriptObjectSpecifier*)objectSpecifier

@@ -907,8 +907,9 @@ BrowserGlue.prototype = {
         createWindowAtIndex : function(index) {
           var handler = Cc["@mozilla.org/browser/clh;1"].getService(Ci.nsIBrowserHandler);
           var defaultArgs = handler.defaultArgs;
-          var topWindow = Services.wm.getMostRecentWindow('');
-          topWindow.openDialog("chrome://browser/content/", "_blank", "chrome,all,dialog=no,non-remote", defaultArgs);
+          // Use the hidden window to open in case the script closes all the things.
+          Services.appShell.hiddenDOMWindow.openDialog("chrome://browser/content/",
+            "_blank", "chrome,all,dialog=no,non-remote", defaultArgs);
         },
         getWindows : function() {
           var array = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
@@ -945,6 +946,20 @@ BrowserGlue.prototype = {
           if (win != null) {
             var tab = win.gBrowser.tabs[index];
             win.gBrowser.removeTab(tab);
+          }
+        },
+        setCurrentTabInWindow : function(index, window_index) {
+          let win = this.getWindow(window_index);
+          if (win != null) {
+            win.gBrowser.selectedTab = win.gBrowser.tabs[index];
+          }
+        },
+        closeWindowAtIndex : function(index) {
+          let win = this.getWindow(index);
+          if (win != null) {
+            // Use the soop3r s3kr1t don't ask when closing flag.
+            win.skipNextCanClose = true;
+            win.close();
           }
         }
       }

@@ -71,6 +71,13 @@ interface nsIApplescriptService : nsISupports
     * @param index The tab's index.
     */
    void createWindowAtIndex(in unsigned long index);
+
+  /**
+    * Closes a window (without verification).
+    *
+    * @param index The tab's index.
+    */
+   void closeWindowAtIndex(in unsigned long index);
    
    /**
      * Returns an array of nsIDOMWindows representing the tabs in
@@ -88,6 +95,15 @@ interface nsIApplescriptService : nsISupports
      * @param tab_index Returns the tab's index.
      */
     nsIDOMWindow getCurrentTabInWindow(in unsigned long index, out unsigned long tab_index);
+
+  /**
+    * Sets the current tab in
+    * the window to the given index.
+    *
+    * @param index The window's index.
+    * @param window_index The window's index.
+    */
+   void setCurrentTabInWindow(in unsigned long index, in unsigned long window_index);
 
    /**
      * Creates a tab in the window at the given index.
@@ -121,6 +137,13 @@ interface nsIApplescriptWindowCallback : nsISupports
     * @param index The tab's index.
     */
    void createWindowAtIndex(in unsigned long index);
+
+  /**
+    * Closes a window (without verification).
+    *
+    * @param index The tab's index.
+    */
+   void closeWindowAtIndex(in unsigned long index);
 };
 
 [scriptable, uuid(a433c084-ffc7-4264-90fa-82c1e0100b46)]
@@ -142,6 +165,15 @@ interface nsIApplescriptTabCallback : nsISupports
     * @param tab_index Returns the tab's index.
     */
    nsIDOMWindow getCurrentTabInWindow(in unsigned long index, out unsigned long tab_index);
+
+  /**
+    * Sets the current tab in
+    * the window to the given index.
+    *
+    * @param index The tab's index.
+    * @param window_index The window's index.
+    */
+   void setCurrentTabInWindow(in unsigned long index, in unsigned long window_index);
 
   /**
     * Creates a tab in the window at the given index.

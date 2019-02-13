@@ -20,6 +20,7 @@
  *
  * Contributor(s):
  *   Scott Greenlay <scott@greenlay.net>
+ *   Cameron Kaiser <classilla@floodgap.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -68,8 +69,18 @@ nsApplescriptService::GetWindows(nsIArray **windows)
 NS_IMETHODIMP
 nsApplescriptService::CreateWindowAtIndex(uint32_t index)
 {
+  NS_ASSERTION(index == 0, "Not implemented for window indices other than zero");
   if (windowCallback) {
     return windowCallback->CreateWindowAtIndex(index);
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsApplescriptService::CloseWindowAtIndex(uint32_t index)
+{
+  if (windowCallback) {
+    return windowCallback->CloseWindowAtIndex(index);
   }
   return NS_OK;
 }
@@ -92,6 +103,14 @@ nsApplescriptService::GetCurrentTabInWindow(uint32_t index, uint32_t *tab_index,
     tab_index = 0;
   }
   *window = NULL;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsApplescriptService::SetCurrentTabInWindow(uint32_t index, uint32_t window_index) {
+  if (tabCallback) {
+    return tabCallback->SetCurrentTabInWindow(index, window_index);
+  }
   return NS_OK;
 }
 
