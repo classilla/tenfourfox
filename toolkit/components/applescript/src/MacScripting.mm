@@ -64,6 +64,8 @@ extern "C" {
 #include "nsIDOMSerializer.h"
 #include "nsIDocument.h"
 #include "nsIDocumentEncoder.h"
+#include "nsISelection.h"
+#include "nsISelectionController.h"
 #include "nsIWindowMediator.h"
 #include "nsISimpleEnumerator.h"
 #include "nsIBaseWindow.h"
@@ -80,8 +82,7 @@ extern "C" {
 #include "nsObjCExceptions.h"
 #include "nsToolkitCompsCID.h"
 #include "nsContentUtils.h"
-
-class nsLocation;
+#include "mozilla/dom/Selection.h"
 
 // 10.4 no haz.
 typedef int NSInteger;
@@ -815,16 +816,27 @@ static BOOL didInit = NO;
 }
 
 - (NSString*)selectedText {
-#if(0)
-  nsCOMPtr<nsISelection> selection;
-  if (NS_SUCCEEDED(mContentWindow->GetSelection(getter_AddRefs(selection))) && selection) {
-    nsXPIDLString selectedTextChars;
-    if (NS_SUCCEEDED(selection->ToString(getter_Copies(selectedTextChars)))) {
-      nsAutoString selectedText(selectedTextChars);
-      return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(selectedText).get()];
+  NS_WARNING("AppleScript: tab selected");
+  nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(mContentWindow);
+  if (!piWindow)
+    return @"";
+  // We can't just call GetSelection() directly on the nsPIDOMWindow
+  // since we're not actually an outer, so we have to do this the long
+  // way through the presshell.
+  //nsCOMPtr<nsISelection> selection = piWindow->GetSelection();
+  nsIDocShell* d = piWindow->GetDocShell();
+  if (!d)
+    return @"";
+  nsIPresShell* s = d->GetPresShell();
+  if (!s)
+    return @"";
+  nsCOMPtr<nsISelection> selection = static_cast<mozilla::dom::Selection*>(s->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL));
+  if (selection) {
+    nsAutoString selectedTextChars;
+    if (NS_SUCCEEDED(selection->ToString(selectedTextChars))) {
+      return [NSString stringWithUTF8String:NS_ConvertUTF16toUTF8(selectedTextChars).get()];
     }
   }
-#endif
   return @"";
 }
 
