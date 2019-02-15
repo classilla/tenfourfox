@@ -120,6 +120,28 @@ interface nsIApplescriptService : nsISupports
      * @param window_index The window's index.
      */
     void closeTabAtIndexInWindow(in unsigned long index, in unsigned long window_index);
+
+   /**
+     * Reloads a tab in the window at the given index.
+     *
+     * @param index The tab's index.
+     * @param window_index The window's index.
+     */
+    void reloadTabAtIndexInWindow(in unsigned long index, in unsigned long window_index);
+
+   /**
+     * Returns whether the window is fullscreen.
+     *
+     * @param index The window's index.
+     */
+    bool getWindowIsFullScreen(in unsigned long index);
+
+   /**
+     * Sets whether the window is fullscreen.
+     *
+     * @param index The window's index.
+     */
+    void setWindowIsFullScreen(in unsigned long index, in bool fullscreen);
 };
 
 [scriptable, uuid(45f087af-9c24-4fc6-9325-359382196a4e)]
@@ -134,16 +156,30 @@ interface nsIApplescriptWindowCallback : nsISupports
   /**
     * Creates a window.
     *
-    * @param index The tab's index.
+    * @param index The window's index.
     */
    void createWindowAtIndex(in unsigned long index);
 
   /**
     * Closes a window (without verification).
     *
-    * @param index The tab's index.
+    * @param index The window's index.
     */
    void closeWindowAtIndex(in unsigned long index);
+
+   /**
+     * Returns whether the window is fullscreen.
+     *
+     * @param index The window's index.
+     */
+    bool getWindowIsFullScreen(in unsigned long index);
+
+   /**
+     * Sets whether the window is fullscreen.
+     *
+     * @param index The window's index.
+     */
+    void setWindowIsFullScreen(in unsigned long index, in bool fullscreen);
 };
 
 [scriptable, uuid(a433c084-ffc7-4264-90fa-82c1e0100b46)]
@@ -190,4 +226,12 @@ interface nsIApplescriptTabCallback : nsISupports
     * @param window_index The window's index.
     */
    void closeTabAtIndexInWindow(in unsigned long index, in unsigned long window_index);
+
+  /**
+    * Reloads a tab in the window at the given index.
+    *
+    * @param index The tab's index.
+    * @param window_index The window's index.
+    */
+   void reloadTabAtIndexInWindow(in unsigned long index, in unsigned long window_index);
 };

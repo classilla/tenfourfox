@@ -142,6 +142,8 @@ typedef unsigned int NSUInteger;
 - (BOOL)isZoomable;
 - (BOOL)isZoomed;
 - (void)setIsZoomed:(BOOL)zoomed;
+- (BOOL)fullscreen;
+- (void)setFullscreen:(BOOL)fullscreen;
 
 - (id)handleCloseScriptCommand:(NSCloseCommand*)command;
 
@@ -179,6 +181,7 @@ typedef unsigned int NSUInteger;
 - (void)setURL:(NSString*)newURL;
 
 - (id)handleCloseScriptCommand:(NSCloseCommand*)command;
+- (id)handleReloadScriptCommand:(NSScriptCommand*)command;
 
 // Helper Methods
 - (void)_setWindow:(GeckoWindow*)window;
@@ -479,6 +482,26 @@ static BOOL didInit = NO;
   NSWindow *window = [self window];
   if (window) {
     [window setIsZoomed:zoomed];
+  }
+}
+
+- (BOOL)fullscreen {
+  NS_WARNING("AppleScript: window fullscreen");
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (applescriptService) {
+    bool isfs;
+    if (NS_SUCCEEDED(applescriptService->GetWindowIsFullScreen(mIndex, &isfs))) {
+      return (isfs) ? YES : NO;
+    }
+  }
+  return NO;
+}
+
+- (void)setFullscreen:(BOOL)fullscreen {
+  NS_WARNING("AppleScript: window setFullscreen");
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (applescriptService) {
+    applescriptService->SetWindowIsFullScreen(mIndex, (fullscreen == YES));
   }
 }
 
@@ -848,6 +871,14 @@ static BOOL didInit = NO;
   nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
   if (applescriptService) {
     (void)applescriptService->CloseTabAtIndexInWindow(mIndex, [mWindow orderedIndex]);
+  }
+  return nil;
+}
+
+- (id)handleReloadScriptCommand:(NSScriptCommand*)command {
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (applescriptService) {
+    (void)applescriptService->ReloadTabAtIndexInWindow(mIndex, [mWindow orderedIndex]);
   }
   return nil;
 }

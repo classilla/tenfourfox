@@ -922,6 +922,16 @@ BrowserGlue.prototype = {
           }
           return array;
         },
+        getWindowIsFullScreen : function(index) {
+          let win = this.getWindow(index);
+          if (win != null)
+            return win.fullScreen;
+        },
+        setWindowIsFullScreen : function(index, fullscreen) {
+          let win = this.getWindow(index);
+          if (win != null)
+            win.fullScreen = (fullscreen) ? true : false;
+        },
         getTabsInWindow : function(index) {
           var array = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
           let win = this.getWindow(index);
@@ -946,6 +956,13 @@ BrowserGlue.prototype = {
           if (win != null) {
             var tab = win.gBrowser.tabs[index];
             win.gBrowser.removeTab(tab);
+          }
+        },
+        reloadTabAtIndexInWindow : function(index, window_index) {
+          let win = this.getWindow(window_index);
+          if (win != null) {
+            var tab = win.gBrowser.tabs[index];
+            win.gBrowser.reloadTab(tab);
           }
         },
         setCurrentTabInWindow : function(index, window_index) {

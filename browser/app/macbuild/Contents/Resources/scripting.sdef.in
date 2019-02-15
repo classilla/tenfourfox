@@ -287,7 +287,14 @@
       <property name="index" code="pidx" type="integer" access="r" description="The index of the browser window, ordered front to back.">
         <cocoa key="orderedIndex"/>
       </property>
+      <property name="fullscreen" code="pFls" type="boolean" access="rw" description="Whether this browser window is fullscreen.">
+        <cocoa key="fullscreen"/>
+      </property>
     </class>
+    <command name="reload" code="104FxRld" description="Reloads an object.">
+      <cocoa class="NSScriptCommand"/>
+      <direct-parameter type="specifier" description="the object to reload"/>
+    </command>
     <class name="tab" code="BTab" description="A %MAC_APP_NAME% browser window tab." inherits="item" plural="tabs">
       <cocoa class="GeckoTab"/>
       <property name="name" code="pnam" type="text" access="r" description="The name of the tab.">
@@ -313,6 +320,9 @@
       </property>
       <responds-to name="close">
         <cocoa method="handleCloseScriptCommand:"/>
+      </responds-to>
+      <responds-to name="reload">
+        <cocoa method="handleReloadScriptCommand:"/>
       </responds-to>
 <!--
       <responds-to name="print">

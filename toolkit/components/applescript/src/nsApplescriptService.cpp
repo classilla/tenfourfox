@@ -86,6 +86,25 @@ nsApplescriptService::CloseWindowAtIndex(uint32_t index)
 }
 
 NS_IMETHODIMP
+nsApplescriptService::GetWindowIsFullScreen(uint32_t index, bool *fullscreen)
+{
+  if (windowCallback) {
+    return windowCallback->GetWindowIsFullScreen(index, fullscreen);
+  }
+  *fullscreen = false;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsApplescriptService::SetWindowIsFullScreen(uint32_t index, bool fullscreen)
+{
+  if (windowCallback) {
+    return windowCallback->SetWindowIsFullScreen(index, fullscreen);
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsApplescriptService::GetTabsInWindow(uint32_t index, nsIArray **tabs) {
   if (tabCallback) {
     return tabCallback->GetTabsInWindow(index, tabs);
@@ -126,6 +145,14 @@ NS_IMETHODIMP
 nsApplescriptService::CloseTabAtIndexInWindow(uint32_t index, uint32_t window_index) {
   if (tabCallback) {
     return tabCallback->CloseTabAtIndexInWindow(index, window_index);
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsApplescriptService::ReloadTabAtIndexInWindow(uint32_t index, uint32_t window_index) {
+  if (tabCallback) {
+    return tabCallback->ReloadTabAtIndexInWindow(index, window_index);
   }
   return NS_OK;
 }
