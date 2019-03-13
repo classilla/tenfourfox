@@ -169,6 +169,7 @@ js::Nursery::disable()
         return;
     numActiveChunks_ = 0;
     currentEnd_ = 0;
+    position_ = 0;
     updateDecommittedRegion();
 }
 
