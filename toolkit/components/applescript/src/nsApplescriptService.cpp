@@ -158,6 +158,22 @@ nsApplescriptService::ReloadTabAtIndexInWindow(uint32_t index, uint32_t window_i
 }
 
 NS_IMETHODIMP
+nsApplescriptService::RunScriptInTabAtIndexInWindow(uint32_t index,
+                                                    uint32_t window_index,
+                                                    const nsACString& script,
+                                                    nsACString& result,
+                                                    bool* ok) {
+  if (tabCallback) {
+    return tabCallback->RunScriptInTabAtIndexInWindow(index, window_index, script, result, ok);
+  }
+  *ok = false;
+  result = NULL;
+  return NS_OK;
+}
+
+// ---------
+
+NS_IMETHODIMP
 nsApplescriptService::RegisterWindowCallback(nsIApplescriptWindowCallback *callback) {
   windowCallback = callback;
   return NS_OK;

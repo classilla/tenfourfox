@@ -142,6 +142,20 @@ interface nsIApplescriptService : nsISupports
      * @param index The window's index.
      */
     void setWindowIsFullScreen(in unsigned long index, in bool fullscreen);
+
+   /**
+    * Returns the result of a JavaScript operation done within this tab's doc.
+    *
+    * @param index The tab's index.
+    * @param window_index The window's index.
+    * @param script The script to execute.
+    * @param result The result, as a string.
+    * @return true if the script execution ran without errors
+    */
+   boolean runScriptInTabAtIndexInWindow(in unsigned long index,
+                                         in unsigned long window_index,
+                                         in AUTF8String script,
+                                         out AUTF8String result);
 };
 
 [scriptable, uuid(45f087af-9c24-4fc6-9325-359382196a4e)]
@@ -234,4 +248,18 @@ interface nsIApplescriptTabCallback : nsISupports
     * @param window_index The window's index.
     */
    void reloadTabAtIndexInWindow(in unsigned long index, in unsigned long window_index);
+
+   /**
+    * Returns the result of a JavaScript operation done within this tab's doc.
+    *
+    * @param index The tab's index.
+    * @param window_index The window's index.
+    * @param script The script to execute.
+    * @param result The result, as a string.
+    * @return true if the script execution ran without errors
+    */
+   bool runScriptInTabAtIndexInWindow(in unsigned long index,
+                                      in unsigned long window_index,
+                                      in AUTF8String script,
+                                      out AUTF8String result);
 };

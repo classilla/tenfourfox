@@ -978,6 +978,11 @@ BrowserGlue.prototype = {
             win.skipNextCanClose = true;
             win.close();
           }
+        },
+        runScriptInTabAtIndexInWindow : function(index, window_index,
+            script) {
+          throw Components.Exception("NYI", Cr.NS_ERROR_FAILURE);
+          return null;
         }
       }
 
