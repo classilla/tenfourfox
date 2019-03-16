@@ -40,7 +40,11 @@ public:
   static uint32_t GetVersion(uint32_t& aMajor, uint32_t& aMinor, uint32_t& aMicro);
 
 private:
+#ifdef XP_DARWIN
+  static void* sLinkedLib;
+#else
   static PRLibrary* sLinkedLib;
+#endif /* XP_DARWIN */
   static const char* sLib;
 
   static bool Bind(const char* aLibName);
