@@ -28,6 +28,14 @@ MiniMP3Decoder::MiniMP3Decoder(const AudioInfo& aConfig,
 #error Unknown audio sample type
 #endif
 
+  // Correctness fix from
+  // https://github.com/OlgaTPark/tenfourfox/commit/a22d83f6b190a71386fe193ee1f3f08dc1639d39
+  mMP3Decoder.last_buf_size = 0;
+  memset(mMP3Decoder.synth_buf_offset, 0, sizeof(mMP3Decoder.synth_buf_offset));
+  // Ensure buffers are clear to avoid decoding artifacts.
+  memset(mMP3Decoder.mdct_buf, 0, sizeof(mMP3Decoder.mdct_buf));
+  memset(mMP3Decoder.synth_buf, 0, sizeof(mMP3Decoder.synth_buf));
+
 #if DEBUG
   fprintf(stderr, "MiniMP3Decoder::MiniMP3Decoder\n");
 #endif

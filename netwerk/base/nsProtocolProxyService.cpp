@@ -1795,6 +1795,12 @@ nsProtocolProxyService::Resolve_Internal(nsIChannel *channel,
     if (mPACMan && mPACMan->IsPACURI(uri))
         return NS_OK;
 
+    // if proxies are enabled and this host:port combo is supposed to use a
+    // proxy, check for a proxy.
+    if ((mProxyConfig == PROXYCONFIG_DIRECT) ||
+        !CanUseProxy(uri, info.defaultPort))
+        return NS_OK;
+
     bool mainThreadOnly;
     if (mSystemProxySettings &&
         mProxyConfig == PROXYCONFIG_SYSTEM &&

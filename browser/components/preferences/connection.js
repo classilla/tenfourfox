@@ -76,7 +76,7 @@ var gConnectionsDialog = {
     var autologinProxyPref = document.getElementById("signon.autologin.proxy");
     autologinProxyPref.disabled = proxyTypePref.value == 0;
     var noProxiesPref = document.getElementById("network.proxy.no_proxies_on");
-    noProxiesPref.disabled = proxyTypePref.value != 1;
+    noProxiesPref.disabled = proxyTypePref.value == 0;
 
     var autoconfigURLPref = document.getElementById("network.proxy.autoconfig_url");
     autoconfigURLPref.disabled = proxyTypePref.value != 2;
