@@ -11,6 +11,7 @@
 #include "prlink.h"
 
 #ifdef XP_DARWIN
+  #include "prenv.h"
   #include <dlfcn.h>
   #include <libgen.h>
   #include <mach-o/dyld.h>
@@ -81,18 +82,43 @@ FFmpegRuntimeLinker::Link()
   for (size_t i = 0; i < ArrayLength(sLibs); i++) {
     const char* lib = sLibs[i];
 #ifdef XP_DARWIN
-    /* Loading FFMPEG on Mac OS X (macOS is a typo) fails because mozilla
-      searches for sybols defined in libavutil with a handle to libavcodec.
-      This is due to the fact that NSPR uses NSAddressOfSymbol & cie who limits
-      its researches only to libavcodec and not its dependencies.  We don't have
-      this issue with dlsym().  */
+    /* OlgaTPark's ffmpeg loader hack.
+    
+       Loading ffmpeg on Darwin fails because by default Mozilla
+       searches for symbols defined in libavutil with a handle to libavcodec.
+       This is due to the fact that NSPR uses NSAddressOfSymbol et al. that
+       limit search only to libavcodec and not its dependencies.  We don't have
+       this issue with dlsym().  */
     if (!(sLinkedLib = dlopen(lib, RTLD_NOW | RTLD_LOCAL))) {
       /* Bonus time: if we don't find libavcodec in standard locations, we look
-        if our venerable FFMPEG's libraries are in the same folder as XUL. */
+        if our venerable ffmpeg's libraries are in the same folder as XUL. */
       char *libFullPath = NULL;
-      if (asprintf(&libFullPath, "%s/%s", execDir, lib) > 0 && libFullPath)
+      if (asprintf(&libFullPath, "%s/%s", execDir, lib) > 0 && libFullPath) {
+#if DEBUG
+        fprintf(stderr, "TenFourFox looking for FFmpeg: %s\n", libFullPath);
+#endif
         sLinkedLib = dlopen(libFullPath, RTLD_NOW | RTLD_LOCAL);
-      free(libFullPath);
+#if DEBUG
+        if (!sLinkedLib)
+          fprintf(stderr, "Failed to load %s: %s\n", libFullPath, dlerror());
+#endif
+        free(libFullPath);
+      }
+      // Try also finding the library in ~/Library/ffmpeg.
+      if (!sLinkedLib &&
+          PR_GetEnv("HOME") &&
+          asprintf(&libFullPath, "%s/Library/ffmpeg/%s", PR_GetEnv("HOME"), lib)
+          > 0 && libFullPath) {
+#if DEBUG
+        fprintf(stderr, "TenFourFox looking for FFmpeg: %s\n", libFullPath);
+#endif
+        sLinkedLib = dlopen(libFullPath, RTLD_NOW | RTLD_LOCAL);
+#if DEBUG
+        if (!sLinkedLib)
+          fprintf(stderr, "Failed to load %s: %s\n", libFullPath, dlerror());
+#endif
+        free(libFullPath);
+      }
     }
 #else
     PRLibSpec lspec;
@@ -104,6 +130,7 @@ FFmpegRuntimeLinker::Link()
       if (Bind(lib)) {
         sLib = lib;
         sLinkStatus = LinkStatus_SUCCEEDED;
+        NS_WARNING("FFmpeg successfully linked to TenFourFox");
         return true;
       }
       // Shouldn't happen but if it does then we try the next lib..
@@ -119,6 +146,7 @@ FFmpegRuntimeLinker::Link()
 
   Unlink();
 
+  fprintf(stderr, "Warning: FFmpeg could not be linked into TenFourFox. H.264 video will not be available.\n");
   sLinkStatus = LinkStatus_FAILED;
   return false;
 }
@@ -232,6 +260,7 @@ FFmpegRuntimeLinker::Unlink()
 {
   if (sLinkedLib) {
 #ifdef XP_DARWIN
+    NS_WARNING("FFmpeg Runtime unlinked");
     dlclose(sLinkedLib);
 #else
     PR_UnloadLibrary(sLinkedLib);

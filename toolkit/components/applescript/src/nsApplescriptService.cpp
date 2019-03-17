@@ -38,6 +38,7 @@
 
 #include "nsXPCOM.h"
 #include "nsApplescriptService.h"
+#include "nsString.h"
 
 #ifdef XP_MACOSX
 #include "MacScripting.h"
@@ -167,7 +168,7 @@ nsApplescriptService::RunScriptInTabAtIndexInWindow(uint32_t index,
     return tabCallback->RunScriptInTabAtIndexInWindow(index, window_index, script, result, ok);
   }
   *ok = false;
-  result = NULL;
+  result.Truncate();
   return NS_OK;
 }
 

@@ -5351,6 +5351,7 @@ WINNT|Darwin|Android)
     ;;
 esac
 
+MOZ_FFMPEG=1
 MOZ_ARG_DISABLE_BOOL(ffmpeg,
 [  --disable-ffmpeg         Disable FFmpeg for fragmented H264/AAC decoding],
     MOZ_FFMPEG=,
