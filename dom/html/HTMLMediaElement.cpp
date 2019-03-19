@@ -2648,6 +2648,7 @@ HTMLMediaElement::ReportEMETelemetry()
 void
 HTMLMediaElement::ReportMSETelemetry()
 {
+#if(0)
   // Report telemetry for videos when a page is unloaded. We
   // want to know data on what state the video is at when
   // the user has exited.
@@ -2700,6 +2701,7 @@ HTMLMediaElement::ReportMSETelemetry()
   Telemetry::Accumulate(Telemetry::VIDEO_MSE_JOIN_LATENCY_MS, SECONDS_TO_MS(latency));
   LOG(LogLevel::Debug, ("%p VIDEO_MSE_JOIN_LATENCY = %f (%d ms) count=%d\n",
                      this, latency, SECONDS_TO_MS(latency), mJoinLatency.Count()));
+#endif
 }
 
 void HTMLMediaElement::UnbindFromTree(bool aDeep,
@@ -4236,12 +4238,14 @@ void HTMLMediaElement::SuspendOrResumeElement(bool aPauseElement, bool aSuspendE
     UpdateSrcMediaStreamPlaying();
     UpdateAudioChannelPlayingState();
     if (aPauseElement) {
+#if(0)
       if (mMediaSource) {
         ReportMSETelemetry();
 #ifdef MOZ_EME
         ReportEMETelemetry();
 #endif
       }
+#endif
 
 #ifdef MOZ_EME
       // For EME content, force destruction of the CDM client (and CDM

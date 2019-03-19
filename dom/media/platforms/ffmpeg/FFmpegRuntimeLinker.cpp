@@ -104,11 +104,9 @@ FFmpegRuntimeLinker::Link()
 #endif
         free(libFullPath);
       }
-      // Try also finding the library in ~/Library/ffmpeg.
-      if (!sLinkedLib &&
-          PR_GetEnv("HOME") &&
-          asprintf(&libFullPath, "%s/Library/ffmpeg/%s", PR_GetEnv("HOME"), lib)
-          > 0 && libFullPath) {
+      // Try also finding the library in ~/Library/TenFourFox-FFmpeg.
+      if (!sLinkedLib && PR_GetEnv("HOME") &&
+          asprintf(&libFullPath, "%s/Library/TenFourFox-FFmpeg/%s", PR_GetEnv("HOME"), lib) > 0 && libFullPath) {
 #if DEBUG
         fprintf(stderr, "TenFourFox looking for FFmpeg: %s\n", libFullPath);
 #endif

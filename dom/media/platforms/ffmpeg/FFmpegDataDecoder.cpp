@@ -12,6 +12,7 @@
 #include "FFmpegLog.h"
 #include "FFmpegDataDecoder.h"
 #include "prsystem.h"
+#include "prenv.h"
 #include "FFmpegRuntimeLinker.h"
 
 #include "libavutil/pixfmt.h"
@@ -248,9 +249,8 @@ FFmpegDataDecoder<LIBAV_VER>::FindAVCodec(AVCodecID aCodec)
   StaticMutexAutoLock mon(sMonitor);
   if (!sFFmpegInitDone) {
     avcodec_register_all();
-#ifdef DEBUG
-    av_log_set_level(AV_LOG_DEBUG);
-#endif
+    if (PR_GetEnv("AV_LOG_DEBUG"))
+      av_log_set_level(AV_LOG_DEBUG);
     sFFmpegInitDone = true;
   }
   return avcodec_find_decoder(aCodec);

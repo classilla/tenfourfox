@@ -16,6 +16,8 @@
 #include "FFmpegLog.h"
 #include "mozilla/PodOperations.h"
 
+#include "prtime.h"
+
 typedef mozilla::layers::Image Image;
 typedef mozilla::layers::PlanarYCbCrImage PlanarYCbCrImage;
 
@@ -29,6 +31,10 @@ FFmpegH264Decoder<LIBAV_VER>::PtsCorrectionContext::PtsCorrectionContext()
   , mLastDts(INT64_MIN)
 {
 }
+
+// PRIntervalTime is insufficient since the timeout length may be
+// many seconds.
+static PRTime sLockOutDueToOOM = 0L;
 
 int64_t
 FFmpegH264Decoder<LIBAV_VER>::PtsCorrectionContext::GuessCorrectPts(int64_t aPts, int64_t aDts)
@@ -93,6 +99,12 @@ FFmpegH264Decoder<LIBAV_VER>::DecodeResult
 FFmpegH264Decoder<LIBAV_VER>::DoDecodeFrame(MediaRawData* aSample)
 {
   MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
+  if (PR_Now() < sLockOutDueToOOM) {
+    // Halt further allocations.
+    NS_WARNING("** FFMPEG LOCKED OUT DUE TO OUT OF MEMORY **");
+    mCallback->Error();
+    return DecodeResult::DECODE_ERROR;
+  }
 
   uint8_t* inputData = const_cast<uint8_t*>(aSample->Data());
   size_t inputSize = aSample->Size();
@@ -140,6 +152,12 @@ FFmpegH264Decoder<LIBAV_VER>::DoDecodeFrame(MediaRawData* aSample,
                                             uint8_t* aData, int aSize)
 {
   MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
+  if (PR_Now() < sLockOutDueToOOM) {
+    // Halt further allocations.
+    NS_WARNING("** FFMPEG LOCKED OUT DUE TO OUT OF MEMORY **");
+    mCallback->Error();
+    return DecodeResult::DECODE_ERROR;
+  }
 
   AVPacket packet;
   av_init_packet(&packet);
@@ -234,7 +252,9 @@ FFmpegH264Decoder<LIBAV_VER>::DoDecodeFrame(MediaRawData* aSample,
                                               -1,
                                               mImage);
     if (!v) {
-      NS_WARNING("image allocation error.");
+      int32_t lockout = 3; /* XXX: make a pref */
+      fprintf(stderr, "Warning: TenFourFox ran out of memory trying to decode H.264 video.\nAny H.264 video on any page playing in the next %i seconds will be blocked.\n", lockout);
+      sLockOutDueToOOM = PR_Now() + ( PR_USEC_PER_SEC * lockout );
       mCallback->Error();
       return DecodeResult::DECODE_ERROR;
     }
