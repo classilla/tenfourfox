@@ -182,6 +182,7 @@ typedef unsigned int NSUInteger;
 
 - (id)handleCloseScriptCommand:(NSCloseCommand*)command;
 - (id)handleReloadScriptCommand:(NSScriptCommand*)command;
+- (NSString*)handleRunJavaScriptCommand:(NSScriptCommand*)command;
 
 // Helper Methods
 - (void)_setWindow:(GeckoWindow*)window;
@@ -757,7 +758,7 @@ static BOOL didInit = NO;
   geckoURL.Assign([newURL UTF8String]);
   if (NS_FAILED(NS_NewURI(&uri, geckoURL, nullptr, nullptr, nsContentUtils::GetIOService()))) {
     if (c) {
-      [c setScriptErrorNumber:-1700]; // errAECoercionFail
+      [c setScriptErrorNumber:-2131]; // urlDataHHTTPURLErr
       [c setScriptErrorString:@"Parameter Error: URL is not valid."];
     }
     return;
@@ -881,6 +882,32 @@ static BOOL didInit = NO;
     (void)applescriptService->ReloadTabAtIndexInWindow(mIndex, [mWindow orderedIndex]);
   }
   return nil;
+}
+
+- (NSString*)handleRunJavaScriptCommand:(NSScriptCommand*)command {
+  nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
+  if (applescriptService) {
+    NSDictionary *args = [command evaluatedArguments];
+    if (args) {
+      NSString *script = [args objectForKey:@"script"];
+      if (script) {
+        nsAutoCString s, r;
+        bool ok;
+
+        s.Assign([script UTF8String]);
+        if (NS_SUCCEEDED(applescriptService->RunScriptInTabAtIndexInWindow(mIndex,
+                                                                           [mWindow orderedIndex],
+                                                                           s, r, &ok))) {
+          if (ok)
+            return [NSString stringWithUTF8String:r.get()];
+
+          [command setScriptErrorNumber:-2740]; // OSASyntaxError
+          [command setScriptErrorString:@"Parameter Error: Failed to run JavaScript."]; // XXX
+        }
+      }
+    }
+  }
+  return @"";
 }
 
 @end

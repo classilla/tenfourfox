@@ -981,6 +981,7 @@ BrowserGlue.prototype = {
         },
         runScriptInTabAtIndexInWindow : function(index, window_index,
             script) {
+          Services.console.logStringMessage("Got script: "+script);
           throw Components.Exception("NYI", Cr.NS_ERROR_FAILURE);
           return null;
         }
@@ -1249,9 +1250,9 @@ BrowserGlue.prototype = {
       this._resetUnusedProfileNotification();
     }
 
-    this._checkForOldBuildUpdates();
+    //this._checkForOldBuildUpdates();
 
-    this._firstWindowTelemetry(aWindow);
+    //this._firstWindowTelemetry(aWindow);
     this._firstWindowLoaded();
   },
 
@@ -1337,8 +1338,8 @@ BrowserGlue.prototype = {
 
     // If there are plugins installed that are outdated, and the user hasn't
     // been warned about them yet, open the plugins update page.
-    if (Services.prefs.getBoolPref(PREF_PLUGINS_NOTIFYUSER))
-      this._showPluginUpdatePage();
+    //if (Services.prefs.getBoolPref(PREF_PLUGINS_NOTIFYUSER))
+    //  this._showPluginUpdatePage();
 
     // For any add-ons that were installed disabled and can be enabled offer
     // them to the user.
