@@ -892,9 +892,10 @@ static BOOL didInit = NO;
       NSString *script = [args objectForKey:@"script"];
       if (script) {
         nsAutoCString s, r;
-        bool ok;
+        bool ok = false;
 
         s.Assign([script UTF8String]);
+        r.Truncate();
         if (NS_SUCCEEDED(applescriptService->RunScriptInTabAtIndexInWindow(mIndex,
                                                                            [mWindow orderedIndex],
                                                                            s, r, &ok))) {

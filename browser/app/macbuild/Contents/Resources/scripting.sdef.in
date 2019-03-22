@@ -295,13 +295,13 @@
       <cocoa class="NSScriptCommand"/>
       <direct-parameter type="specifier" description="the object to reload"/>
     </command>
-    <command name="runJS" code="104FxrJS" description="Runs JavaScript in the context of an object.">
+    <command name="run" code="104FxrJS" description="Runs JavaScript in the context of an object.">
       <cocoa class="NSScriptCommand"/>
       <direct-parameter type="specifier" description="the object context"/>
-      <parameter name="script" code="scpt" type="text" description="The script source text.">
+      <parameter name="JavaScript" code="jscp" type="text" description="the JavaScript source text">
         <cocoa key="script"/>
       </parameter>
-      <result type="text" description="String value returned by the script."/>
+      <result type="text" description="string value returned by the script"/>
     </command>
     <class name="tab" code="BTab" description="A %MAC_APP_NAME% browser window tab." inherits="item" plural="tabs">
       <cocoa class="GeckoTab"/>
@@ -332,7 +332,7 @@
       <responds-to name="reload">
         <cocoa method="handleReloadScriptCommand:"/>
       </responds-to>
-      <responds-to name="runJS">
+      <responds-to name="run">
         <cocoa method="handleRunJavaScriptCommand:"/>
       </responds-to>
 <!--

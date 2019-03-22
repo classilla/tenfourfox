@@ -980,10 +980,20 @@ BrowserGlue.prototype = {
           }
         },
         runScriptInTabAtIndexInWindow : function(index, window_index,
-            script) {
-          Services.console.logStringMessage("Got script: "+script);
-          throw Components.Exception("NYI", Cr.NS_ERROR_FAILURE);
-          return null;
+            script, rval) {
+          try {
+            let win = this.getWindow(window_index);
+            let tab = win.gBrowser.tabs[index].linkedBrowser;
+            let f = new Function("window", "document", ""+script);
+            let g = (t) => {
+              return f(t.contentWindow, t.contentDocument);
+            };
+            rval.value = g(tab);
+          } catch(e) {
+            Services.console.logStringMessage("AS-to-JS error: "+e);
+            return false;
+          }
+          return true;
         }
       }
 
