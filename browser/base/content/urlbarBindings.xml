@@ -417,6 +417,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             // occurs in a new tab, we want focus to be restored to the content
             // area when the current tab is re-selected.
             gBrowser.selectedBrowser.focus();
+            delete gBrowser.selectedBrowser.canceledAuthenticationPromptCounter;
 
             let isMouseEvent = aTriggeringEvent instanceof MouseEvent;
 

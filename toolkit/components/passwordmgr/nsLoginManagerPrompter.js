@@ -95,30 +95,64 @@ LoginManagerPromptFactory.prototype = {
       return;
     }
 
-    this._asyncPromptInProgress = true;
-    prompt.inProgress = true;
+    // Set up a counter for ensuring that the basic auth prompt can not
+    // be abused for DOS-style attacks. With this counter, each eTLD+1
+    // per browser will get a limited number of times a user can
+    // cancel the prompt until we stop showing it.
+    let browser = prompter._browser;
+    let baseDomain = null;
+    if (browser) {
+      try {
+        baseDomain = Services.eTLD.getBaseDomainFromHost(hostname);
+      } catch (e) {
+        baseDomain = hostname;
+      }
+
+      if (!browser.canceledAuthenticationPromptCounter) {
+        browser.canceledAuthenticationPromptCounter = {};
+      }
+
+      if (!browser.canceledAuthenticationPromptCounter[baseDomain]) {
+        browser.canceledAuthenticationPromptCounter[baseDomain] = 0;
+      }
+    }
 
     var self = this;
 
     var runnable = {
+      cancel: false,
       run : function() {
         var ok = false;
-        try {
-          self.log("_doAsyncPrompt:run - performing the prompt for '" + hashKey + "'");
-          ok = prompter.promptAuth(prompt.channel,
-                                   prompt.level,
-                                   prompt.authInfo);
-        } catch (e if (e instanceof Components.Exception) &&
-                       e.result == Cr.NS_ERROR_NOT_AVAILABLE) {
-          self.log("_doAsyncPrompt:run bypassed, UI is not available in this context");
-        } catch (e) {
-          Components.utils.reportError("LoginManagerPrompter: " +
-              "_doAsyncPrompt:run: " + e + "\n");
-        }
+        if (!this.cancel) {
+          try {
+            self.log("_doAsyncPrompt:run - performing the prompt for '" + hashKey + "'");
+            ok = prompter.promptAuth(prompt.channel,
+                                     prompt.level,
+                                     prompt.authInfo);
+          } catch (e) {
+            if (e instanceof Components.Exception &&
+                e.result == Cr.NS_ERROR_NOT_AVAILABLE) {
+              self.log("_doAsyncPrompt:run bypassed, UI is not available in this context");
+            } else {
+              Components.utils.reportError("LoginManagerPrompter: " +
+                                           "_doAsyncPrompt:run: " + e + "\n");
+            }
+          }
 
-        delete self._asyncPrompts[hashKey];
-        prompt.inProgress = false;
-        self._asyncPromptInProgress = false;
+          delete self._asyncPrompts[hashKey];
+          prompt.inProgress = false;
+          self._asyncPromptInProgress = false;
+
+          if (browser) {
+            // Reset the counter state if the user replied to a prompt and actually
+            // tried to login (vs. simply clicking any button to get out).
+            if (ok && (prompt.authInfo.username || prompt.authInfo.password)) {
+              browser.canceledAuthenticationPromptCounter[baseDomain] = 0;
+            } else {
+              browser.canceledAuthenticationPromptCounter[baseDomain] += 1;
+            }
+          }
+        }
 
         for (var consumer of prompt.consumers) {
           if (!consumer.callback)
@@ -128,15 +162,36 @@ LoginManagerPromptFactory.prototype = {
 
           self.log("Calling back to " + consumer.callback + " ok=" + ok);
           try {
-            if (ok)
+            if (ok) {
               consumer.callback.onAuthAvailable(consumer.context, prompt.authInfo);
-            else
-              consumer.callback.onAuthCancelled(consumer.context, true);
+            } else {
+              consumer.callback.onAuthCancelled(consumer.context, !this.cancel);
+            }
           } catch (e) { /* Throw away exceptions caused by callback */ }
         }
         self._doAsyncPrompt();
       }
     };
+
+    var cancelDialogLimit = Services.prefs.getIntPref("prompts.authentication_dialog_abuse_limit");
+
+    if (browser) {
+      let cancelationCounter = browser.canceledAuthenticationPromptCounter[baseDomain];
+      this.log("cancelationCounter ="+ cancelationCounter);
+      if (cancelDialogLimit && cancelationCounter >= cancelDialogLimit) {
+        this.log("Blocking auth dialog, due to exceeding dialog bloat limit");
+        delete this._asyncPrompts[hashKey];
+
+        // just make the runnable cancel all consumers
+        runnable.cancel = true;
+      } else {
+        this._asyncPromptInProgress = true;
+        prompt.inProgress = true;
+      }
+    } else {
+      this._asyncPromptInProgress = true;
+      prompt.inProgress = true;
+    }
 
     Services.tm.mainThread.dispatch(runnable, Ci.nsIThread.DISPATCH_NORMAL);
     this.log("_doAsyncPrompt:run dispatched");

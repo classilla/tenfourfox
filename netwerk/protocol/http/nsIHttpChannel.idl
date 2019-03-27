@@ -384,4 +384,10 @@ interface nsIHttpChannel : nsIChannel
      * Identifies the scheduling context for this load.
      */
     [noscript] attribute nsID schedulingContextID;
+
+    /**
+     * ID of the top-level document's inner window.  Identifies the content
+     * this channel is being loaded in.
+     */
+    attribute uint64_t topLevelContentWindowId;
 };

@@ -36,6 +36,8 @@
 #include "nsContentSecurityManager.h"
 #include "nsIDeprecationWarner.h"
 #include "nsICompressConvStats.h"
+#include "nsIDocument.h"
+#include "nsIDOMWindowUtils.h"
 
 #ifdef OS_POSIX
 #include "chrome/common/file_descriptor_set_posix.h"
@@ -1870,6 +1872,18 @@ HttpChannelChild::ContinueAsyncOpen()
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
+  // This id identifies the inner window's top-level document,
+  // which changes on every new load or navigation.
+  uint64_t contentWindowId = 0;
+  if (tabChild) {
+    MOZ_ASSERT(tabChild->WebNavigation());
+    nsCOMPtr<nsIDocument> document = tabChild->GetDocument();
+    if (document) {
+      contentWindowId = document->InnerWindowID();
+    }
+  }
+  SetTopLevelContentWindowId(contentWindowId);
+
   HttpChannelOpenArgs openArgs;
   // No access to HttpChannelOpenArgs members, but they each have a
   // function with the struct name that returns a ref.
@@ -1969,6 +1983,8 @@ HttpChannelChild::ContinueAsyncOpen()
   char scid[NSID_LENGTH];
   mSchedulingContextID.ToProvidedString(scid);
   openArgs.schedulingContextID().AssignASCII(scid);
+
+  openArgs.contentWindowId() = contentWindowId;
 
   // The socket transport in the chrome process now holds a logical ref to us
   // until OnStopRequest, or we do a redirect, or we hit an IPDL error.

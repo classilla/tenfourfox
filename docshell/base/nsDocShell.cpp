@@ -84,6 +84,7 @@
 #include "nsWhitespaceTokenizer.h"
 #include "nsICookieService.h"
 #include "nsIConsoleReportCollector.h"
+#include "nsILoginManagerPrompter.h"
 
 // we want to explore making the document own the load group
 // so we can associate the document URI with the load group.
@@ -13169,6 +13170,35 @@ nsDocShell::GetAuthPrompt(uint32_t aPromptReason, const nsIID& aIID,
 
   // Get the an auth prompter for our window so that the parenting
   // of the dialogs works as it should when using tabs.
+  // Since we don't go through E10S, we need to set the browser element
+  // manually (a la dom/ipc/TabParent) so that we can check elements
+  // that may be set on it, such as HTTP Auth DOS (TenFourFox issue 547).
+
+  NS_ASSERTION(mScriptGlobal, "We don't have a script global");
+  if (MOZ_LIKELY(mScriptGlobal)) {
+    nsCOMPtr<Element> frameElement = mScriptGlobal->GetFrameElementInternal();
+    if (MOZ_LIKELY(frameElement)) {
+      nsCOMPtr<nsIContent> frame = do_QueryInterface(frameElement);
+      if (MOZ_LIKELY(frame)) {
+        nsCOMPtr<nsISupports> prompt;
+        nsCOMPtr<nsIDOMWindow> window = do_QueryInterface(frame->OwnerDoc()->GetWindow());
+        if (MOZ_LIKELY(window) &&
+            NS_SUCCEEDED(wwatch->GetPrompt(window, aIID,
+                                           getter_AddRefs(prompt))) &&
+            MOZ_LIKELY(prompt)) {
+          nsCOMPtr<nsIDOMElement> browser = do_QueryInterface(frameElement);
+          if (MOZ_LIKELY(browser)) {
+            nsCOMPtr<nsILoginManagerPrompter> prompter = do_QueryInterface(prompt);
+            if (MOZ_LIKELY(prompter))
+              prompter->SetE10sData(browser, nullptr);
+          }
+          *aResult = prompt.forget().take();
+          return NS_OK;
+        }
+      }
+    }
+    NS_WARNING("Unable to connect browser to auth prompt, falling back");
+  }
 
   return wwatch->GetPrompt(mScriptGlobal, aIID,
                            reinterpret_cast<void**>(aResult));

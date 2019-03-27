@@ -133,7 +133,8 @@ HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs)
                        a.loadInfo(), a.synthesizedResponseHead(),
                        a.synthesizedSecurityInfoSerialization(),
                        a.cacheKey(), a.schedulingContextID(), a.preflightArgs(),
-                       a.initialRwin(), a.suspendAfterSynthesizeResponse());
+                       a.initialRwin(), a.suspendAfterSynthesizeResponse(),
+                       a.contentWindowId());
   }
   case HttpChannelCreationArgs::THttpChannelConnectArgs:
   {
@@ -386,7 +387,8 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
                                  const nsCString&           aSchedulingContextID,
                                  const OptionalCorsPreflightArgs& aCorsPreflightArgs,
                                  const uint32_t&            aInitialRwin,
-                                 const bool&                aSuspendAfterSynthesizeResponse)
+                                 const bool&                aSuspendAfterSynthesizeResponse,
+                                 const uint64_t&            aContentWindowId)
 {
   nsCOMPtr<nsIURI> uri = DeserializeURI(aURI);
   if (!uri) {
@@ -440,6 +442,7 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
     return SendFailedAsyncOpen(rv);
 
   mChannel = static_cast<nsHttpChannel *>(channel.get());
+  mChannel->SetTopLevelContentWindowId(aContentWindowId);
   mChannel->SetWarningReporter(this);
   mChannel->SetTimingEnabled(true);
   if (mPBOverride != kPBOverride_Unset) {
