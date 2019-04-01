@@ -494,7 +494,7 @@ pref("media.track.enabled", false);
 
 // Whether to enable MediaSource support.
 pref("media.mediasource.enabled", true);
-pref("media.mediasource.mp4.enabled", false);
+pref("media.mediasource.mp4.enabled", true);
 pref("media.mediasource.webm.enabled", true);
 pref("media.mediasource.webm.audio.enabled", true);
 
