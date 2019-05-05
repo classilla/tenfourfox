@@ -578,6 +578,9 @@ static BOOL didInit = NO;
     return nil;
   }
 
+#if DEBUG
+  fprintf(stderr, "AppleScript: scriptTab: %i\n", tabIndex);
+#endif
   return [GeckoTab tabWithIndex:tabIndex andContentWindow:contentWindow andWindow:self];
 }
 
@@ -885,6 +888,7 @@ static BOOL didInit = NO;
 }
 
 - (NSString*)handleRunJavaScriptCommand:(NSScriptCommand*)command {
+  NS_WARNING("AppleScript: runJavaScript");
   nsCOMPtr<nsIApplescriptService> applescriptService(do_GetService("@mozilla.org/applescript-service;1"));
   if (applescriptService) {
     NSDictionary *args = [command evaluatedArguments];
@@ -896,6 +900,9 @@ static BOOL didInit = NO;
 
         s.Assign([script UTF8String]);
         r.Truncate();
+#if DEBUG
+        fprintf(stderr, "AppleScript: run script: win %i tab %i\n", [mWindow orderedIndex], mIndex);
+#endif
         if (NS_SUCCEEDED(applescriptService->RunScriptInTabAtIndexInWindow(mIndex,
                                                                            [mWindow orderedIndex],
                                                                            s, r, &ok))) {

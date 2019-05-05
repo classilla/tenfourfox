@@ -942,7 +942,14 @@ BrowserGlue.prototype = {
         },
         getCurrentTabInWindow : function(index, tab_index) {
           let win = this.getWindow(index);
-          return win.content;
+          if (win != null) {
+            let tab = win.content;
+            if (tab != null) {
+              tab_index.value = win.gBrowser.tabContainer.selectedIndex;
+              return tab;
+            }
+          }
+          return null;
         },
         createTabAtIndexInWindow : function(index, window_index) {
           let win = this.getWindow(window_index);
