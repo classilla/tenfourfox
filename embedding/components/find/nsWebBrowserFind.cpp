@@ -756,7 +756,7 @@ nsWebBrowserFind::SearchInFrame(nsIDOMWindow* aWindow, bool aWrapping,
 
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = find->Find(mSearchString.get(), searchRange, startPt, endPt,
+  rv = find->Find(mSearchString, searchRange, startPt, endPt,
                   getter_AddRefs(foundRange));
 
   if (NS_SUCCEEDED(rv) && foundRange) {

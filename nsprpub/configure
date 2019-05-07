@@ -6543,7 +6543,7 @@ fi
     fi
 
     AS='$(CC) -x assembler-with-cpp'
-    CFLAGS="$CFLAGS -Wall -fno-common"
+    CFLAGS="$CFLAGS -Wall -fno-common -DFD_SETSIZE=10240 -D_DARWIN_UNLIMITED_SELECT"
     case "${target_cpu}" in
         arm*)
             CPU_ARCH=arm
