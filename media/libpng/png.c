@@ -4599,7 +4599,7 @@ png_image_free(png_imagep image)
       image->opaque->error_buf == NULL)
    {
       /* Ignore errors here: */
-      (void)png_safe_execute(image, png_image_free_function, image);
+      png_image_free_function(image);
       image->opaque = NULL;
    }
 }

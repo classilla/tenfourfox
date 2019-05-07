@@ -708,6 +708,7 @@ DataTransfer::SetDataAtInternal(const nsAString& aFormat, nsIVariant* aData,
   // don't allow non-chrome to add file data
   // XXX perhaps this should also limit any non-string type as well
   if ((aFormat.EqualsLiteral("application/x-moz-file-promise") ||
+       aFormat.EqualsLiteral("text/x-moz-place") ||
        aFormat.EqualsLiteral("application/x-moz-file")) &&
        !nsContentUtils::IsSystemPrincipal(aSubjectPrincipal)) {
     return NS_ERROR_DOM_SECURITY_ERR;
