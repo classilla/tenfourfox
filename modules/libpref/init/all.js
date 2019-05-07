@@ -2462,9 +2462,9 @@ pref("layout.testing.overlay-scrollbars.always-visible", false);
 pref("layout.interruptible-reflow.enabled", true);
 
 // pref to control browser frame rate, in Hz. A value <= 0 means choose
-// automatically based on knowledge of the platform (or 60Hz if no platform-
+// automatically based on knowledge of the platform (or 30Hz if no platform-
 // specific information is available).
-pref("layout.frame_rate", -1);
+pref("layout.frame_rate", 30); // whyyyyyyyyy
 
 // pref to dump the display list to the log. Useful for debugging drawing.
 pref("layout.display-list.dump", false);
