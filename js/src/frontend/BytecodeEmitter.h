@@ -659,6 +659,9 @@ struct BytecodeEmitter
     bool emitSuperElemOp(ParseNode* pn, JSOp op, bool isCall = false);
 };
 
+static constexpr size_t MaxBytecodeLength = INT32_MAX;
+static constexpr size_t MaxSrcNotesLength = INT32_MAX;
+
 } /* namespace frontend */
 } /* namespace js */
 

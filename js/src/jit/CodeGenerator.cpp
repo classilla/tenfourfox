@@ -844,21 +844,8 @@ CodeGenerator::visitFunctionDispatch(LFunctionDispatch* lir)
 {
     MFunctionDispatch* mir = lir->mir();
     Register input = ToRegister(lir->input());
-    Label* lastLabel;
-    size_t casesWithFallback;
-
-    // Determine if the last case is fallback or an ordinary case.
-    if (!mir->hasFallback()) {
-        MOZ_ASSERT(mir->numCases() > 0);
-        casesWithFallback = mir->numCases();
-        lastLabel = skipTrivialBlocks(mir->getCaseBlock(mir->numCases() - 1))->lir()->label();
-    } else {
-        casesWithFallback = mir->numCases() + 1;
-        lastLabel = skipTrivialBlocks(mir->getFallback())->lir()->label();
-    }
-
-    // Compare function pointers, except for the last case.
-    for (size_t i = 0; i < casesWithFallback - 1; i++) {
+    // Compare function pointers
+    for (size_t i = 0; i < mir->numCases(); i++) {
         MOZ_ASSERT(i < mir->numCases());
         LBlock* target = skipTrivialBlocks(mir->getCaseBlock(i))->lir();
         if (ObjectGroup* funcGroup = mir->getCaseObjectGroup(i)) {
@@ -870,8 +857,14 @@ CodeGenerator::visitFunctionDispatch(LFunctionDispatch* lir)
         }
     }
 
-    // Jump to the last case.
-    masm.jump(lastLabel);
+    // If at the end, and we have a fallback, we can jump to the fallback block.
+    if (mir->hasFallback()) {
+        masm.jump(skipTrivialBlocks(mir->getFallback())->lir()->label());
+        return;
+    }
+
+    // Otherwise, crash.
+    masm.assumeUnreachable("Did not match input function!");
 }
 
 void
@@ -914,13 +907,12 @@ CodeGenerator::visitObjectGroupDispatch(LObjectGroupDispatch* lir)
 
     if (!mir->hasFallback()) {
         MOZ_ASSERT(lastBranch.isInitialized());
-#ifdef DEBUG
+
         Label ok;
         lastBranch.relink(&ok);
         lastBranch.emit(masm);
         masm.assumeUnreachable("Unexpected ObjectGroup");
         masm.bind(&ok);
-#endif
         if (!isNextBlock(lastBlock))
             masm.jump(lastBlock->label());
         return;
