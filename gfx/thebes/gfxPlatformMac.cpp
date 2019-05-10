@@ -291,6 +291,7 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("www.apple.com", "/wss/fonts/SF-Pro-Display/v1/");
 
                     HTTP_OR_HTTPS_SUBDIR("lib.intuitcdn.net", "/fonts/AvenirNext/1.0/");
+                    HTTP_OR_HTTPS_SUBDIR("lib.intuitcdn.net", "/fonts/AvenirNext/3.0/");
 
                     HTTP_OR_HTTPS_SUBDIR("use.typekit.net", "/af/e3bd4a/00000000000000003b9ade5d/");
                     HTTP_OR_HTTPS_SUBDIR("use.typekit.net", "/af/dd9acd/0000000000000000000177dc/");
@@ -299,6 +300,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("platform-assets.typekit.net", "/AND-Regular.");
 
                     HTTP_OR_HTTPS_SUBDIR("ici.radio-canada.ca", "/unit/app/assets/fonts/Radio-Canada/");
+
+                    HTTP_OR_HTTPS_SUBDIR("www.adac.de", "/assets/font/milo-");
 
                     // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");
