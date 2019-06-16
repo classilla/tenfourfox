@@ -1,0 +1,105 @@
+// a.js
+//    http://zymerget.bid
+        BLOK("alflying.date") ||
+        BLOK("alflying.win") ||
+        BLOK("anybest.site") ||
+        BLOK("flightsy.bid") ||
+        BLOK("flightsy.win") ||
+        BLOK("flightzy.bid") ||
+        BLOK("flightzy.date") ||
+        BLOK("flightzy.win") ||
+        BLOK("zymerget.bid") ||
+        BLOK("zymerget.faith") ||
+// CashBeet
+//    http://cashbeet.com
+        BLOK("cashbeet.com") ||
+        BLOK("serv1swork.com") ||
+// CoinHive
+//    https://coinhive.com
+        BLOK("ad-miner.com") ||
+        BLOK("authedmine.com") ||
+        BLOK("bmst.pw") ||
+        BLOK("cnhv.co") ||
+        BLOK("coin-hive.com") ||
+        BLOK("coinhive.com") ||
+        BLOK("wsservices.org") ||
+// CoinPot
+//    http://coinpot.co
+        BLOK("coinpot.co") ||
+// CryptoLoot
+//    https://crypto-loot.com
+        BLOK("cryptaloot.pro") ||
+        BLOK("crypto-loot.com") ||
+        BLOK("cryptolootminer.com") ||
+        BLOK("flashx.pw") ||
+        BLOK("gitgrub.pro") ||
+        BLOK("reauthenticator.com") ||
+        BLOK("statdynamic.com") ||
+        BLOK("webmine.pro") ||
+// CryptoWebMiner
+//    https://www.crypto-webminer.com
+        BLOK("bitcoin-pay.eu") ||
+        BLOK("crypto-webminer.com") ||
+        BLOK("ethpocket.de") ||
+        BLOK("ethtrader.de") ||
+// Gridcash
+//    https://www.gridcash.net/
+        BLOK("adless.io") ||
+        BLOK("gridcash.net") ||
+// JSE
+//    http://jsecoin.com
+        BLOK("freecontent.bid") ||
+        BLOK("freecontent.date") ||
+        BLOK("freecontent.stream") ||
+        BLOK("hashing.win") ||
+        BLOK("hostingcloud.racing") ||
+        BLOK("hostingcloud.science") ||
+        BLOK("jsecoin.com") ||
+// MinerAlt
+//    http://mineralt.io
+        BLOK("1q2w3.website") ||
+        BLOK("analytics.blue") ||
+        BLOK("aster18cdn.nl") ||
+        BLOK("belicimo.pw") ||
+        BLOK("besstahete.info") ||
+        BLOK("dinorslick.icu") ||
+        BLOK("feesocrald.com") ||
+        BLOK("gramombird.com") ||
+        BLOK("istlandoll.com") ||
+        BLOK("mepirtedic.com") ||
+        BLOK("mineralt.io") ||
+        BLOK("pampopholf.com") ||
+        BLOK("tercabilis.info") ||
+        BLOK("tulip18.com") ||
+        BLOK("vidzi.tv") ||
+        BLOK("yololike.space") ||
+// Minescripts
+//    http://minescripts.info
+        BLOK("minescripts.info") ||
+        BLOK("sslverify.info") ||
+// MineXMR
+//    http://minexmr.stream
+        BLOK("minexmr.stream") ||
+// NeroHut
+//    https://nerohut.com
+        BLOK("nerohut.com") ||
+        BLOK("nhsrv.cf") ||
+// Service4refresh
+//    https://service4refresh.info
+        BLOK("service4refresh.info") ||
+// SpareChange
+//    http://sparechange.io
+        BLOK("sparechange.io") ||
+// SwiftMining
+//    https://swiftmining.win/
+        BLOK("swiftmining.win") ||
+// Webmine
+//    https://webmine.cz/
+        BLOK("authedwebmine.cz") ||
+        BLOK("webmine.cz") ||
+// WebminePool
+//    http://webminepool.com
+        BLOK("webminepool.com") ||
+// Webmining
+//    https://webmining.co/
+        BLOK("webmining.co") ||

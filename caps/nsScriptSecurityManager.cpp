@@ -1151,6 +1151,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("buy.tinypass.com") ||
                 BLOK("cdn.tinypass.com") ||
+#include "shavar-blocklist.h"
 
                     0) {
 #undef BLOK
