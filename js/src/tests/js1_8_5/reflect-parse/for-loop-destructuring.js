@@ -26,6 +26,8 @@ assertStmt("for each ({a:x,b:y,c:z} in foo);", forEachInStmt(axbycz, ident("foo"
 assertStmt("for each (var [x,y,z] in foo);", forEachInStmt(varDecl([{ id: xyz, init: null }]), ident("foo"), emptyStmt));
 assertStmt("for each (let [x,y,z] in foo);", forEachInStmt(letDecl([{ id: xyz, init: null }]), ident("foo"), emptyStmt));
 assertStmt("for each ([x,y,z] in foo);", forEachInStmt(xyz, ident("foo"), emptyStmt));
+/*
+// Enabled by TenFourFox issue 541
 assertError("for (const x in foo);", SyntaxError);
 assertError("for (const {a:x,b:y,c:z} in foo);", SyntaxError);
 assertError("for (const [x,y,z] in foo);", SyntaxError);
@@ -35,6 +37,7 @@ assertError("for (const [x,y,z] of foo);", SyntaxError);
 assertError("for each (const x in foo);", SyntaxError);
 assertError("for each (const {a:x,b:y,c:z} in foo);", SyntaxError);
 assertError("for each (const [x,y,z] in foo);", SyntaxError);
+*/
 
 assertError("for (x = 22 in foo);", SyntaxError);-
 assertError("for ({a:x,b:y,c:z} = 22 in foo);", SyntaxError);

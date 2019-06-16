@@ -5502,7 +5502,7 @@ BytecodeEmitter::emitIterator()
 bool
 BytecodeEmitter::emitForInOrOfVariables(ParseNode* pn)
 {
-    MOZ_ASSERT(pn->isKind(PNK_VAR) || pn->isKind(PNK_LET));
+    MOZ_ASSERT(pn->isKind(PNK_VAR) || pn->isKind(PNK_LET) || pn->isKind(PNK_CONST));
 
     // ES6 specifies that loop variables get a fresh binding in each iteration.
     // This is currently implemented for C-style for(;;) loops, but not
@@ -5524,7 +5524,7 @@ BytecodeEmitter::emitForInOrOfVariables(ParseNode* pn)
         if (!emitVariables(pn, DefineVars))
             return false;
     } else {
-        MOZ_ASSERT(pn->isKind(PNK_LET));
+        MOZ_ASSERT(pn->isKind(PNK_LET) || pn->isKind(PNK_CONST));
         if (!emitVariables(pn, InitializeVars))
             return false;
     }

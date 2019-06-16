@@ -4581,12 +4581,15 @@ Parser<ParseHandler>::declarationPattern(Node decl, TokenKind tt, BindData<Parse
             *forHeadKind = PNK_FORHEAD;
 
         if (*forHeadKind != PNK_FORHEAD) {
+// TenFourFox issue 541
+#if(0)
             // |for (const ... in ...);| and |for (const ... of ...);| are
             // syntax errors for now.  We'll fix this in bug 449811.
             if (handler.declarationIsConst(decl)) {
                 report(ParseError, false, pattern, JSMSG_BAD_CONST_DECL);
                 return null();
             }
+#endif
 
             if (!checkDestructuringPattern(data, pattern))
                 return null();
@@ -4786,9 +4789,14 @@ Parser<ParseHandler>::declarationName(Node decl, TokenKind tt, BindData<ParseHan
                 return null();
 
             if (isForIn || isForOf) {
+// TenFourFox issue 541
+#if(0)
                 // XXX Uncomment this when fixing bug 449811.  Until then,
                 //     |for (const ... in/of ...)| remains an error.
                 //constRequiringInitializer = false;
+#else
+                constRequiringInitializer = false;
+#endif
 
                 *forHeadKind = isForIn ? PNK_FORIN : PNK_FOROF;
             } else {
