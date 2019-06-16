@@ -83,8 +83,9 @@ DoDrawImageSecurityCheck(dom::HTMLCanvasElement *aCanvasElement,
         return;
     }
 
-    if (aCanvasElement->IsWriteOnly())
+    if (aCanvasElement->IsWriteOnly() && !aCanvasElement->mExpandedReader) {
         return;
+    }
 
     // If we explicitly set WriteOnly just do it and get out
     if (forceWriteOnly) {
@@ -103,6 +104,11 @@ DoDrawImageSecurityCheck(dom::HTMLCanvasElement *aCanvasElement,
         return;
     }
 
+    // XXX: Bug 1502799 implements an expanded reader flag to allow extensions
+    // to look at canvas data under defined conditions. However, we don't
+    // really have a need for this because our old XUL add-ons are chrome
+    // anyway, or do we? See the check above against mExpandedReader.
+
     aCanvasElement->SetWriteOnly();
 }
 
@@ -119,6 +125,26 @@ CoerceDouble(JS::Value v, double* d)
         return false;
     }
     return true;
+}
+
+bool CheckWriteOnlySecurity(bool aCORSUsed, nsIPrincipal* aPrincipal) {
+  if (!aPrincipal) {
+    return true;
+  }
+
+  if (!aCORSUsed) {
+    nsIGlobalObject* incumbentSettingsObject = dom::GetIncumbentGlobal();
+    if (NS_WARN_IF(!incumbentSettingsObject)) {
+      return true;
+    }
+
+    nsIPrincipal* principal = incumbentSettingsObject->PrincipalOrNull();
+    if (NS_WARN_IF(!principal) || !(principal->Subsumes(aPrincipal))) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 } // namespace CanvasUtils

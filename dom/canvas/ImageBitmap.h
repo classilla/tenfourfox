@@ -110,9 +110,14 @@ public:
   friend CreateImageBitmapFromBlobTask;
   friend CreateImageBitmapFromBlobWorkerTask;
 
+  bool IsWriteOnly() const
+  {
+    return mWriteOnly;
+  }
+
 protected:
 
-  ImageBitmap(nsIGlobalObject* aGlobal, layers::Image* aData);
+  ImageBitmap(nsIGlobalObject* aGlobal, layers::Image* aData, bool aWriteOnly);
 
   virtual ~ImageBitmap();
 
@@ -173,6 +178,13 @@ protected:
    * to draw this ImageBitmap into a HTMLCanvasElement.
    */
   gfx::IntRect mPictureRect;
+
+  /*
+   * Write-Only flag is set to true if this image has been generated from a
+   * cross-origin source. This is the opposite of what is called 'origin-clean'
+   * in the spec.
+   */
+  bool mWriteOnly;
 };
 
 } // namespace dom

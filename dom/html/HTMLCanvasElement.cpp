@@ -621,8 +621,8 @@ NS_IMETHODIMP
 HTMLCanvasElement::ToDataURL(const nsAString& aType, JS::Handle<JS::Value> aParams,
                              JSContext* aCx, nsAString& aDataURL)
 {
-  // do a trust check if this is a write-only canvas
-  if (mWriteOnly && !nsContentUtils::IsCallerChrome()) {
+  // mWriteOnly check is redundant, but optimizes for the common case.
+  if (mWriteOnly && !CallerCanRead(aCx)) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
@@ -751,8 +751,8 @@ HTMLCanvasElement::ToBlob(JSContext* aCx,
                           JS::Handle<JS::Value> aParams,
                           ErrorResult& aRv)
 {
-  // do a trust check if this is a write-only canvas
-  if (mWriteOnly && !nsContentUtils::IsCallerChrome()) {
+  // mWriteOnly check is redundant, but optimizes for the common case.
+  if (mWriteOnly && !CallerCanRead(aCx)) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
@@ -935,15 +935,45 @@ HTMLCanvasElement::GetSize()
 }
 
 bool
-HTMLCanvasElement::IsWriteOnly()
-{
-  return mWriteOnly;
-}
+HTMLCanvasElement::IsWriteOnly() const { return mWriteOnly; }
 
 void
 HTMLCanvasElement::SetWriteOnly()
 {
+  mExpandedReader = nullptr;
   mWriteOnly = true;
+}
+
+void
+HTMLCanvasElement::SetWriteOnly(nsIPrincipal* aExpandedReader)
+{
+  mExpandedReader = aExpandedReader;
+  mWriteOnly = true;
+}
+
+bool
+HTMLCanvasElement::CallerCanRead(JSContext* aCx)
+{
+  if (!mWriteOnly) {
+    return true;
+  }
+
+// XXX: We don't implement expanded readers yet, and may not need them.
+#if(0)
+  nsIPrincipal* prin = nsContentUtils::SubjectPrincipal(aCx);
+
+  // If mExpandedReader is set, this canvas was tainted only by
+  // mExpandedReader's resources. So allow reading if the subject
+  // principal subsumes mExpandedReader.
+  if (mExpandedReader && prin->Subsumes(mExpandedReader)) {
+    return true;
+  }
+
+  return nsContentUtils::PrincipalHasPermission(prin, nsGkAtoms::all_urlsPermission);
+#else
+  // This is essentially what we did before, modulo the write-only check.
+  return nsContentUtils::IsCallerChrome();
+#endif
 }
 
 void
