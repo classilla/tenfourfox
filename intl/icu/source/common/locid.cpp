@@ -1,3 +1,5 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
  **********************************************************************
  *   Copyright (C) 1997-2015, International Business Machines
@@ -57,6 +59,12 @@ static UInitOnce gLocaleCacheInitOnce = U_INITONCE_INITIALIZER;
 static UMutex gDefaultLocaleMutex = U_MUTEX_INITIALIZER;
 static UHashtable *gDefaultLocalesHashT = NULL;
 static Locale *gDefaultLocale = NULL;
+
+/**
+ * \def ULOC_STRING_LIMIT
+ * strings beyond this value crash in CharString
+ */
+#define ULOC_STRING_LIMIT 357913941
 
 /**
  * \def ULOC_STRING_LIMIT
