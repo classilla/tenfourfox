@@ -553,7 +553,14 @@ void
 HttpChannelChild::DoOnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
 {
   LOG(("HttpChannelChild::DoOnStartRequest [this=%p]\n", this));
-  nsresult rv = mListener->OnStartRequest(aRequest, aContext);
+  nsresult rv;
+  if (MOZ_LIKELY(mListener)) {
+    nsCOMPtr<nsIStreamListener> listener(mListener);
+    rv = listener->OnStartRequest(aRequest, aContext);
+  } else {
+    rv = NS_ERROR_UNEXPECTED;
+  }
+
   if (NS_FAILED(rv)) {
     Cancel(rv);
     return;
@@ -817,9 +824,12 @@ HttpChannelChild::DoOnDataAvailable(nsIRequest* aRequest, nsISupports* aContext,
   if (mCanceled)
     return;
 
-  nsresult rv = mListener->OnDataAvailable(aRequest, aContext, aStream, offset, count);
-  if (NS_FAILED(rv)) {
-    Cancel(rv);
+  if (MOZ_LIKELY(mListener)) {
+    nsCOMPtr<nsIStreamListener> listener(mListener);
+    nsresult rv = listener->OnDataAvailable(aRequest, aContext, aStream, offset, count);
+    if (NS_FAILED(rv)) {
+      Cancel(rv);
+    }
   }
 }
 
@@ -982,7 +992,10 @@ HttpChannelChild::DoOnStopRequest(nsIRequest* aRequest, nsresult aChannelStatus,
     nsChannelClassifier::SetBlockedTrackingContent(this);
   }
 
-  mListener->OnStopRequest(aRequest, aContext, mStatus);
+  if (MOZ_LIKELY(mListener)) {
+    nsCOMPtr<nsIStreamListener> listener(mListener);
+    listener->OnStopRequest(aRequest, aContext, mStatus);
+  }
 
   mListener = 0;
   mListenerContext = 0;

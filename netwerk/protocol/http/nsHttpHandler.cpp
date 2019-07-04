@@ -2233,7 +2233,7 @@ nsHttpHandler::SpeculativeConnectInternal(nsIURI *aURI,
     nsAutoCString username;
     aURI->GetUsername(username);
 
-    nsHttpConnectionInfo *ci =
+    RefPtr<nsHttpConnectionInfo> ci =
         new nsHttpConnectionInfo(host, port, EmptyCString(), username, nullptr, usingSSL);
     ci->SetAnonymous(anonymous);
 

@@ -1673,8 +1673,9 @@ Http2Session::RecvPushPromise(Http2Session *self)
   RefPtr<Http2PushTransactionBuffer> transactionBuffer =
     new Http2PushTransactionBuffer();
   transactionBuffer->SetConnection(self);
-  Http2PushedStream *pushedStream =
-    new Http2PushedStream(transactionBuffer, self, associatedStream, promisedID);
+  nsAutoPtr<Http2PushedStream> pushedStream(
+    new Http2PushedStream(transactionBuffer, self, associatedStream, promisedID)
+  );
 
   rv = pushedStream->ConvertPushHeaders(&self->mDecompressor,
                                         self->mDecompressBuffer,
@@ -1683,7 +1684,6 @@ Http2Session::RecvPushPromise(Http2Session *self)
   if (rv == NS_ERROR_NOT_IMPLEMENTED) {
     LOG3(("Http2Session::PushPromise Semantics not Implemented\n"));
     self->GenerateRstStream(REFUSED_STREAM_ERROR, promisedID);
-    delete pushedStream;
     return NS_OK;
   }
 
@@ -1691,7 +1691,6 @@ Http2Session::RecvPushPromise(Http2Session *self)
     // This means the decompression completed ok, but there was a problem with
     // the decoded headers. Reset the stream and go away.
     self->GenerateRstStream(PROTOCOL_ERROR, promisedID);
-    delete pushedStream;
     return NS_OK;
   } else if (NS_FAILED(rv)) {
     // This is fatal to the session.
@@ -1699,14 +1698,17 @@ Http2Session::RecvPushPromise(Http2Session *self)
     return rv;
   }
 
+  WeakPtr<Http2Stream> pushedWeak = pushedStream.forget();
+
   // Ownership of the pushed stream is by the transaction hash, just as it
   // is for a client initiated stream. Errors that aren't fatal to the
   // whole session must call cleanupStream() after this point in order
   // to remove the stream from that hash.
-  self->mStreamTransactionHash.Put(transactionBuffer, pushedStream);
-  self->mPushedStreams.AppendElement(pushedStream);
+  self->mStreamTransactionHash.Put(transactionBuffer, pushedWeak);
+  self->mPushedStreams.AppendElement(
+      static_cast<Http2PushedStream*>(pushedWeak.get()));
 
-  if (self->RegisterStreamID(pushedStream, promisedID) == kDeadStreamID) {
+  if (self->RegisterStreamID(pushedWeak, promisedID) == kDeadStreamID) {
     LOG3(("Http2Session::RecvPushPromise registerstreamid failed\n"));
     self->mGoAwayReason = INTERNAL_ERROR;
     return NS_ERROR_FAILURE;
@@ -1718,23 +1720,24 @@ Http2Session::RecvPushPromise(Http2Session *self)
   // Fake the request side of the pushed HTTP transaction. Sets up hash
   // key and origin
   uint32_t notUsed;
-  pushedStream->ReadSegments(nullptr, 1, &notUsed);
+  pushedWeak->ReadSegments(nullptr, 1, &notUsed);
 
   nsAutoCString key;
-  if (!pushedStream->GetHashKey(key)) {
+  if (!static_cast<Http2PushedStream*>(pushedWeak.get())->GetHashKey(key)) {
     LOG3(("Http2Session::RecvPushPromise one of :authority :scheme :path missing from push\n"));
-    self->CleanupStream(pushedStream, NS_ERROR_FAILURE, PROTOCOL_ERROR);
+    self->CleanupStream(pushedWeak, NS_ERROR_FAILURE, PROTOCOL_ERROR);
     self->ResetDownstreamState();
     return NS_OK;
   }
 
+  // does the pushed origin belong on this connection?
   RefPtr<nsStandardURL> associatedURL, pushedURL;
   rv = Http2Stream::MakeOriginURL(associatedStream->Origin(), associatedURL);
   if (NS_SUCCEEDED(rv)) {
-    rv = Http2Stream::MakeOriginURL(pushedStream->Origin(), pushedURL);
+    rv = Http2Stream::MakeOriginURL(pushedWeak->Origin(), pushedURL);
   }
   LOG3(("Http2Session::RecvPushPromise %p checking %s == %s", self,
-        associatedStream->Origin().get(), pushedStream->Origin().get()));
+        associatedStream->Origin().get(), pushedWeak->Origin().get()));
   bool match = false;
   if (NS_SUCCEEDED(rv)) {
     rv = associatedURL->Equals(pushedURL, &match);
@@ -1742,36 +1745,38 @@ Http2Session::RecvPushPromise(Http2Session *self)
   if (NS_FAILED(rv)) {
     // Fallback to string equality of origins. This won't be guaranteed to be as
     // liberal as we want it to be, but it will at least be safe
-    match = associatedStream->Origin().Equals(pushedStream->Origin());
+    match = associatedStream->Origin().Equals(pushedWeak->Origin());
   }
   if (!match) {
     LOG3(("Http2Session::RecvPushPromise %p pushed stream mismatched origin "
           "associated origin %s .. pushed origin %s\n", self,
-          associatedStream->Origin().get(), pushedStream->Origin().get()));
-    self->CleanupStream(pushedStream, NS_ERROR_FAILURE, REFUSED_STREAM_ERROR);
+          associatedStream->Origin().get(), pushedWeak->Origin().get()));
+    self->CleanupStream(pushedWeak, NS_ERROR_FAILURE, REFUSED_STREAM_ERROR);
     self->ResetDownstreamState();
     return NS_OK;
   }
 
-  if (pushedStream->TryOnPush()) {
+  if (static_cast<Http2PushedStream*>(pushedWeak.get())->TryOnPush()) {
     LOG3(("Http2Session::RecvPushPromise %p channel implements nsIHttpPushListener "
-          "stream %p will not be placed into session cache.\n", self, pushedStream));
+          "stream %p will not be placed into session cache.\n", self, pushedWeak.get()));
   } else {
     LOG3(("Http2Session::RecvPushPromise %p place stream into session cache\n", self));
-    if (!cache->RegisterPushedStreamHttp2(key, pushedStream)) {
+    if (!cache->RegisterPushedStreamHttp2(
+            key, static_cast<Http2PushedStream*>(pushedWeak.get()))) {
+      // This only happens if they've already pushed us this item.
       LOG3(("Http2Session::RecvPushPromise registerPushedStream Failed\n"));
-      self->CleanupStream(pushedStream, NS_ERROR_FAILURE, INTERNAL_ERROR);
+      self->CleanupStream(pushedWeak, NS_ERROR_FAILURE, INTERNAL_ERROR);
       self->ResetDownstreamState();
       return NS_OK;
     }
   }
 
-  pushedStream->SetHTTPState(Http2Stream::RESERVED_BY_REMOTE);
+  pushedWeak->SetHTTPState(Http2Stream::RESERVED_BY_REMOTE);
   static_assert(Http2Stream::kWorstPriority >= 0,
                 "kWorstPriority out of range");
   uint8_t priorityWeight = (nsISupportsPriority::PRIORITY_LOWEST + 1) -
     (Http2Stream::kWorstPriority - Http2Stream::kNormalPriority);
-  pushedStream->SetPriority(Http2Stream::kWorstPriority);
+  pushedWeak->SetPriority(Http2Stream::kWorstPriority);
   self->GeneratePriority(promisedID, priorityWeight);
   self->ResetDownstreamState();
   return NS_OK;

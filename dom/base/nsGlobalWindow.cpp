@@ -2126,11 +2126,13 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument* aNewDocument)
   }
 
   bool equal;
-  if (NS_SUCCEEDED(mDoc->NodePrincipal()->Equals(aNewDocument->NodePrincipal(),
-                                                 &equal)) &&
-      equal) {
+  if (NS_SUCCEEDED(
+      BasePrincipal::Cast(mDoc->NodePrincipal())->
+        EqualsConsideringDomain(aNewDocument->NodePrincipal(),
+          &equal))) {
+    // Return the result. If true (bug 1552541):
     // The origin is the same.
-    return true;
+    return equal;
   }
 
   return false;
