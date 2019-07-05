@@ -121,6 +121,24 @@ private:
   uint32_t mBufferedHTTP1Consumed;
 };
 
+class Http2PushedStreamWrapper : public nsISupports {
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  bool DispatchRelease();
+
+  explicit Http2PushedStreamWrapper(Http2PushedStream* aPushStream);
+
+  nsCString& GetRequestString() { return mRequestString; }
+  Http2PushedStream* GetStream();
+  void OnPushFailed();
+
+ private:
+  virtual ~Http2PushedStreamWrapper();
+
+  nsCString mRequestString;
+  WeakPtr<Http2Stream> mStream;
+};
+
 } // namespace net
 } // namespace mozilla
 

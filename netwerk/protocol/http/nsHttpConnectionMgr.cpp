@@ -2060,11 +2060,15 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
 
     trans->SetPendingTime();
 
-    Http2PushedStream *pushedStream = trans->GetPushedStream();
-    if (pushedStream) {
-        return pushedStream->Session()->
-            AddStream(trans, trans->Priority(), false, nullptr) ?
-            NS_OK : NS_ERROR_UNEXPECTED;
+    RefPtr<Http2PushedStreamWrapper> pushedStreamWrapper =
+        trans->GetPushedStream();
+    if (pushedStreamWrapper) {
+        Http2PushedStream* pushedStream = pushedStreamWrapper->GetStream();
+        if (pushedStream) {
+            return pushedStream->Session()->
+                AddStream(trans, trans->Priority(), false, nullptr) ?
+                    NS_OK : NS_ERROR_UNEXPECTED;
+        }
     }
 
     nsresult rv = NS_OK;

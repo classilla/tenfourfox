@@ -120,7 +120,8 @@ public:
                           uint32_t aProxyResolveFlags,
                           nsIURI *aProxyURI) override;
 
-    nsresult OnPush(const nsACString &uri, Http2PushedStream *pushedStream);
+    nsresult OnPush(const nsACString &uri,
+                    Http2PushedStreamWrapper *pushedStream);
 
     static bool IsRedirectStatus(uint32_t status);
 
@@ -411,7 +412,7 @@ private:
     nsresult OpenCacheInputStream(nsICacheEntry* cacheEntry, bool startBuffering,
                                   bool checkingAppCacheEntry);
 
-    void SetPushedStream(Http2PushedStream *stream);
+    void SetPushedStream(Http2PushedStreamWrapper *stream);
 
     void MaybeWarnAboutAppCache();
 
@@ -522,7 +523,7 @@ private:
     // Needed for accurate DNS timing
     RefPtr<nsDNSPrefetch>           mDNSPrefetch;
 
-    Http2PushedStream                 *mPushedStream;
+    RefPtr<Http2PushedStreamWrapper> mPushedStream;
     // True if the channel's principal was found on a phishing, malware, or
     // tracking (if tracking protection is enabled) blocklist
     bool                              mLocalBlocklist;
