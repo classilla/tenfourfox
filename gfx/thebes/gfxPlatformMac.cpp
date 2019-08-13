@@ -222,6 +222,14 @@ gfxPlatformMac::MakePlatformFont(const nsAString& aFontName,
 
 // Automates a whole buncha boilerplate.
 // Since HTTPS is becoming more common, check that first.
+#define EXACT_URL(x) \
+    { \
+      if(spec.Equals(x)) { \
+         failed = true; \
+         goto halt_font; \
+      } \
+    }
+
 #define HTTP_OR_HTTPS_SUBDIR(x, y) \
     { \
       if (hostname.Equals(x)) { \
@@ -270,6 +278,16 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 #if DEBUG
                 fprintf(stderr, "Font blacklist checking: %s\n", spec.get());
 #endif
+
+                // Check exact matches. wm.com has some that work and some
+                // that don't, and because they are hashed we can't pattern.
+                // Use this section for future one-offs since it is faster.
+                EXACT_URL("https://www.wm.com/etc.clientlibs/wm/clientlibs/react-app/resources/fonts/56c766e2-7578-4ae7-8531-1c063c276d37.woff");
+                EXACT_URL("https://www.wm.com/etc.clientlibs/wm/clientlibs/react-app/resources/fonts/92ebef0f-380f-40af-b2e3-7d3275cb73cd.woff");
+                EXACT_URL("https://www.wm.com/etc.clientlibs/wm/clientlibs/react-app/resources/fonts/5652257a-eb06-43ed-b7b9-77444c65f9e6.woff");
+                EXACT_URL("https://www.wm.com/etc.clientlibs/wm/clientlibs/react-app/resources/fonts/4f99cc7e-9e83-4698-bf36-c7033e16db05.woff");
+                EXACT_URL("https://www.wm.com/etc.clientlibs/wm/clientlibs/react-app/resources/fonts/4d27f3a7-2889-440f-a415-734d7d9e80a7.woff");
+
                 // Get the hostname to eliminate creating unnecessary test strings.
                 nsAutoCString hostname;
                 if (MOZ_LIKELY(NS_SUCCEEDED(aFontURI->GetHost(hostname)))) {
