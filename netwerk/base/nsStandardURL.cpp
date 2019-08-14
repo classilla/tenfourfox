@@ -6,6 +6,7 @@
 
 #include "IPCMessageUtils.h"
 
+#include "nsASCIIMask.h"
 #include "nsStandardURL.h"
 #include "nsCRT.h"
 #include "nsEscape.h"
@@ -39,6 +40,25 @@ bool nsStandardURL::gInitialized = false;
 bool nsStandardURL::gEscapeUTF8 = true;
 bool nsStandardURL::gAlwaysEncodeInUTF8 = true;
 char nsStandardURL::gHostLimitDigits[] = { '/', '\\', '?', '#', 0 };
+
+// Invalid host characters
+// We still allow % because it is in the ID of addons.
+// Any percent encoded ASCII characters that are not allowed in the
+// hostname are not percent decoded, and will be parsed just fine.
+//
+// Note that the array below will be initialized at compile time,
+// so we do not need to "optimize" TestForInvalidHostCharacters.
+//
+constexpr bool TestForInvalidHostCharacters(char c)
+{
+    // Testing for these:
+    // CONTROL_CHARACTERS " #/:?@[\\]*<>|\"";
+    return (c > 0 && c < 32) || // The control characters are [1, 31]
+           c == ' ' || c == '#' || c == '/' || c == ':' || c == '?' ||
+           c == '@' || c == '[' || c == '\\' || c == ']' || c == '*' ||
+           c == '<' || c == '>' || c == '|' || c == '"' || c == '^';
+}
+constexpr ASCIIMaskArray sInvalidHostChars = CreateASCIIMask(TestForInvalidHostCharacters);
 
 //
 // setenv NSPR_LOG_MODULES nsStandardURL:5
@@ -446,14 +466,13 @@ nsStandardURL::ValidIPv6orHostname(const char *host, uint32_t length)
         return false;
     }
 
-    const char *end = host + length;
-    if (end != net_FindCharInSet(host, end, "\t\n\v\f\r ^#/:?@[\\]")) {
-        // We still allow % because it is in the ID of addons.
-        // Any percent encoded ASCII characters that are not allowed in the
-        // hostname are not percent decoded, and will be parsed just fine.
-        return false;
+    const char* end = host + length;
+    const char* iter = host;
+    for (; iter != end && *iter; ++iter) {
+        if (ASCIIMask::IsMasked(sInvalidHostChars, *iter)) {
+            return false;
+        }
     }
-
     return true;
 }
 
