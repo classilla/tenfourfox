@@ -3633,6 +3633,7 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
   static const char kHttpOnly[]  = "httponly";
   static const char kSameSite[]     = "samesite";
   static const char kSameSiteLax[]  = "lax";
+  static const char kSameSiteNone[]  = "none";
   static const char kSameSiteStrict[]    = "strict";
 
   nsASingleFragmentCString::const_char_iterator tempBegin, tempEnd;
@@ -3693,7 +3694,11 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
       aCookieAttributes.isHttpOnly = true;
 
     else if (tokenString.LowerCaseEqualsLiteral(kSameSite)) {
-      if (tokenValue.LowerCaseEqualsLiteral(kSameSiteLax)) {
+      if (tokenValue.LowerCaseEqualsLiteral(kSameSiteNone)) {
+        // Currently redundant, but may be necessary if the default
+        // changes in the future. TenFourFox issue 567.
+        aCookieAttributes.sameSite = nsICookie2::SAMESITE_UNSET;
+      } else if (tokenValue.LowerCaseEqualsLiteral(kSameSiteLax)) {
         aCookieAttributes.sameSite = nsICookie2::SAMESITE_LAX;
       } else if (tokenValue.LowerCaseEqualsLiteral(kSameSiteStrict)) {
         aCookieAttributes.sameSite = nsICookie2::SAMESITE_STRICT;
