@@ -821,6 +821,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 
                 BLOK("cas.criteo.com") ||
                 BLOK("rtax.criteo.com") ||
+                BLOK("bidder.criteo.com") ||
                 BLOK("static.criteo.net") ||
                 
                 BLOK("jsc.idealmedia.com") ||
@@ -1082,6 +1083,10 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("api.addmee.net") ||
 
+                BLOK("spl.zeotap.com") ||
+
+                BLOK("cubchannel.com") ||
+
                 BLOK("a.intentmedia.net") ||
                 BLOK("a.cdn.intentmedia.net") ||
 
@@ -1158,6 +1163,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("buy.tinypass.com") ||
                 BLOK("cdn.tinypass.com") ||
+                BLOK("experience.tinypass.com") ||
 
                 BLOK("www.medtargetsystem.com") ||
 
