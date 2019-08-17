@@ -30,7 +30,7 @@
 
 #include "nsIAtom.h"
 #include "nsHtml5AtomTable.h"
-#include "nsString.h"
+#include "nsHtml5String.h"
 #include "nsNameSpaceManager.h"
 #include "nsIContent.h"
 #include "nsTraceRefcnt.h"
@@ -61,7 +61,7 @@ nsHtml5HtmlAttributes::nsHtml5HtmlAttributes(int32_t mode)
   : mode(mode),
     length(0),
     names(jArray<nsHtml5AttributeName*,int32_t>::newJArray(5)),
-    values(jArray<nsString*,int32_t>::newJArray(5))
+    values(jArray<nsHtml5String,int32_t>::newJArray(5))
 {
   MOZ_COUNT_CTOR(nsHtml5HtmlAttributes);
 }
@@ -84,7 +84,7 @@ nsHtml5HtmlAttributes::getIndex(nsHtml5AttributeName* name)
   return -1;
 }
 
-nsString* 
+nsHtml5String
 nsHtml5HtmlAttributes::getValue(nsHtml5AttributeName* name)
 {
   int32_t index = getIndex(name);
@@ -122,7 +122,7 @@ nsHtml5HtmlAttributes::getPrefixNoBoundsCheck(int32_t index)
   return names[index]->getPrefix(mode);
 }
 
-nsString* 
+nsHtml5String
 nsHtml5HtmlAttributes::getValueNoBoundsCheck(int32_t index)
 {
   MOZ_ASSERT(index < length && index >= 0, "Index out of bounds");
@@ -137,14 +137,14 @@ nsHtml5HtmlAttributes::getAttributeNameNoBoundsCheck(int32_t index)
 }
 
 void 
-nsHtml5HtmlAttributes::addAttribute(nsHtml5AttributeName* name, nsString* value)
+nsHtml5HtmlAttributes::addAttribute(nsHtml5AttributeName* name, nsHtml5String value)
 {
   if (names.length == length) {
     int32_t newLen = length << 1;
     jArray<nsHtml5AttributeName*,int32_t> newNames = jArray<nsHtml5AttributeName*,int32_t>::newJArray(newLen);
     nsHtml5ArrayCopy::arraycopy(names, newNames, names.length);
     names = newNames;
-    jArray<nsString*,int32_t> newValues = jArray<nsString*,int32_t>::newJArray(newLen);
+    jArray<nsHtml5String,int32_t> newValues = jArray<nsHtml5String,int32_t>::newJArray(newLen);
     nsHtml5ArrayCopy::arraycopy(values, newValues, values.length);
     values = newValues;
   }
@@ -159,7 +159,7 @@ nsHtml5HtmlAttributes::clear(int32_t m)
   for (int32_t i = 0; i < length; i++) {
     names[i]->release();
     names[i] = nullptr;
-    nsHtml5Portability::releaseString(values[i]);
+    values[i].Release();
     values[i] = nullptr;
   }
   length = 0;
@@ -169,7 +169,7 @@ nsHtml5HtmlAttributes::clear(int32_t m)
 void 
 nsHtml5HtmlAttributes::releaseValue(int32_t i)
 {
-  nsHtml5Portability::releaseString(values[i]);
+  values[i].Release();
 }
 
 void 
