@@ -24,6 +24,7 @@
     macro(ArrayValues, ArrayValues, "ArrayValues") \
     macro(ArrayValuesAt, ArrayValuesAt, "ArrayValuesAt") \
     macro(Async, Async, "Async") \
+    macro(async, async, "async") \
     macro(await, await, "await") \
     macro(breakdown, breakdown, "breakdown") \
     macro(buffer, buffer, "buffer") \

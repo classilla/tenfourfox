@@ -93,6 +93,7 @@ enum UnaryOperator {
     UNOP_BITNOT,
     UNOP_TYPEOF,
     UNOP_VOID,
+    UNOP_AWAIT,
 
     UNOP_LIMIT
 };
@@ -162,7 +163,8 @@ static const char* const unopNames[] = {
     "!",       /* UNOP_NOT */
     "~",       /* UNOP_BITNOT */
     "typeof",  /* UNOP_TYPEOF */
-    "void"     /* UNOP_VOID */
+    "void",    /* UNOP_VOID */
+    "await"    /* UNOP_AWAIT */
 };
 
 static const char* const nodeTypeNames[] = {
@@ -466,7 +468,7 @@ class NodeBuilder
     bool function(ASTType type, TokenPos* pos,
                   HandleValue id, NodeVector& args, NodeVector& defaults,
                   HandleValue body, HandleValue rest, GeneratorStyle generatorStyle,
-                  bool isExpression, MutableHandleValue dst);
+                  bool isAsync, bool isExpression, MutableHandleValue dst);
 
     bool variableDeclarator(HandleValue id, HandleValue init, TokenPos* pos,
                             MutableHandleValue dst);
@@ -1602,7 +1604,7 @@ bool
 NodeBuilder::function(ASTType type, TokenPos* pos,
                       HandleValue id, NodeVector& args, NodeVector& defaults,
                       HandleValue body, HandleValue rest,
-                      GeneratorStyle generatorStyle, bool isExpression,
+                      GeneratorStyle generatorStyle, bool isAsync, bool isExpression,
                       MutableHandleValue dst)
 {
     RootedValue array(cx), defarray(cx);
@@ -1613,6 +1615,7 @@ NodeBuilder::function(ASTType type, TokenPos* pos,
 
     bool isGenerator = generatorStyle != GeneratorStyle::None;
     RootedValue isGeneratorVal(cx, BooleanValue(isGenerator));
+    RootedValue isAsyncVal(cx, BooleanValue(isAsync));
     RootedValue isExpressionVal(cx, BooleanValue(isExpression));
 
     RootedValue cb(cx, callbacks[type]);
@@ -1636,6 +1639,7 @@ NodeBuilder::function(ASTType type, TokenPos* pos,
                        "body", body,
                        "rest", rest,
                        "generator", isGeneratorVal,
+                       "async", isAsyncVal,
                        "style", styleVal,
                        "expression", isExpressionVal,
                        dst);
@@ -1648,6 +1652,7 @@ NodeBuilder::function(ASTType type, TokenPos* pos,
                    "body", body,
                    "rest", rest,
                    "generator", isGeneratorVal,
+                   "async", isAsyncVal,
                    "expression", isExpressionVal,
                    dst);
 }
@@ -1818,6 +1823,7 @@ class ASTSerializer
 
     bool function(ParseNode* pn, ASTType type, MutableHandleValue dst);
     bool functionArgsAndBody(ParseNode* pn, NodeVector& args, NodeVector& defaults,
+                             bool isAsync, bool isExpression,
                              MutableHandleValue body, MutableHandleValue rest);
     bool functionBody(ParseNode* pn, TokenPos* pos, MutableHandleValue dst);
 
@@ -1892,6 +1898,9 @@ ASTSerializer::unop(ParseNodeKind kind, JSOp op)
 
     if (IsTypeofKind(kind))
         return UNOP_TYPEOF;
+
+    if (kind == PNK_AWAIT)
+        return UNOP_AWAIT;
 
     switch (op) {
       case JSOP_NEG:
@@ -2974,6 +2983,7 @@ ASTSerializer::expression(ParseNode* pn, MutableHandleValue dst)
       case PNK_NOT:
       case PNK_BITNOT:
       case PNK_POS:
+      case PNK_AWAIT:
       case PNK_NEG: {
         MOZ_ASSERT(pn->pn_pos.encloses(pn->pn_kid->pn_pos));
 
@@ -3464,6 +3474,7 @@ ASTSerializer::function(ParseNode* pn, ASTType type, MutableHandleValue dst)
            : GeneratorStyle::ES6)
         : GeneratorStyle::None;
 
+    bool isAsync = pn->pn_funbox->isAsync();
     bool isExpression =
 #if JS_HAS_EXPR_CLOSURES
         func->isExprBody();
@@ -3484,13 +3495,14 @@ ASTSerializer::function(ParseNode* pn, ASTType type, MutableHandleValue dst)
         rest.setUndefined();
     else
         rest.setNull();
-    return functionArgsAndBody(pn->pn_body, args, defaults, &body, &rest) &&
+    return functionArgsAndBody(pn->pn_body, args, defaults, isAsync, isExpression, &body, &rest) &&
         builder.function(type, &pn->pn_pos, id, args, defaults, body,
-                         rest, generatorStyle, isExpression, dst);
+                         rest, generatorStyle, isAsync, isExpression, dst);
 }
 
 bool
 ASTSerializer::functionArgsAndBody(ParseNode* pn, NodeVector& args, NodeVector& defaults,
+                                   bool isAsync, bool isExpression,
                                    MutableHandleValue body, MutableHandleValue rest)
 {
     ParseNode* pnargs;
@@ -3519,6 +3531,14 @@ ASTSerializer::functionArgsAndBody(ParseNode* pn, NodeVector& args, NodeVector& 
         if (pnstart && pnstart->isKind(PNK_YIELD)) {
             MOZ_ASSERT(pnstart->getOp() == JSOP_INITIALYIELD);
             pnstart = pnstart->pn_next;
+        }
+
+        // Async arrow with expression body is converted into STATEMENTLIST
+        // to insert initial yield.
+        if (isAsync && isExpression) {
+            MOZ_ASSERT(pnstart->getKind() == PNK_RETURN);
+            return functionArgs(pn, pnargs, pnbody, args, defaults, rest) &&
+                   expression(pnstart->pn_kid, body);
         }
 
         return functionArgs(pn, pnargs, pnbody, args, defaults, rest) &&

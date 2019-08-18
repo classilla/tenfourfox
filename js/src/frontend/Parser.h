@@ -116,6 +116,11 @@ struct MOZ_STACK_CLASS ParseContext : public GenericParseContext
     static const uint32_t NoYieldOffset = UINT32_MAX;
     uint32_t         lastYieldOffset;
 
+    // lastAwaitOffset stores the offset of the last await that was parsed.
+    // NoAwaitOffset is its initial value.
+    static const uint32_t NoAwaitOffset = UINT32_MAX;
+    uint32_t         lastAwaitOffset;
+
     // Most functions start off being parsed as non-generators.
     // Non-generators transition to LegacyGenerator on parsing "yield" in JS 1.7.
     // An ES6 generator is marked as a "star generator" before its body is parsed.
@@ -128,6 +133,10 @@ struct MOZ_STACK_CLASS ParseContext : public GenericParseContext
 
     bool isAsync() const {
         return sc->isFunctionBox() && sc->asFunctionBox()->isAsync();
+    }
+
+    FunctionAsyncKind asyncKind() const {
+        return isAsync() ? AsyncFunction : SyncFunction;
     }
 
     bool isArrowFunction() const {
@@ -267,6 +276,7 @@ struct MOZ_STACK_CLASS ParseContext : public GenericParseContext
         stmtStack(prs->context),
         maybeFunction(maybeFunction),
         lastYieldOffset(NoYieldOffset),
+        lastAwaitOffset(NoAwaitOffset),
         blockScopeDepth(0),
         blockNode(ParseHandler::null()),
         decls_(prs->context, prs->alloc),
@@ -375,6 +385,7 @@ enum class PropertyType {
     SetterNoExpressionClosure,
     Method,
     GeneratorMethod,
+    AsyncMethod,
     Constructor,
     DerivedConstructor
 };
@@ -653,6 +664,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
 
     inline Node newName(PropertyName* name);
     inline Node newYieldExpression(uint32_t begin, Node expr, bool isYieldStar = false);
+    inline Node newAwaitExpression(uint32_t begin, Node expr);
 
     inline bool abortIfSyntaxParser();
 
@@ -705,7 +717,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     // inside a star generator.
     bool checkYieldNameValidity();
     bool yieldExpressionsSupported() {
-        return versionNumber() >= JSVERSION_1_7 || pc->isGenerator();
+        return (versionNumber() >= JSVERSION_1_7 || pc->isGenerator()) && !pc->isAsync();
     }
 
     virtual bool strictMode() { return pc->sc->strict(); }
@@ -739,8 +751,10 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
      * Some parsers have two versions:  an always-inlined version (with an 'i'
      * suffix) and a never-inlined version (with an 'n' suffix).
      */
-    Node functionStmt(YieldHandling yieldHandling, DefaultHandling defaultHandling);
-    Node functionExpr(InvokedPrediction invoked = PredictUninvoked);
+    Node functionStmt(YieldHandling yieldHandling, DefaultHandling defaultHandling,
+                      FunctionAsyncKind asyncKind = SyncFunction);
+    Node functionExpr(InvokedPrediction invoked = PredictUninvoked,
+                      FunctionAsyncKind asyncKind = SyncFunction);
     Node statements(YieldHandling yieldHandling);
 
     Node blockStatement(YieldHandling yieldHandling);
@@ -844,7 +858,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     Node assignExpr(InHandling inHandling, YieldHandling yieldHandling,
                     TripledotHandling tripledotHandling,
                     InvokedPrediction invoked = PredictUninvoked);
-    Node assignExprWithoutYield(YieldHandling yieldHandling, unsigned err);
+    Node assignExprWithoutYieldOrAwait(YieldHandling yieldHandling);
     Node yieldExpression(InHandling inHandling);
     Node condExpr1(InHandling inHandling, YieldHandling yieldHandling,
                    TripledotHandling tripledotHandling,
@@ -915,8 +929,8 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     bool argumentList(YieldHandling yieldHandling, Node listNode, bool* isSpread);
     Node destructuringExpr(YieldHandling yieldHandling, BindData<ParseHandler>* data,
                            TokenKind tt);
-    Node destructuringExprWithoutYield(YieldHandling yieldHandling, BindData<ParseHandler>* data,
-                                       TokenKind tt, unsigned msg);
+    Node destructuringExprWithoutYieldOrAwait(YieldHandling yieldHandling, BindData<ParseHandler>* data,
+                                              TokenKind tt);
 
     Node newBoundImportForCurrentName();
     bool namedImportsOrNamespaceImport(TokenKind tt, Node importSpecSet);
@@ -1072,6 +1086,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     void addTelemetry(JSCompartment::DeprecatedLanguageExtension e);
 
     bool warnOnceAboutExprClosure();
+    bool warnOnceAboutAsyncFuncs();
 
     friend class LegacyCompExprTransplanter;
     friend struct BindData<ParseHandler>;

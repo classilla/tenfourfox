@@ -170,6 +170,7 @@ static bool enableIon = false;
 static bool enableAsmJS = false;
 static bool enableNativeRegExp = false;
 static bool enableUnboxedArrays = false;
+static bool enableAsyncFuncs = true;
 #ifdef JS_GC_ZEAL
 static char gZealStr[128];
 #endif
@@ -1688,6 +1689,68 @@ PrintErr(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return PrintInternal(cx, args, gErrFile);
+}
+
+static bool
+SetTimeout(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    if (args.length() < 2) {
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
+                             "setTimeout", args.length() == 0 ? "0" : "1", "s");
+        return false;
+    }
+
+    RootedValue rval(cx);
+    JS::AutoValueVector argValues(cx);
+    argValues.append(args.get(0));
+    argValues.append(args.get(1));
+    HandleValueArray arr(argValues);
+
+    JSAtom* setTimeoutAtom;
+    if (!(setTimeoutAtom = Atomize(cx, "setTimeout", 10)))
+        return false;
+
+    RootedPropertyName name(cx, setTimeoutAtom->asPropertyName());
+    RootedValue selfHostedFun(cx);
+
+    if (!GlobalObject::getIntrinsicValue(cx, cx->global(), name, &selfHostedFun))
+        return false;
+
+    RootedObject undef(cx);
+    if (!JS_CallFunctionValue(cx, undef, selfHostedFun, arr, &rval))
+        return false;
+
+    args.rval().set(rval);
+    return true;
+}
+
+static bool
+RunEvents(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    RootedValue rval(cx);
+    JS::AutoValueVector argValues(cx);
+    HandleValueArray arr(argValues);
+
+    JSAtom* runEvents;
+    if (!(runEvents = Atomize(cx, "runEvents", 9)))
+        return false;
+
+    RootedPropertyName name(cx, runEvents->asPropertyName());
+    RootedValue selfHostedFun(cx);
+
+    if (!GlobalObject::getIntrinsicValue(cx, cx->global(), name, &selfHostedFun))
+        return false;
+
+    RootedObject undef(cx);
+    if (!JS_CallFunctionValue(cx, undef, selfHostedFun, arr, &rval))
+        return false;
+
+    args.rval().set(rval);
+    return true;
 }
 
 static bool
@@ -4861,6 +4924,15 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "dateNow()",
 "  Return the current time with sub-ms precision."),
 
+    JS_FN_HELP("setTimeout", SetTimeout, 2, 2,
+"setTimeout(fn, timeout)",
+"  Execute a function after a specified timeout. Currently only 0 is supported."),
+
+    JS_FN_HELP("runEvents", RunEvents, 2, 2,
+"runEvents()",
+"  Run events that were scheduled using setTimeout() calls.\n"
+"  This call is required, because there is no real event loop."),
+
     JS_FN_HELP("help", Help, 0, 0,
 "help([name ...])",
 "  Display usage and help messages."),
@@ -6244,11 +6316,13 @@ SetRuntimeOptions(JSRuntime* rt, const OptionParser& op)
     enableAsmJS = !op.getBoolOption("no-asmjs");
     enableNativeRegExp = !op.getBoolOption("no-native-regexp");
     enableUnboxedArrays = op.getBoolOption("unboxed-arrays");
+    enableAsyncFuncs = !op.getBoolOption("no-async-funcs");
 
     JS::RuntimeOptionsRef(rt).setBaseline(enableBaseline)
                              .setIon(enableIon)
                              .setAsmJS(enableAsmJS)
                              .setNativeRegExp(enableNativeRegExp)
+                             .setAsyncFuncs(enableAsyncFuncs)
                              .setUnboxedArrays(enableUnboxedArrays);
 
     if (op.getBoolOption("no-unboxed-objects"))
@@ -6495,6 +6569,7 @@ SetWorkerRuntimeOptions(JSRuntime* rt)
                              .setIon(enableIon)
                              .setAsmJS(enableAsmJS)
                              .setNativeRegExp(enableNativeRegExp)
+                             .setAsyncFuncs(enableAsyncFuncs)
                              .setUnboxedArrays(enableUnboxedArrays);
     rt->setOffthreadIonCompilationEnabled(offthreadCompilation);
     rt->profilingScripts = enableCodeCoverage || enableDisassemblyDumps;
@@ -6653,6 +6728,8 @@ main(int argc, char** argv, char** envp)
         || !op.addBoolOption('\0', "no-asmjs", "Disable asm.js compilation")
         || !op.addBoolOption('\0', "no-native-regexp", "Disable native regexp compilation")
         || !op.addBoolOption('\0', "no-unboxed-objects", "Disable creating unboxed plain objects")
+        || !op.addBoolOption('\0', "no-async-funcs",
+                               "Make async/await a syntax error (TenFourFox #521)")
         || !op.addBoolOption('\0', "unboxed-arrays", "Allow creating unboxed arrays")
         || !op.addStringOption('\0', "ion-shared-stubs", "on/off",
                                "Use shared stubs (default: off, on to enable)")

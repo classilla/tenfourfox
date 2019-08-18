@@ -51,6 +51,7 @@ JSCompartment::JSCompartment(Zone* zone, const JS::CompartmentOptions& options =
     marked(true),
     warnedAboutFlagsArgument(false),
     warnedAboutExprClosure(false),
+    warnedAboutAsyncFuncs(false),
     addonId(options.addonIdOrNull()),
 #ifdef DEBUG
     firedOnNewGlobalObject(false),

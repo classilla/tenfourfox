@@ -2058,6 +2058,7 @@ BytecodeEmitter::checkSideEffects(ParseNode* pn, bool* answer)
 
       case PNK_YIELD_STAR:
       case PNK_YIELD:
+      case PNK_AWAIT:
         MOZ_ASSERT(pn->isArity(PN_BINARY));
         *answer = true;
         return true;
@@ -6489,6 +6490,11 @@ BytecodeEmitter::emitFunction(ParseNode* pn, bool needsProto)
 }
 
 bool
+BytecodeEmitter::emitAsyncWrapper(unsigned index, bool needsHomeObject) {
+    MOZ_CRASH("NYI");
+}
+
+bool
 BytecodeEmitter::emitDo(ParseNode* pn)
 {
     /* Emit an annotated nop so IonBuilder can recognize the 'do' loop. */
@@ -8472,6 +8478,7 @@ BytecodeEmitter::emitTree(ParseNode* pn, EmitLineNumberNote emitLineNote)
         break;
 
       case PNK_YIELD:
+      case PNK_AWAIT:
         if (!emitYield(pn))
             return false;
         break;

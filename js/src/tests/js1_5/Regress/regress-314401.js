@@ -6,14 +6,16 @@
 
 //-----------------------------------------------------------------------------
 var BUGNUMBER = 314401;
-var summary = 'setTimeout(eval,0,"",null)|setTimeout(Script,0,"",null) should not crash';
+var summary = 'shellSetTimeout(eval,0,"",null)|shellSetTimeout(Script,0,"",null) should not crash';
 var actual = 'No Crash';
 var expect = 'No Crash';
+
+// NOTE: probably a bogus test now after TenFourFox issue 521
 
 printBugNumber(BUGNUMBER);
 printStatus (summary);
 
-if (typeof setTimeout == 'undefined')
+if (typeof shellSetTimeout == 'undefined')
 {
   reportCompare(expect, actual, 'Test Skipped.');
 }
@@ -24,26 +26,26 @@ else
 
   try
   {
-    setTimeout(eval, 0, '', null);
+    shellSetTimeout(eval, 0, '', null);
   }
   catch(ex)
   {
     printStatus(ex+'');
   }
 
-  reportCompare(expect, actual, 'setTimeout(eval, 0, "", null)');
+  reportCompare(expect, actual, 'shellSetTimeout(eval, 0, "", null)');
 
   if (typeof Script != 'undefined')
   {
     try
     {
-      setTimeout(Script, 0, '', null);
+      shellSetTimeout(Script, 0, '', null);
     }
     catch(ex)
     {
       printStatus(ex+'');
     }
-    reportCompare(expect, actual, 'setTimeout(Script, 0, "", null)');
+    reportCompare(expect, actual, 'shellSetTimeout(Script, 0, "", null)');
   }
 
   try
@@ -68,5 +70,5 @@ else
     } 
     reportCompare(expect, actual, 'setInterval(Script, 0, "", null)');
   }
-  setTimeout('gDelayTestDriverEnd = false; jsTestDriverEnd();', 0);
+  shellSetTimeout('gDelayTestDriverEnd = false; jsTestDriverEnd();', 0);
 }

@@ -345,6 +345,8 @@ UNIFIED_SOURCES += [
 
 # jsarray.cpp and jsatom.cpp cannot be built in unified mode because
 # xpcshell is broken during packaging when compiled with gcc-4.8.2
+# builtin/Promise.cpp cannot be built in unified mode because it makes
+# certain parts of RegExp* go together which shouldn't.
 # builtin/RegExp.cpp cannot be built in unified mode because it is built
 # without PGO
 # frontend/Parser.cpp cannot be built in unified mode because of explicit
@@ -357,6 +359,7 @@ UNIFIED_SOURCES += [
 # instantiations may or may not be needed depending on what it gets bundled
 # with.
 SOURCES += [
+    'builtin/Promise.cpp',
     'builtin/RegExp.cpp',
     'frontend/Parser.cpp',
     'gc/StoreBuffer.cpp',
@@ -693,6 +696,7 @@ selfhosted.inputs = [
     'builtin/SelfHostingDefines.h',
     'builtin/Utilities.js',
     'builtin/Array.js',
+    'builtin/AsyncFunctions.js',
     'builtin/Date.js',
     'builtin/Error.js',
     'builtin/Generator.js',
@@ -703,6 +707,7 @@ selfhosted.inputs = [
     'builtin/Module.js',
     'builtin/Number.js',
     'builtin/Object.js',
+    'builtin/Promise.js',
     'builtin/Reflect.js',
     'builtin/RegExp.js',
     'builtin/String.js',

@@ -102,6 +102,7 @@ IF_BDATA(real,imaginary)(SIMD,                  41,     InitSIMDClass, OCLASP(SI
     real(TypedArray,            43,      InitViaClassSpec,      &js::TypedArrayObject::sharedTypedArrayPrototypeClass) \
 IF_SAB(real,imaginary)(Atomics,                 44,     InitAtomicsClass, OCLASP(Atomics)) \
     real(SavedFrame,            45,      InitViaClassSpec,      &js::SavedFrame::class_) \
+    real(ShellPromise,          46,      InitViaClassSpec,      OCLASP(ShellPromise)) \
 
 #define JS_FOR_EACH_PROTOTYPE(macro) JS_FOR_PROTOTYPES(macro,macro)
 

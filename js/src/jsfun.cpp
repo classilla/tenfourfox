@@ -998,6 +998,11 @@ js::FunctionToString(JSContext* cx, HandleFunction fun, bool lambdaParen)
         }
     }
 
+    if (fun->isAsync()) {
+        if (!out.append("async "))
+            return nullptr;
+    }
+
     bool funIsMethodOrNonArrowLambda = (fun->isLambda() && !fun->isArrow()) || fun->isMethod() ||
                                         fun->isGetter() || fun->isSetter();
 
@@ -1007,7 +1012,12 @@ js::FunctionToString(JSContext* cx, HandleFunction fun, bool lambdaParen)
             return nullptr;
     }
     if (!fun->isArrow()) {
-        if (!(fun->isStarGenerator() ? out.append("function* ") : out.append("function ")))
+        bool ok;
+        if (fun->isStarGenerator() && !fun->isAsync())
+            ok = out.append("function* ");
+        else
+            ok = out.append("function ");
+        if (!ok)
             return nullptr;
     }
     if (fun->atom()) {

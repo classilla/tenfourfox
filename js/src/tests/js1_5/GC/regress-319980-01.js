@@ -10,6 +10,8 @@ var summary = 'GC not called during non-fatal out of memory';
 var actual = '';
 var expect = 'Normal Exit';
 
+// NOTE: This test is probably bogus now after TenFourFox issue 521.
+
 printBugNumber(BUGNUMBER);
 printStatus (summary);
 print ('This test should never fail explicitly. ' +
@@ -23,9 +25,9 @@ var testFuncTimerId;
 var maxTests = 5;
 var currTest = 0;
 
-if (typeof setTimeout == 'undefined')
+if (typeof shellSetTimeout == 'undefined')
 {
-  setTimeout = function() {};
+  shellSetTimeout = function() {};
   clearTimeout = function() {};
   actual = 'Normal Exit';
   reportCompare(expect, actual, summary);
@@ -36,7 +38,7 @@ else
   // delay test driver end
   gDelayTestDriverEnd = true;
 
-  setTimeout(testFuncWatcher, 1000);
+  shellSetTimeout(testFuncWatcher, 1000);
 }
 
 function testFuncWatcher()
@@ -60,8 +62,8 @@ function testFuncWatcher()
  
   print('Executing test ' + currTest + '\n');
 
-  testFuncWatcherId = setTimeout("testFuncWatcher()", timeOut);
-  testFuncTimerId = setTimeout(testFunc, interval);
+  testFuncWatcherId = shellSetTimeout("testFuncWatcher()", timeOut);
+  testFuncTimerId = shellSetTimeout(testFunc, interval);
 }
 
 
@@ -120,7 +122,7 @@ function testFunc()
 
   if (testFuncTimerId)
   {
-    testFuncTimerId = setTimeout(testFunc, interval);
+    testFuncTimerId = shellSetTimeout(testFunc, interval);
   }
 }
 

@@ -1564,6 +1564,8 @@ ReloadPrefsCallback(const char* pref, void* data)
 
     bool useAsyncStack = Preferences::GetBool(JS_OPTIONS_DOT_STR "asyncstack");
 
+    bool useAsyncFuncs = Preferences::GetBool(JS_OPTIONS_DOT_STR "asyncfuncs");
+
     bool werror = Preferences::GetBool(JS_OPTIONS_DOT_STR "werror");
 
     bool extraWarnings = Preferences::GetBool(JS_OPTIONS_DOT_STR "strict");
@@ -1577,6 +1579,7 @@ ReloadPrefsCallback(const char* pref, void* data)
                              .setThrowOnAsmJSValidationFailure(throwOnAsmJSValidationFailure)
                              .setNativeRegExp(useNativeRegExp)
                              .setAsyncStack(useAsyncStack)
+                             .setAsyncFuncs(useAsyncFuncs)
                              .setWerror(werror)
                              .setExtraWarnings(extraWarnings);
 
