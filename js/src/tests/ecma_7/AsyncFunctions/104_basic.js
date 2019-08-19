@@ -27,11 +27,12 @@ function okok(x, y, z) { return (typeof y === "function"); }
 assertEq(okok(5, async function(w) { await w+w; }, "ok"), true);
 assertEq(okok(6, (async(w)=>{await w+w}), "ok"), true);
 assertEq(okok(7, ()=>{!async function(){ }}, "ok"), true);
+assertEq(okok(8, async event => { }, "ok"), true);
 
 function yoyo(k) { return new Promise(resolve => { resolve(k+1); }); }
 async function dodo(k) { return await yoyo(k+1); }
-// Just make sure this executes. It currently returns ({ }) in the shell.
-dodo(5);
+// Just make sure this executes. Right now this throws.
+try { dodo(5); } catch(e) { }
 
 if (typeof reportCompare === "function")
     reportCompare(true, true);

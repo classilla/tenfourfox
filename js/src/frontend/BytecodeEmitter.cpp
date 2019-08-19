@@ -3598,6 +3598,20 @@ BytecodeEmitter::emitFunctionScript(ParseNode* body)
         switchToMain();
     }
 
+    if (funbox->isAsync()) {
+        // Currently short-circuit async functions with a throw.
+        // TenFourFox issue 521.
+        if (!emit1(JSOP_NULL))
+            return false;
+        if (!emit1(JSOP_THROW))
+            return false;
+        if (!emit1(JSOP_NULL))
+            return false;
+        if (!emit1(JSOP_RETURN))
+            return false;
+        goto asyncout;
+    }
+
     if (!emitTree(body))
         return false;
 
@@ -3648,6 +3662,7 @@ BytecodeEmitter::emitFunctionScript(ParseNode* body)
         if (!emit1(JSOP_CHECKRETURN))
             return false;
     }
+asyncout:
 
     // Always end the script with a JSOP_RETRVAL. Some other parts of the codebase
     // depend on this opcode, e.g. InterpreterRegs::setToEndOfScript.
