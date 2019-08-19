@@ -2221,9 +2221,13 @@ Parser<ParseHandler>::functionArguments(YieldHandling yieldHandling, FunctionSyn
               }
 
               case TOK_YIELD:
+                // If |yield| is a keyword, this is a syntax error.
+                if (yieldHandling != YieldIsName) {
+                    report(ParseError, false, null(), JSMSG_RESERVED_ID, "yield");
+                    return false;
+                }
                 if (!checkYieldNameValidity())
                     return false;
-                MOZ_ASSERT(yieldHandling == YieldIsName);
                 goto TOK_NAME;
 
               case TOK_TRIPLEDOT:
@@ -3263,9 +3267,11 @@ template <typename ParseHandler>
 bool
 Parser<ParseHandler>::checkYieldNameValidity()
 {
-    // In star generators and in JS >= 1.7, yield is a keyword.  Otherwise in
-    // strict mode, yield is a future reserved word.
-    if (pc->isStarGenerator() || versionNumber() >= JSVERSION_1_7 || pc->sc->strict()) {
+    // We might use this when |yield| isn't a name, so don't assert here.
+    // In JS >= 1.7, yield is a keyword.  Otherwise in
+    // strict mode, yield is a future reserved word. See bug 1305566
+    // and TenFourFox issue 521.
+    if (versionNumber() >= JSVERSION_1_7 || pc->sc->strict()) {
         report(ParseError, false, null(), JSMSG_RESERVED_ID, "yield");
         return false;
     }
@@ -3316,6 +3322,11 @@ Parser<ParseHandler>::functionStmt(YieldHandling yieldHandling, DefaultHandling 
     if (tt == TOK_NAME) {
         name = tokenStream.currentName();
     } else if (tt == TOK_YIELD) {
+        // |yield| must be a name, or this is a syntax error.
+        if (yieldHandling == YieldIsKeyword) {
+            report(ParseError, false, null(), JSMSG_RESERVED_ID, "yield");
+            return null();
+        }
         if (!checkYieldNameValidity())
             return null();
         name = tokenStream.currentName();
@@ -3388,6 +3399,10 @@ Parser<ParseHandler>::functionExpr(InvokedPrediction invoked, FunctionAsyncKind 
     if (tt == TOK_NAME) {
         name = tokenStream.currentName();
     } else if (tt == TOK_YIELD) {
+        if (yieldHandling == YieldIsKeyword) {
+            report(ParseError, false, null(), JSMSG_RESERVED_ID, "yield");
+            return null();
+        }
         if (!checkYieldNameValidity())
             return null();
         name = tokenStream.currentName();
@@ -3662,6 +3677,7 @@ Parser<ParseHandler>::matchLabel(YieldHandling yieldHandling, MutableHandle<Prop
         // Fix bug 1104014, then stop shipping legacy generators in chrome
         // code, then remove this check!
         tokenStream.consumeKnownToken(TOK_YIELD, TokenStream::Operand);
+        MOZ_ASSERT(yieldHandling == YieldIsName);
         if (!checkYieldNameValidity())
             return false;
         label.set(tokenStream.currentName());
@@ -4839,6 +4855,7 @@ Parser<ParseHandler>::declarationName(Node decl, TokenKind tt, BindData<ParseHan
         }
 
         // TOK_YIELD is only okay if it's treated as a name.
+        MOZ_ASSERT(yieldHandling == YieldIsName);
         if (!checkYieldNameValidity())
             return null();
     }
@@ -6578,6 +6595,7 @@ Parser<ParseHandler>::yieldExpression(InHandling inHandling)
           case TOK_RP:
           case TOK_COLON:
           case TOK_COMMA:
+          case TOK_IN:
             // No value.
             exprNode = null();
             tokenStream.addModifierException(TokenStream::NoneIsOperand);
@@ -6885,6 +6903,7 @@ Parser<ParseHandler>::tryStatement(YieldHandling yieldHandling)
 
                 // Even if yield is *not* necessarily a keyword, we still must
                 // check its validity for legacy generators.
+                MOZ_ASSERT(yieldHandling == YieldIsName);
                 if (!checkYieldNameValidity())
                     return null();
                 // Fall through.
@@ -7063,9 +7082,12 @@ Parser<FullParseHandler>::classDefinition(YieldHandling yieldHandling,
     if (tt == TOK_NAME) {
         name = tokenStream.currentName();
     } else if (tt == TOK_YIELD) {
+        if (yieldHandling == YieldIsKeyword) {
+            report(ParseError, false, null(), JSMSG_RESERVED_ID, "yield");
+            return null();
+        }
         if (!checkYieldNameValidity())
             return null();
-        MOZ_ASSERT(yieldHandling != YieldIsKeyword);
         name = tokenStream.currentName();
     } else if (classContext == ClassStatement) {
         if (defaultHandling == AllowDefaultName) {
@@ -7375,6 +7397,10 @@ Parser<ParseHandler>::statement(YieldHandling yieldHandling, bool canHaveDirecti
         if (!tokenStream.peekToken(&next, modifier))
             return null();
         if (next == TOK_COLON) {
+            if (yieldHandling == YieldIsKeyword) {
+                report(ParseError, false, null(), JSMSG_RESERVED_ID, "yield");
+                return null();
+            }
             if (!checkYieldNameValidity())
                 return null();
             return labeledStatement(yieldHandling);
@@ -7902,9 +7928,13 @@ Parser<ParseHandler>::assignExpr(InHandling inHandling, YieldHandling yieldHandl
             return null();
         MOZ_ASSERT(tt == TOK_NAME || tt == TOK_YIELD);
 
-        // Check yield validity here.
-        if (!checkYieldNameValidity())
-            return null();
+        // Allow constructs like (async event => {}). In this case only
+        // check for yield validity if the token actually is |yield|.
+        if (tt == TOK_YIELD) {
+            MOZ_ASSERT(yieldHandling == YieldIsName);
+            if (!checkYieldNameValidity())
+                return null();
+        }
 
         if (!tokenStream.getToken(&tt))
             return null();
@@ -10086,10 +10116,23 @@ Parser<ParseHandler>::objectLiteral(YieldHandling yieldHandling, PossibleError* 
         } else if (propType == PropertyType::Shorthand) {
             /*
              * Support, e.g., |var {x, y} = o| as destructuring shorthand
-             * for |var {x: x, y: y} = o|, per proposed JS2/ES4 for JS1.8.
+             * for |var {x: x, y: y} = o|, and |var o = {x, y}| as initializer
+             * shorthand for |var o = {x: x, y: y}|.
              */
-            if (!tokenStream.checkForKeyword(propAtom, nullptr))
+            TokenKind propToken = TOK_NAME;
+            if (!tokenStream.checkForKeyword(propAtom, &propToken))
                 return null();
+
+            // Allow |yield|, as per bug 1305566 part 5 (TenFourFox issue 521).
+            if (propToken != TOK_NAME && propToken != TOK_YIELD) {
+                report(ParseError, false, null(), JSMSG_RESERVED_ID, TokenKindToDesc(propToken));
+                return null();
+            }
+            if (propToken == TOK_YIELD) {
+                // Use the same rules whether a name or keyword.
+                if (!checkYieldNameValidity())
+                    return null();
+            }
 
             Node nameExpr = identifierName(yieldHandling);
             if (!nameExpr)
@@ -10100,10 +10143,22 @@ Parser<ParseHandler>::objectLiteral(YieldHandling yieldHandling, PossibleError* 
         } else if (propType == PropertyType::CoverInitializedName) {
             /*
              * Support, e.g., |var {x=1, y=2} = o| as destructuring shorthand
-             * with default values, as per ES6 12.14.5 (2016/2/4)
+             * with default values, as per ES6 12.14.5
              */
-            if (!tokenStream.checkForKeyword(propAtom, nullptr))
+            TokenKind propToken = TOK_NAME;
+            if (!tokenStream.checkForKeyword(propAtom, &propToken))
                 return null();
+
+            // Allow |yield|, as per bug 1305566 part 5 (TenFourFox issue 521).
+            if (propToken != TOK_NAME && propToken != TOK_YIELD) {
+                report(ParseError, false, null(), JSMSG_RESERVED_ID, TokenKindToDesc(propToken));
+                return null();
+            }
+            if (propToken == TOK_YIELD) {
+                // Use the same rules whether a name or keyword.
+                if (!checkYieldNameValidity())
+                    return null();
+            }
 
             Node lhs = identifierName(yieldHandling);
             if (!lhs)
@@ -10303,6 +10358,10 @@ Parser<ParseHandler>::primaryExpr(YieldHandling yieldHandling, TripledotHandling
         return stringLiteral();
 
       case TOK_YIELD:
+        if (yieldHandling == YieldIsKeyword) {
+            report(ParseError, false, null(), JSMSG_RESERVED_ID, "yield");
+            return null();
+        }
         if (!checkYieldNameValidity())
             return null();
         // Fall through.
