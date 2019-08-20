@@ -134,13 +134,13 @@ public:
     return GetDOMTiming()->GetNavigationStart();
   }
   DOMTimeMilliSec UnloadEventStart() {
-    if (!nsContentUtils::IsPerformanceTimingEnabled()) {
+    if (!nsContentUtils::IsPerformanceTimingEnabled() || !mAllRedirectsSameOrigin) {
       return 0;
     }
     return GetDOMTiming()->GetUnloadEventStart();
   }
   DOMTimeMilliSec UnloadEventEnd() {
-    if (!nsContentUtils::IsPerformanceTimingEnabled()) {
+    if (!nsContentUtils::IsPerformanceTimingEnabled() || !mAllRedirectsSameOrigin) {
       return 0;
     }
     return GetDOMTiming()->GetUnloadEventEnd();

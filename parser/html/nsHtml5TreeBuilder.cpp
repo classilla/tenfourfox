@@ -105,7 +105,7 @@ nsHtml5TreeBuilder::startTokenization(nsHtml5Tokenizer* self)
       nsHtml5StackNode* node = new nsHtml5StackNode(elementName, elementName->camelCaseName, elt);
       currentPtr++;
       stack[currentPtr] = node;
-      tokenizer->setStateAndEndTagExpectation(NS_HTML5TOKENIZER_DATA, contextName);
+      tokenizer->setState(NS_HTML5TOKENIZER_DATA);
       mode = NS_HTML5TREE_BUILDER_FRAMESET_OK;
     } else if (contextNamespace == kNameSpaceID_MathML) {
       nsHtml5ElementName* elementName = nsHtml5ElementName::ELT_MATH;
@@ -117,7 +117,7 @@ nsHtml5TreeBuilder::startTokenization(nsHtml5Tokenizer* self)
       nsHtml5StackNode* node = new nsHtml5StackNode(elementName, elt, elementName->name, false);
       currentPtr++;
       stack[currentPtr] = node;
-      tokenizer->setStateAndEndTagExpectation(NS_HTML5TOKENIZER_DATA, contextName);
+      tokenizer->setState(NS_HTML5TOKENIZER_DATA);
       mode = NS_HTML5TREE_BUILDER_FRAMESET_OK;
     } else {
       nsHtml5StackNode* node = new nsHtml5StackNode(nsHtml5ElementName::ELT_HTML, elt);
@@ -129,15 +129,15 @@ nsHtml5TreeBuilder::startTokenization(nsHtml5Tokenizer* self)
       resetTheInsertionMode();
       formPointer = getFormPointerForContext(contextNode);
       if (nsHtml5Atoms::title == contextName || nsHtml5Atoms::textarea == contextName) {
-        tokenizer->setStateAndEndTagExpectation(NS_HTML5TOKENIZER_RCDATA, contextName);
+        tokenizer->setState(NS_HTML5TOKENIZER_RCDATA);
       } else if (nsHtml5Atoms::style == contextName || nsHtml5Atoms::xmp == contextName || nsHtml5Atoms::iframe == contextName || nsHtml5Atoms::noembed == contextName || nsHtml5Atoms::noframes == contextName || (scriptingEnabled && nsHtml5Atoms::noscript == contextName)) {
-        tokenizer->setStateAndEndTagExpectation(NS_HTML5TOKENIZER_RAWTEXT, contextName);
+        tokenizer->setState(NS_HTML5TOKENIZER_RAWTEXT);
       } else if (nsHtml5Atoms::plaintext == contextName) {
-        tokenizer->setStateAndEndTagExpectation(NS_HTML5TOKENIZER_PLAINTEXT, contextName);
+        tokenizer->setState(NS_HTML5TOKENIZER_PLAINTEXT);
       } else if (nsHtml5Atoms::script == contextName) {
-        tokenizer->setStateAndEndTagExpectation(NS_HTML5TOKENIZER_SCRIPT_DATA, contextName);
+        tokenizer->setState(NS_HTML5TOKENIZER_SCRIPT_DATA);
       } else {
-        tokenizer->setStateAndEndTagExpectation(NS_HTML5TOKENIZER_DATA, contextName);
+        tokenizer->setState(NS_HTML5TOKENIZER_DATA);
       }
     }
     contextName = nullptr;
