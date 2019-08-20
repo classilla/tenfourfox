@@ -4282,6 +4282,7 @@ LazyScript::CreateRaw(ExclusiveContext* cx, HandleFunction fun,
     p.hasBeenCloned = false;
     p.treatAsRunOnce = false;
     p.isAsync = false;
+    p.hasThisBinding = false;
 
     size_t bytes = (p.numFreeVariables * sizeof(FreeVariable))
                  + (p.numInnerFunctions * sizeof(HeapPtrFunction));
@@ -4312,6 +4313,7 @@ LazyScript::CreateRaw(ExclusiveContext* cx, HandleFunction fun,
     };
 
     p.version = version;
+    p.hasThisBinding = false;
     p.numFreeVariables = numFreeVariables;
     p.isAsync = false;
     p.numInnerFunctions = numInnerFunctions;

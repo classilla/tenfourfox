@@ -2150,7 +2150,7 @@ class LazyScript : public gc::TenuredCell
     // instead of private to suppress -Wunused-private-field compiler warnings.
   protected:
 #if JS_BITS_PER_WORD == 32
-    uint32_t padding;
+    //uint32_t padding; // widened after TenFourFox issue 533
 #endif
   private:
 
@@ -2158,8 +2158,7 @@ class LazyScript : public gc::TenuredCell
         // Assorted bits that should really be in ScriptSourceObject.
         uint32_t version : 8;
 
-        uint32_t numFreeVariables : 23;
-        uint32_t isAsync: 1;
+        uint32_t numFreeVariables : 22;
         uint32_t numInnerFunctions : 20;
 
         uint32_t generatorKindBits : 2;
@@ -2167,6 +2166,8 @@ class LazyScript : public gc::TenuredCell
         // N.B. These are booleans but need to be uint32_t to pack correctly on MSVC.
         // If you add another boolean here, make sure to initialze it in
         // LazyScript::CreateRaw().
+        uint32_t hasThisBinding : 1;
+        uint32_t isAsync: 1;
         uint32_t strict : 1;
         uint32_t bindingsAccessedDynamically : 1;
         uint32_t hasDebuggerStatement : 1;
@@ -2366,6 +2367,13 @@ class LazyScript : public gc::TenuredCell
     }
     void setNeedsHomeObject() {
         p_.needsHomeObject = true;
+    }
+
+    bool hasThisBinding() const {
+        return p_.hasThisBinding;
+    }
+    void setHasThisBinding() {
+        p_.hasThisBinding = true;
     }
 
     const char* filename() const {

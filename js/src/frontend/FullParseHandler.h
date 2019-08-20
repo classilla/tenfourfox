@@ -1018,6 +1018,14 @@ class FullParseHandler
         syntaxParser = nullptr;
     }
 
+    // TenFourFox issue 533, from M1263355
+    bool canSkipLazyInnerFunctions() {
+        return !!lazyOuterFunction_;
+    }
+    bool canSkipLazyClosedOverBindings() {
+        return !!lazyOuterFunction_;
+    }
+
     LazyScript* lazyOuterFunction() {
         return lazyOuterFunction_;
     }
