@@ -1120,11 +1120,8 @@ Parser<FullParseHandler>::defineFunctionThis()
 
     // Also define a this-binding if direct eval is used, in derived class
     // constructors (JSOP_CHECKRETURN relies on it) or if there's a debugger
-    // statement, or if this is a lazy script that has a this-binding
-    // (TenFourFox issue 533).
+    // statement.
     if (pc->sc->hasDirectEval() ||
-        (handler.canSkipLazyClosedOverBindings() &&
-         pc->sc->asFunctionBox()->function()->lazyScript()->hasThisBinding()) ||
         pc->sc->asFunctionBox()->isDerivedClassConstructor() ||
         pc->sc->hasDebuggerStatement())
     {
@@ -2939,9 +2936,6 @@ Parser<SyntaxParseHandler>::finishFunctionDefinition(Node pn, FunctionBox* funbo
         lazy->setIsDerivedClassConstructor();
     if (funbox->needsHomeObject())
         lazy->setNeedsHomeObject();
-    // TenFourFox issue 533
-    if (funbox->hasThisBinding())
-        lazy->setHasThisBinding();
     PropagateTransitiveParseFlags(funbox, lazy);
 
     fun->initLazyScript(lazy);
