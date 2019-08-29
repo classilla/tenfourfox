@@ -17,6 +17,9 @@ FirstNon8Bit(const char16_t *str, const char16_t *end)
 {
   const uint32_t numUnicharsPerVector = 8;
   const uint32_t numCharsPerVector = 16;
+  // Paranoia. If this assertion is wrong, change the vector loop below.
+  MOZ_ASSERT((numCharsPerVector / numUnicharsPerVector) == sizeof(char16_t));
+
   register vector unsigned short vect;
 
   typedef Non8BitParameters<sizeof(size_t)> p;
@@ -39,27 +42,25 @@ if ((len - alignLen) > (numUnicharsPerVector - 1)) {
 
   register const vector unsigned short gtcompare =
 	vec_mergel( vec_splat_s8( 0 ), vec_splat_s8( -1 ) );
-  // Check one VMX register (16 bytes) at a time.
-  // This is simpler on AltiVec and involves no mucking about with masks,
-  // since the vec_any_gt intrinsic does exactly what we want.
   const int32_t vectWalkEnd = ((len - i) / numUnicharsPerVector) * numUnicharsPerVector;
-  // We use this a lot, so let's calculate it now.
-  const int32_t vectFactor = (numCharsPerVector/numUnicharsPerVector);
-    int32_t i2 = i * vectFactor;
+  i2 = i * sizeof(char16_t);
+
     while (1) {
-#define CheckForASCII						\
-      vect = vec_ld(i2, (unsigned short *)str);			\
-      if (vec_any_gt(vect, gtcompare))				\
-        return (i2 / vectFactor);                               \
-      i2 += numCharsPerVector;					\
-      if (!(i2 < vectWalkEnd))					\
-        break;
-      CheckForASCII
-      CheckForASCII
-    }
-    i = i2 / vectFactor;
-  }
-  else {
+      // Check one VMX register (8 unichars) at a time. The vec_any_gt
+      // intrinsic does exactly what we want. This loop is manually unrolled;
+      // it yields notable performance improvements this way.
+#define CheckForASCII                                              \
+  vect = vec_ld(i2, reinterpret_cast<const unsigned short*>(str)); \
+  if (vec_any_gt(vect, gtcompare)) return i;                       \
+  i += numUnicharsPerVector;                                       \
+  if (!(i < vectWalkEnd)) break;                                   \
+  i2 += numCharsPerVector;
+
+      CheckForASCII CheckForASCII
+
+#undef CheckForASCII
+   }
+} else {
     // Align ourselves to a word boundary.
     alignLen =
       std::min(len, int32_t(((-NS_PTR_TO_UINT32(str)) & alignMask) / sizeof(char16_t)));
