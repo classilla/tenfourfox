@@ -29,6 +29,7 @@ FirstNon8Bit(const char16_t *str, const char16_t *end)
 
   const int32_t len = end - str;
   int32_t i = 0;
+  int32_t i2 = 0;
 
   // Align ourselves to a 16-byte boundary, as required by AltiVec loads.
   int32_t alignLen =
