@@ -131,10 +131,6 @@ static const char kGOOGLE_PIN_COMODORSADomainValidationSecureServerCAFingerprint
 static const char kGOOGLE_PIN_DigiCertECCSecureServerCAFingerprint[] =
   "PZXN3lRAy+8tBKk2Ox6F7jIlnzr2Yzmwqc3JnyfXoCw=";
 
-/* GOOGLE_PIN_DigiCertSHA2HighAssuranceServerCA */
-static const char kGOOGLE_PIN_DigiCertSHA2HighAssuranceServerCAFingerprint[] =
-  "k2v657xBsOVe1PQRwOsHsw3bsGT2VzIqz5K+59sNQws=";
-
 /* GOOGLE_PIN_Entrust_SSL */
 static const char kGOOGLE_PIN_Entrust_SSLFingerprint[] =
   "nsxRNo6G40YPZsKV5JQt1TCA8nseQQr/LRqp1Oa8fnw=";
@@ -310,10 +306,6 @@ static const char kTor2Fingerprint[] =
 /* Tor3 */
 static const char kTor3Fingerprint[] =
   "CleC1qwUR8JPgH1nXvSe2VHxDe5/KfNs96EusbfSOfo=";
-
-/* TumblrBackup */
-static const char kTumblrBackupFingerprint[] =
-  "avlD96PLERV78IN1fD+ab5cupkUDD9wTZWJjHX6VC9w=";
 
 /* Twitter1 */
 static const char kTwitter1Fingerprint[] =
@@ -638,16 +630,6 @@ static const StaticFingerprints kPinset_swehackCom = {
   kPinset_swehackCom_Data
 };
 
-static const char* const kPinset_tumblr_Data[] = {
-  kDigiCert_High_Assurance_EV_Root_CAFingerprint,
-  kTumblrBackupFingerprint,
-  kGOOGLE_PIN_DigiCertSHA2HighAssuranceServerCAFingerprint,
-};
-static const StaticFingerprints kPinset_tumblr = {
-  sizeof(kPinset_tumblr_Data) / sizeof(const char*),
-  kPinset_tumblr_Data
-};
-
 /* Domainlist */
 struct TransportSecurityPreload {
   // See bug 1338873 about making these fields const.
@@ -693,8 +675,8 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "calendar.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "cd.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "cdn.ampproject.org", true, false, false, -1, &kPinset_google_root_pems },
-  { "cdn.mozilla.net", true, false, true, -1, &kPinset_mozilla_services },
-  { "cdn.mozilla.org", true, false, true, -1, &kPinset_mozilla_services },
+  { "cdn.mozilla.net", true, false, true, 16, &kPinset_mozilla_services },
+  { "cdn.mozilla.org", true, false, true, 17, &kPinset_mozilla_services },
   { "cg.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "ch.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "check.torproject.org", true, false, false, -1, &kPinset_tor },
@@ -721,7 +703,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "cr.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "crash-reports-xpsp2.mozilla.com", false, false, true, 11, &kPinset_mozilla_services },
   { "crash-reports.mozilla.com", false, false, true, 10, &kPinset_mozilla_services },
-  { "crash-stats.mozilla.com", false, false, true, 12, &kPinset_mozilla_services },
+  { "crash-stats.mozilla.org", false, false, true, 12, &kPinset_mozilla_services },
   { "crbug.com", true, false, false, -1, &kPinset_google_root_pems },
   { "crosbug.com", true, false, false, -1, &kPinset_google_root_pems },
   { "crrev.com", true, false, false, -1, &kPinset_google_root_pems },
@@ -749,11 +731,12 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "es.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "espanol.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "example.test", true, true, false, -1, &kPinset_test },
-  { "exclude-subdomains.pinning.example.com", false, false, false, 0, &kPinset_mozilla_test },
+  { "exclude-subdomains.pinning.example.com", false, false, false, -1, &kPinset_mozilla_test },
   { "facebook.com", false, false, false, -1, &kPinset_facebook },
   { "fi.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "fi.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "firebaseio.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "firefox.com", true, true, true, 15, &kPinset_mozilla_services },
   { "fj.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "fr.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "g.co", false, false, false, -1, &kPinset_google_root_pems },
@@ -1138,7 +1121,6 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "www.googlemail.com", false, false, false, -1, &kPinset_google_root_pems },
   { "www.messenger.com", true, false, false, -1, &kPinset_facebook },
   { "www.torproject.org", true, false, false, -1, &kPinset_tor },
-  { "www.tumblr.com", false, true, false, -1, &kPinset_tumblr },
   { "www.twitter.com", true, false, false, -1, &kPinset_twitterCom },
   { "xa.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "xbrlsuccess.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
@@ -1155,4 +1137,4 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1575551133599000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1579537847247000);
