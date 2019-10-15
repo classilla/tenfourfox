@@ -298,7 +298,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/ea/notosansjapanese/v6/NotoSansJP-");
                     HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/s/notosansjp/v14/");
 
-                    HTTP_OR_HTTPS_SUBDIR("www.icloud.com", "/fonts/SFNSText-");
+                    HTTP_OR_HTTPS_SUBDIR("www.icloud.com", "/fonts/current/fonts/SFNSText-");
+                    HTTP_OR_HTTPS_SUBDIR("www.icloud.com", "/fonts/current/fonts/SFNSDisplay-");
 
                     HTTP_OR_HTTPS_SUBDIR("typeface.nyt.com", "/fonts/nyt-cheltenham-");
                     HTTP_OR_HTTPS_SUBDIR("typeface.nytimes.com", "/fonts/nyt-cheltenham-");
