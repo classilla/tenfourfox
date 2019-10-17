@@ -1002,7 +1002,7 @@ IDBObjectStore::AppendIndexUpdateInfo(
   }
 
   bool isArray;
-  if (!JS_IsArrayObject(aCx, val, &isArray)) {
+  if (NS_WARN_IF(!JS_IsArrayObject(aCx, val, &isArray))) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
   }
@@ -1015,8 +1015,25 @@ IDBObjectStore::AppendIndexUpdateInfo(
     }
 
     for (uint32_t arrayIndex = 0; arrayIndex < arrayLength; arrayIndex++) {
-      JS::Rooted<JS::Value> arrayItem(aCx);
-      if (NS_WARN_IF(!JS_GetElement(aCx, array, arrayIndex, &arrayItem))) {
+      JS::RootedId indexId(aCx);
+      if (NS_WARN_IF(!JS_IndexToId(aCx, arrayIndex, &indexId))) {
+        IDB_REPORT_INTERNAL_ERR();
+        return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
+      }
+
+      bool hasOwnProperty;
+      if (NS_WARN_IF(
+              !JS_HasOwnPropertyById(aCx, array, indexId, &hasOwnProperty))) {
+        IDB_REPORT_INTERNAL_ERR();
+        return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
+      }
+
+      if (!hasOwnProperty) {
+        continue;
+      }
+
+      JS::RootedValue arrayItem(aCx);
+      if (NS_WARN_IF(!JS_GetPropertyById(aCx, array, indexId, &arrayItem))) {
         IDB_REPORT_INTERNAL_ERR();
         return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
       }
