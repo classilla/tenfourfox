@@ -1176,7 +1176,7 @@ static const JSFunctionSpec object_methods[] = {
     JS_FN(js_toString_str,             obj_toString,                0,0),
     JS_SELF_HOSTED_FN(js_toLocaleString_str, "Object_toLocaleString", 0,JSPROP_DEFINE_LATE),
     JS_FN(js_valueOf_str,              obj_valueOf,                 0,0),
-#if JS_HAS_OBJ_WATCHPOINT
+#if (0) // JS_HAS_OBJ_WATCHPOINT // TenFourFox issue 575
     JS_FN(js_watch_str,                obj_watch,                   2,0),
     JS_FN(js_unwatch_str,              obj_unwatch,                 1,0),
 #endif
