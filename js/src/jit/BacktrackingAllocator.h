@@ -123,6 +123,8 @@ class Requirement
     CodePosition position_;
 };
 
+// We may want the cache-friendlier version in
+// https://hg.mozilla.org/mozilla-central/raw-file/df79199f9f0fcde01ddc2eccf2a5368cb7b801aa/js/src/jit/BacktrackingAllocator.h
 struct UsePosition : public TempObject,
                      public InlineForwardListNode<UsePosition>
 {
@@ -140,6 +142,9 @@ struct UsePosition : public TempObject,
                       pos.subpos() == (use->usedAtStart()
                                        ? CodePosition::INPUT
                                        : CodePosition::OUTPUT));
+    }
+    LUse::Policy usePolicy() const {
+        return use->policy();
     }
 };
 
@@ -231,14 +236,28 @@ class LiveRange : public TempObject
     // All uses of the virtual register in this range, ordered by location.
     InlineForwardList<UsePosition> uses_;
 
+    // Total spill weight that calculate from all the uses' policy. Because the
+    // use's policy can't be changed after initialization, we can update the
+    // weight whenever a use is added to or remove from this range. This way, we
+    // don't need to iterate all the uses every time computeSpillWeight() is
+    // called.
+    size_t usesSpillWeight_;
+
+    // Number of uses that have policy LUse::FIXED.
+    uint32_t numFixedUses_;
+
     // Whether this range contains the virtual register's definition.
     bool hasDefinition_;
 
     LiveRange(uint32_t vreg, Range range)
-      : vreg_(vreg), bundle_(nullptr), range_(range), hasDefinition_(false)
+      : vreg_(vreg), bundle_(nullptr), range_(range), usesSpillWeight_(0),
+        numFixedUses_(0), hasDefinition_(false)
     {
         MOZ_ASSERT(!range.empty());
     }
+
+    void noteAddedUse(UsePosition* use);
+    void noteRemovedUse(UsePosition* use);
 
   public:
     static LiveRange* New(TempAllocator& alloc, uint32_t vreg,
@@ -287,9 +306,7 @@ class LiveRange : public TempObject
     bool hasUses() const {
         return !!usesBegin();
     }
-    UsePosition* popUse() {
-        return uses_.popFront();
-    }
+    UsePosition* popUse();
 
     bool hasDefinition() const {
         return hasDefinition_;
@@ -314,6 +331,13 @@ class LiveRange : public TempObject
     void setHasDefinition() {
         MOZ_ASSERT(!hasDefinition_);
         hasDefinition_ = true;
+    }
+
+    size_t usesSpillWeight() {
+        return usesSpillWeight_;
+    }
+    uint32_t numFixedUses() {
+        return numFixedUses_;
     }
 
     // Return a string describing this range. This is not re-entrant!
@@ -635,6 +659,20 @@ class BacktrackingAllocator : protected RegisterAllocator
     { }
 
     bool go();
+
+    static size_t SpillWeightFromUsePolicy(LUse::Policy policy) {
+        switch (policy) {
+        case LUse::ANY:
+            return 1000;
+
+        case LUse::REGISTER:
+        case LUse::FIXED:
+            return 2000;
+
+        default:
+            return 0;
+        }
+    }
 
   private:
 
