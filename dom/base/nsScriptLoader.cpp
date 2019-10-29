@@ -531,6 +531,12 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       return false;
     }
 
+#ifdef DEBUG
+    nsAutoCString scriptURISpec;
+    scriptURI->GetAsciiSpec(scriptURISpec);
+    fprintf(stderr, "Processing external script: %s\n", scriptURISpec.get());
+#endif
+
     // Double-check that the preload matches what we're asked to load now.
     mozilla::net::ReferrerPolicy ourRefPolicy = mDocument->GetReferrerPolicy();
     CORSMode ourCORSMode = aElement->GetCORSMode();
@@ -555,6 +561,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
         if (NS_FAILED(rv)) {
           // probably plans have changed; even though the preload was allowed seems
           // like the actual load is not; let's cancel the preload request.
+          NS_WARNING("Preload was cancelled");
           request->Cancel();
           return false;
         }
@@ -607,6 +614,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
 
     if (aElement->GetScriptAsync()) {
       request->mIsAsync = true;
+      NS_WARNING("Current script is async");
       if (request->IsDoneLoading()) {
         mLoadedAsyncRequests.AppendElement(request);
         // The script is available already. Run it ASAP when the event
@@ -624,6 +632,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       // Violate the HTML5 spec in order to make LABjs and the "order" plug-in
       // for RequireJS work with their Gecko-sniffed code path. See
       // http://lists.w3.org/Archives/Public/public-html/2010Oct/0088.html
+      NS_WARNING("Parser not yet created for this script");
       request->mIsNonAsyncScriptInserted = true;
       mNonAsyncExternalScriptInsertedRequests.AppendElement(request);
       if (request->IsDoneLoading()) {
@@ -636,6 +645,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
     // we now have a parser-inserted request that may or may not be still
     // loading
     if (aElement->GetScriptDeferred()) {
+      NS_WARNING("Current script is deferred");
       // We don't want to run this yet.
       // If we come here, the script is a parser-created script and it has
       // the defer attribute but not the async attribute. Since a
@@ -1232,6 +1242,7 @@ nsScriptLoader::ProcessPendingRequests()
 
   if (mDocumentParsingDone && mXSLTRequests.isEmpty()) {
     while (!mDeferRequests.isEmpty() && mDeferRequests.getFirst()->IsReadyToRun()) {
+      NS_WARNING("Handling deferred request");
       request = mDeferRequests.StealFirst();
       ProcessRequest(request);
     }
