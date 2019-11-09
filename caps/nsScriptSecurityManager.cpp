@@ -1179,6 +1179,12 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("serverbid-sync.nyc3.cdn.digitaloceanspaces.com") ||
 
+                BLOK("ml314.com") ||
+
+                BLOK("ads.pro-market.net") ||
+
+                BLOK("tag.crsspxl.com") ||
+
 #include "shavar-blocklist.h"
 
                     0) {
