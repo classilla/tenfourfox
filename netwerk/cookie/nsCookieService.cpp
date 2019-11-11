@@ -115,11 +115,12 @@ static const uint32_t kMaxBytesPerCookie  = 4096;
 static const uint32_t kMaxBytesPerPath    = 1024;
 
 // pref string constants
-static const char kPrefCookieBehavior[]     = "network.cookie.cookieBehavior";
-static const char kPrefMaxNumberOfCookies[] = "network.cookie.maxNumber";
-static const char kPrefMaxCookiesPerHost[]  = "network.cookie.maxPerHost";
-static const char kPrefCookiePurgeAge[]     = "network.cookie.purgeAge";
-static const char kPrefThirdPartySession[]  = "network.cookie.thirdparty.sessionOnly";
+static const char kPrefCookieBehavior[]       = "network.cookie.cookieBehavior";
+static const char kPrefMaxNumberOfCookies[]   = "network.cookie.maxNumber";
+static const char kPrefMaxCookiesPerHost[]    = "network.cookie.maxPerHost";
+static const char kPrefCookiePurgeAge[]       = "network.cookie.purgeAge";
+static const char kPrefThirdPartySession[]    = "network.cookie.thirdparty.sessionOnly";
+static const char kCookieLeaveSecurityAlone[] = "network.cookie.leave-secure-alone";
 
 static void
 bindCookieParameters(mozIStorageBindingParamsArray *aParamsArray,
@@ -710,6 +711,7 @@ nsCookieService::nsCookieService()
  : mDBState(nullptr)
  , mCookieBehavior(nsICookieService::BEHAVIOR_ACCEPT)
  , mThirdPartySession(false)
+ , mLeaveSecureAlone(true)
  , mMaxNumberOfCookies(kMaxNumberOfCookies)
  , mMaxCookiesPerHost(kMaxCookiesPerHost)
  , mCookiePurgeAge(kCookiePurgeAge)
@@ -732,11 +734,12 @@ nsCookieService::Init()
   // init our pref and observer
   nsCOMPtr<nsIPrefBranch> prefBranch = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefBranch) {
-    prefBranch->AddObserver(kPrefCookieBehavior,     this, true);
-    prefBranch->AddObserver(kPrefMaxNumberOfCookies, this, true);
-    prefBranch->AddObserver(kPrefMaxCookiesPerHost,  this, true);
-    prefBranch->AddObserver(kPrefCookiePurgeAge,     this, true);
-    prefBranch->AddObserver(kPrefThirdPartySession,  this, true);
+    prefBranch->AddObserver(kPrefCookieBehavior,        this, true);
+    prefBranch->AddObserver(kPrefMaxNumberOfCookies,    this, true);
+    prefBranch->AddObserver(kPrefMaxCookiesPerHost,     this, true);
+    prefBranch->AddObserver(kPrefCookiePurgeAge,        this, true);
+    prefBranch->AddObserver(kPrefThirdPartySession,     this, true);
+    prefBranch->AddObserver(kCookieLeaveSecurityAlone,  this, true);
     PrefChanged(prefBranch);
   }
 
@@ -2210,6 +2213,9 @@ nsCookieService::PrefChanged(nsIPrefBranch *aPrefBranch)
   bool boolval;
   if (NS_SUCCEEDED(aPrefBranch->GetBoolPref(kPrefThirdPartySession, &boolval)))
     mThirdPartySession = boolval;
+
+  if (NS_SUCCEEDED(aPrefBranch->GetBoolPref(kCookieLeaveSecurityAlone, &boolval)))
+    mLeaveSecureAlone = boolval;
 }
 
 /******************************************************************************
@@ -2952,6 +2958,47 @@ public:
   }
 };
 
+static bool
+DomainMatches(nsCookie* aCookie, const nsACString& aHost) {
+  // first, check for an exact host or domain cookie match, e.g. "google.com"
+  // or ".google.com"; second a subdomain match, e.g.
+  // host = "mail.google.com", cookie domain = ".google.com".
+  return aCookie->RawHost() == aHost ||
+      (aCookie->IsDomain() && StringEndsWith(aHost, aCookie->Host()));
+}
+
+static bool
+PathMatches(nsCookie* aCookie, const nsACString& aPath) {
+  // calculate cookie path length, excluding trailing '/'
+  uint32_t cookiePathLen = aCookie->Path().Length();
+  if (cookiePathLen > 0 && aCookie->Path().Last() == '/')
+    --cookiePathLen;
+
+  // if the given path is shorter than the cookie path, it doesn't match
+  // if the given path doesn't start with the cookie path, it doesn't match.
+  if (!StringBeginsWith(aPath, Substring(aCookie->Path(), 0, cookiePathLen)))
+    return false;
+
+  // if the given path is longer than the cookie path, and the first char after
+  // the cookie path is not a path delimiter, it doesn't match.
+  if (aPath.Length() > cookiePathLen &&
+      !ispathdelimiter(aPath.CharAt(cookiePathLen))) {
+    /*
+     * |ispathdelimiter| tests four cases: '/', '?', '#', and ';'.
+     * '/' is the "standard" case; the '?' test allows a site at host/abc?def
+     * to receive a cookie that has a path attribute of abc.  this seems
+     * strange but at least one major site (citibank, bug 156725) depends
+     * on it.  The test for # and ; are put in to proactively avoid problems
+     * with other sites - these are the only other chars allowed in the path.
+     */
+    return false;
+  }
+
+  // either the paths match exactly, or the cookie path is a prefix of
+  // the given path.
+  return true;
+}
+
 void
 nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
                                          bool aIsForeign,
@@ -3029,11 +3076,7 @@ nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
     cookie = cookies[i];
 
     // check the host, since the base domain lookup is conservative.
-    // first, check for an exact host or domain cookie match, e.g. "google.com"
-    // or ".google.com"; second a subdomain match, e.g.
-    // host = "mail.google.com", cookie domain = ".google.com".
-    if (cookie->RawHost() != hostFromURI &&
-        !(cookie->IsDomain() && StringEndsWith(hostFromURI, cookie->Host())))
+    if (!DomainMatches(cookie, hostFromURI))
       continue;
 
     // if the cookie is secure and the host scheme isn't, we can't send it
@@ -3060,27 +3103,9 @@ nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
     if (cookie->IsHttpOnly() && !aHttpBound)
       continue;
 
-    // calculate cookie path length, excluding trailing '/'
-    uint32_t cookiePathLen = cookie->Path().Length();
-    if (cookiePathLen > 0 && cookie->Path().Last() == '/')
-      --cookiePathLen;
-
-    // if the nsIURI path is shorter than the cookie path, don't send it back
-    if (!StringBeginsWith(pathFromURI, Substring(cookie->Path(), 0, cookiePathLen)))
+    // if the nsIURI path doesn't match the cookie path, don't send it back
+    if (!PathMatches(cookie, pathFromURI))
       continue;
-
-    if (pathFromURI.Length() > cookiePathLen &&
-        !ispathdelimiter(pathFromURI.CharAt(cookiePathLen))) {
-      /*
-       * |ispathdelimiter| tests four cases: '/', '?', '#', and ';'.
-       * '/' is the "standard" case; the '?' test allows a site at host/abc?def
-       * to receive a cookie that has a path attribute of abc.  this seems
-       * strange but at least one major site (citibank, bug 156725) depends
-       * on it.  The test for # and ; are put in to proactively avoid problems
-       * with other sites - these are the only other chars allowed in the path.
-       */
-      continue;
-    }
 
     // check if the cookie has expired
     if (cookie->Expiry() <= currentTime) {
@@ -3345,14 +3370,51 @@ nsCookieService::AddInternal(const nsCookieKey             &aKey,
     return;
   }
 
-  nsListIter matchIter;
-  bool foundCookie = FindCookie(aKey, aCookie->Host(),
-    aCookie->Name(), aCookie->Path(), matchIter);
+  bool isSecure = true;
+  if (aHostURI && NS_FAILED(aHostURI->SchemeIs("https", &isSecure))) {
+    isSecure = false;
+  }
+
+  // If the new cookie is non-https and wants to set secure flag,
+  // browser have to ignore this new cookie.
+  // (draft-ietf-httpbis-cookie-alone section 3.1)
+  if (mLeaveSecureAlone && aCookie->IsSecure() && !isSecure) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+      "non-https cookie can't set secure flag");
+    return;
+  }
+  nsListIter exactIter;
+  bool foundCookie = false;
+  if (mLeaveSecureAlone) {
+    // Step1, call FindSecureCookie(). FindSecureCookie() would
+    // find the existing cookie with the security flag and has
+    // the same name, host and path of the new cookie, if there is any.
+    // Step2, Confirm new cookie's security setting. If any targeted
+    // cookie had been found in Step1, then confirm whether the
+    // new cookie could modify it. If the new created cookie’s
+    // "secure-only-flag" is not set, and the "scheme" component
+    // of the "request-uri" does not denote a "secure" protocol,
+    // then ignore the new cookie.
+    // (draft-ietf-httpbis-cookie-alone section 3.2)
+    foundCookie = FindSecureCookie(aKey, aCookie);
+    if (foundCookie && !aCookie->IsSecure()) {
+      if (!isSecure) {
+        COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+           "cookie can't save because older cookie is secure cookie but newer cookie is non-secure cookie");
+        return;
+      } else {
+        // A secure site is allowed to downgrade a secure cookie
+      }
+    }
+  }
+
+  foundCookie = FindCookie(aKey, aCookie->Host(),
+                           aCookie->Name(), aCookie->Path(), exactIter);
 
   RefPtr<nsCookie> oldCookie;
   nsCOMPtr<nsIArray> purgedList;
   if (foundCookie) {
-    oldCookie = matchIter.Cookie();
+    oldCookie = exactIter.Cookie();
 
     // Check if the old cookie is stale (i.e. has already expired). If so, we
     // need to be careful about the semantics of removing it and adding the new
@@ -3368,7 +3430,7 @@ nsCookieService::AddInternal(const nsCookieKey             &aKey,
 
       // Remove the stale cookie. We save notification for later, once all list
       // modifications are complete.
-      RemoveCookieFromList(matchIter);
+      RemoveCookieFromList(exactIter);
       COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
         "stale cookie was purged");
       purgedList = CreatePurgeList(oldCookie);
@@ -3405,7 +3467,7 @@ nsCookieService::AddInternal(const nsCookieKey             &aKey,
       }
 
       // Remove the old cookie.
-      RemoveCookieFromList(matchIter);
+      RemoveCookieFromList(exactIter);
 
       // If the new cookie has expired -- i.e. the intent was simply to delete
       // the old cookie -- then we're done.
@@ -3432,14 +3494,30 @@ nsCookieService::AddInternal(const nsCookieKey             &aKey,
     nsCookieEntry *entry = mDBState->hostTable.GetEntry(aKey);
     if (entry && entry->GetCookies().Length() >= mMaxCookiesPerHost) {
       nsListIter iter;
-      FindStaleCookie(entry, currentTime, iter);
+      // Prioritize evicting insecure cookies.
+      // (draft-ietf-httpbis-cookie-alone section 3.3)
+      mozilla::Maybe<bool> optionalSecurity = mLeaveSecureAlone ? Some(false) :
+Nothing();
+      int64_t oldestCookieTime = FindStaleCookie(entry, currentTime, optionalSecurity, iter);
+      if (iter.entry == nullptr) {
+        if (aCookie->IsSecure()) {
+          // It's valid to evict a secure cookie for another secure cookie.
+          oldestCookieTime = FindStaleCookie(entry, currentTime, Some(true), iter);
+        } else {
+          COOKIE_LOGEVICTED(aCookie,
+            "Too many cookies for this domain and the new cookie is not a secure cookie");
+          return;
+        }
+      }
+
+      MOZ_ASSERT(iter.entry);
+
       oldCookie = iter.Cookie();
 
       // remove the oldest cookie from the domain
       RemoveCookieFromList(iter);
       COOKIE_LOGEVICTED(oldCookie, "Too many cookies for this domain");
       purgedList = CreatePurgeList(oldCookie);
-
     } else if (mDBState->cookieCount >= ADD_TEN_PERCENT(mMaxNumberOfCookies)) {
       int64_t maxAge = aCurrentTimeInUsec - mDBState->cookieOldestTime;
       int64_t purgeAge = ADD_TEN_PERCENT(mCookiePurgeAge);
@@ -4286,15 +4364,16 @@ nsCookieService::CookieExists(nsICookie2 *aCookie,
 
 // For a given base domain, find either an expired cookie or the oldest cookie
 // by lastAccessed time.
-void
+int64_t
 nsCookieService::FindStaleCookie(nsCookieEntry *aEntry,
                                  int64_t aCurrentTime,
+                                 mozilla::Maybe<bool> aIsSecure,
                                  nsListIter &aIter)
 {
   aIter.entry = nullptr;
-
   int64_t oldestTime = 0;
   const nsCookieEntry::ArrayType &cookies = aEntry->GetCookies();
+  int64_t actualOldestCookieTime = cookies.Length() ? cookies[0]->LastAccessed() : 0;
   for (nsCookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
     nsCookie *cookie = cookies[i];
 
@@ -4302,16 +4381,34 @@ nsCookieService::FindStaleCookie(nsCookieEntry *aEntry,
     if (cookie->Expiry() <= aCurrentTime) {
       aIter.entry = aEntry;
       aIter.index = i;
-      return;
+      return -1;
+    }
+
+    int64_t lastAccessed = cookie->LastAccessed();
+    // Record the age of the oldest cookie that is stored for this host.
+    // oldestCookieTime is the age of the oldest cookie with a matching
+    // secure flag, which may be more recent than an older cookie with
+    // a non-matching secure flag.
+    if (actualOldestCookieTime > lastAccessed) {
+      actualOldestCookieTime = lastAccessed;
+    }
+    if (aIsSecure.isSome() && !aIsSecure.value()) {
+      // We want to look for the oldest non-secure cookie first time through,
+      // then find the oldest secure cookie the second time we are called.
+      if (cookie->IsSecure()) {
+        continue;
+      }
     }
 
     // Check if we've found the oldest cookie so far.
-    if (!aIter.entry || oldestTime > cookie->LastAccessed()) {
-      oldestTime = cookie->LastAccessed();
+    if (!aIter.entry || oldestTime > lastAccessed) {
+      oldestTime = lastAccessed;
       aIter.entry = aEntry;
       aIter.index = i;
     }
   }
+
+  return actualOldestCookieTime;
 }
 
 // count the number of cookies stored by a particular host. this is provided by the
@@ -4456,6 +4553,40 @@ nsCookieService::RemoveCookiesForApp(uint32_t aAppId, bool aOnlyBrowserElement)
   }
 
   return NS_OK;
+}
+
+// find an secure cookie specified by host and name
+bool
+nsCookieService::FindSecureCookie(const nsCookieKey    &aKey,
+                                  nsCookie             *aCookie)
+{
+  EnsureReadDomain(aKey);
+
+  nsCookieEntry *entry = mDBState->hostTable.GetEntry(aKey);
+  if (!entry)
+    return false;
+
+  const nsCookieEntry::ArrayType &cookies = entry->GetCookies();
+  for (nsCookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
+    nsCookie *cookie = cookies[i];
+    // isn't a match if insecure or a different name
+    if (!cookie->IsSecure() || !aCookie->Name().Equals(cookie->Name()))
+      continue;
+
+    // The host must "domain-match" an existing cookie or vice-versa
+    if (DomainMatches(cookie, aCookie->Host()) ||
+        DomainMatches(aCookie, cookie->Host())) {
+      // If the path of new cookie and the path of existing cookie
+      // aren't "/", then this situation needs to compare paths to
+      // ensure only that a newly-created non-secure cookie does not
+      // overlay an existing secure cookie.
+      if (PathMatches(cookie, aCookie->Path())) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 // find an exact cookie specified by host, name, and path that hasn't expired.
