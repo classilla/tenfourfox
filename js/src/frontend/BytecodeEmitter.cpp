@@ -1258,7 +1258,11 @@ CheckSetConstOp(JSOp op, ParseNode* pn)
         switch (op) {
           case JSOP_GETLOCAL: case JSOP_GETALIASEDVAR: break;
           case JSOP_INITLEXICAL: case JSOP_INITALIASEDLEXICAL: break;
-          case JSOP_SETLOCAL: break; /* return JSOP_THROWSETCONST; */
+#if (0) // flip this for confidence testing
+          case JSOP_SETLOCAL: return JSOP_THROWSETCONST;
+#else
+          case JSOP_SETLOCAL: break;
+#endif
           case JSOP_SETALIASEDVAR: return JSOP_THROWSETALIASEDCONST;
           default: MOZ_CRASH("unexpected set var op");
         }
