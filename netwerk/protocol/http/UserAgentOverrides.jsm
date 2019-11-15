@@ -29,6 +29,8 @@ var gOverrides = new Map;
 var gUpdatedOverrides;
 var gOverrideForHostCache = new Map;
 var gInitialized = false;
+var gRegisteredWithNecko = false;
+
 var gOverrideFunctions = [
   function (aHttpChannel) { return UserAgentOverrides.getOverrideForURI(aHttpChannel.URI); }
 ];
@@ -41,15 +43,6 @@ this.UserAgentOverrides = {
 
     gPrefBranch = Services.prefs.getBranch("general.useragent.override.");
     gPrefBranch.addObserver("", buildOverrides, false);
-
-    ppmm.addMessageListener(OVERRIDE_MESSAGE, this);
-    Services.prefs.addObserver(PREF_OVERRIDES_ENABLED, buildOverrides, false);
-
-    try {
-      Services.obs.addObserver(HTTP_on_modify_request, "http-on-modify-request", false);
-    } catch (x) {
-      // The http-on-modify-request notification is disallowed in content processes.
-    }
 
     UserAgentUpdates.init(function(overrides) {
       gOverrideForHostCache.clear();
@@ -72,10 +65,12 @@ this.UserAgentOverrides = {
   },
 
   getOverrideForURI: function uao_getOverrideForURI(aURI) {
+    if (!gInitialized || !gRegisteredWithNecko ||
+        (!gOverrides.size && !gUpdatedOverrides))
+        return null;
+
     let host = aURI.asciiHost;
-    if (!gInitialized ||
-        (!gOverrides.size && !gUpdatedOverrides) ||
-        !(host)) {
+    if (!(host)) {
       return null;
     }
 
@@ -118,7 +113,7 @@ this.UserAgentOverrides = {
 
     Services.prefs.removeObserver(PREF_OVERRIDES_ENABLED, buildOverrides);
 
-    Services.obs.removeObserver(HTTP_on_modify_request, "http-on-modify-request");
+    unregisterWithNecko();
   },
 
   receiveMessage: function(aMessage) {
@@ -132,6 +127,30 @@ this.UserAgentOverrides = {
     }
   }
 };
+
+function registerWithNecko() {
+  if (gRegisteredWithNecko) {
+    return;
+  }
+
+  ppmm.addMessageListener(OVERRIDE_MESSAGE, this);
+  Services.prefs.addObserver(PREF_OVERRIDES_ENABLED, buildOverrides, false);
+
+  try {
+    Services.obs.addObserver(HTTP_on_modify_request, "http-on-modify-request", false);
+    gRegisteredWithNecko = true;
+  } catch (x) {
+    // The http-on-modify-request notification is disallowed in content processes.
+  }
+}
+
+function unregisterWithNecko() {
+  if (gRegisteredWithNecko == false) {
+    return;
+  }
+  Services.obs.removeObserver(HTTP_on_modify_request, "http-on-modify-request");
+  gRegisteredWithNecko = false;
+}
 
 function getUserAgentFromOverride(override)
 {
@@ -150,6 +169,7 @@ function getUserAgentFromOverride(override)
 }
 
 function buildOverrides() {
+  unregisterWithNecko();
   gOverrides.clear();
   gOverrideForHostCache.clear();
 
@@ -162,10 +182,15 @@ function buildOverrides() {
   for (let domain of domains) {
     let override = gPrefBranch.getCharPref(domain);
     let userAgent = getUserAgentFromOverride(override);
-
     if (userAgent != DEFAULT_UA) {
       gOverrides.set(domain, userAgent);
     }
+  }
+
+  // Only register with Necko if there are actually overrides.
+  // See https://bug896114.bmoattachments.org/attachment.cgi?id=778980
+  if (gOverrides.size > 0) {
+    registerWithNecko();
   }
 }
 
