@@ -1435,6 +1435,7 @@ nsIDocument::nsIDocument()
     mPostedFlushUserFontSet(false),
     mDidFireDOMContentLoaded(true),
     mFrameRequestCallbacksScheduled(false),
+    mLinksEnabled(true),
     mPartID(0),
     mUserHasInteracted(false)
 {

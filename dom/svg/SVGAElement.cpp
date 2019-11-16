@@ -187,6 +187,12 @@ SVGAElement::IsAttributeMapped(const nsIAtom* name) const
 bool
 SVGAElement::IsFocusableInternal(int32_t *aTabIndex, bool aWithMouse)
 {
+  // There are some backbugs in
+  // https://hg.mozilla.org/mozilla-central/rev/fc09b999be43
+  if (!OwnerDoc()->LinkHandlingEnabled()) {
+    return false;
+  }
+
   nsCOMPtr<nsIURI> uri;
   if (IsLink(getter_AddRefs(uri))) {
     if (aTabIndex) {

@@ -46,7 +46,6 @@ class nsITransferable;
 class nsIClipboard;
 class TypeInState;
 class nsIContentFilter;
-class nsILinkHandler;
 class nsTableOuterFrame;
 class nsIDOMRange;
 class nsRange;
@@ -954,7 +953,8 @@ protected:
   void     AddMouseClickListener(nsIDOMElement * aElement);
   void     RemoveMouseClickListener(nsIDOMElement * aElement);
 
-  nsCOMPtr<nsILinkHandler> mLinkHandler;
+  bool     mDisabledLinkHandling = false;
+  bool     mOldLinkHandlingEnabled = false;
 
 public:
 

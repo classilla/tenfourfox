@@ -26,7 +26,6 @@
 #include "nsIPresShell.h"
 #include "nsIDocument.h"
 #include "nsImageMap.h"
-#include "nsILinkHandler.h"
 #include "nsIURL.h"
 #include "nsILoadGroup.h"
 #include "nsContainerFrame.h"

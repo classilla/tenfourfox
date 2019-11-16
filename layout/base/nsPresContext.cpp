@@ -1720,7 +1720,6 @@ nsPresContext::GetDocShell() const
 nsPresContext::Detach()
 {
   SetContainer(nullptr);
-  SetLinkHandler(nullptr);
   if (mShell) {
     mShell->CancelInvalidatePresShellIfHidden();
   }
