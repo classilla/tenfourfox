@@ -243,7 +243,7 @@ var TabsInTitlebar = {
       menubar.style.paddingBottom = "";
     }
 
-    ToolbarIconColor.inferFromText();
+    ToolbarIconColor.inferFromText("tabsintitlebar", TabsInTitlebar.enabled);
     if (CustomizationHandler.isCustomizing()) {
       gCustomizeMode.updateLWTStyling();
     }
