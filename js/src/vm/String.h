@@ -1267,6 +1267,10 @@ NewStringCopyZ(js::ExclusiveContext* cx, const char* s)
     return NewStringCopyN<allowGC>(cx, s, strlen(s));
 }
 
+JSString*
+NewMaybeExternalString(JSContext* cx, const char16_t* s, size_t n, const JSStringFinalizer* fin,
+                       bool* isExternal);
+
 JS_STATIC_ASSERT(sizeof(HashNumber) == 4);
 
 } /* namespace js */

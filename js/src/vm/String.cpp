@@ -1213,6 +1213,24 @@ NewStringCopyN<CanGC>(ExclusiveContext* cx, const Latin1Char* s, size_t n);
 template JSFlatString*
 NewStringCopyN<NoGC>(ExclusiveContext* cx, const Latin1Char* s, size_t n);
 
+JSString*
+NewMaybeExternalString(JSContext* cx, const char16_t* s, size_t n, const JSStringFinalizer* fin,
+                       bool* isExternal)
+{
+    if (JSString* str = TryEmptyOrStaticString(cx, s, n)) {
+        *isExternal = false;
+        return str;
+    }
+
+    if (JSThinInlineString::lengthFits<Latin1Char>(n) && CanStoreCharsAsLatin1(s, n)) {
+        *isExternal = false;
+        return NewInlineStringDeflated<AllowGC::CanGC>(cx, mozilla::Range<const char16_t>(s, n));
+    }
+
+    *isExternal = true;
+    return JSExternalString::new_(cx, s, n, fin);
+}
+
 } /* namespace js */
 
 #ifdef DEBUG
