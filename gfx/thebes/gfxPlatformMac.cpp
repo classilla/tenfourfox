@@ -329,6 +329,9 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 
                     HTTP_OR_HTTPS_SUBDIR("www.vetmed.fu-berlin.de", "/assets/default2/NexusSansWeb-P");
 
+                    HTTP_OR_HTTPS_SUBDIR("cdn.theatlantic.com", "/assets/static/a/frontend/dist/theatlantic/fonts/garamond/AGaramondPro");
+                    HTTP_OR_HTTPS_SUBDIR("cdn.theatlantic.com", "/assets/static/a/frontend/dist/theatlantic/fonts/atlantic-serif/Atlantic-Serif");
+
                     // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");
                     HOST_AND_KEY("www.nerdwallet.com", "Gotham-Book--critical");
