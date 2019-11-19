@@ -822,7 +822,8 @@ void nsDisplayListBuilder::MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame,
 static void UnmarkFrameForDisplay(nsIFrame* aFrame) {
   nsPresContext* presContext = aFrame->PresContext();
   presContext->PropertyTable()->
-    Delete(aFrame, nsDisplayListBuilder::OutOfFlowDisplayDataProperty());
+    Delete(aFrame, nsDisplayListBuilder::OutOfFlowDisplayDataProperty(),
+           false /* aSkipBitCheck */);
 
   for (nsIFrame* f = aFrame; f;
        f = nsLayoutUtils::GetParentOrPlaceholderFor(f)) {

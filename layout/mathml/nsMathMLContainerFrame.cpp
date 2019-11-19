@@ -180,7 +180,7 @@ nsMathMLContainerFrame::ClearSavedChildMetrics()
   nsIFrame* childFrame = mFrames.FirstChild();
   FramePropertyTable* props = PresContext()->PropertyTable();
   while (childFrame) {
-    props->Delete(childFrame, HTMLReflowMetricsProperty());
+    props->Delete(childFrame, HTMLReflowMetricsProperty(), false /* aSkipBitCheck */);
     childFrame = childFrame->GetNextSibling();
   }
 }

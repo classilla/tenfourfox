@@ -130,7 +130,7 @@ GetNextBlockInInlineSibling(FramePropertyTable* aPropTable, nsIFrame* aFrame)
   }
 
   return static_cast<nsIFrame*>
-    (aPropTable->Get(aFrame, nsIFrame::IBSplitSibling()));
+    (aPropTable->Get(aFrame, nsIFrame::IBSplitSibling(), false /* aSkipBitCheck */));
 }
 
 static nsIFrame*
@@ -757,7 +757,13 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
                  "Reflow hint bits set without actually asking for a reflow");
 
     // skip any frame that has been destroyed due to a ripple effect
-    if (frame && !propTable->Get(frame, ChangeListProperty())) {
+    if (frame && !propTable->HasSkippingBitCheck(frame, ChangeListProperty())) {
+      // Null out the pointer since the frame was already destroyed.
+      // This is important so we don't try to delete its
+      // ChangeListProperty() below. (marked as YYYY)
+      nsStyleChangeData* changeData;
+      aChangeList.ChangeAt(index, &changeData);
+      changeData->mFrame = nullptr;
       continue;
     }
 
@@ -806,6 +812,13 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       }
     }
     if (hint & nsChangeHint_ReconstructFrame) {
+      // We're about to destroy data.mFrame, so null out the pointer.
+      // This is important so we don't try to delete its
+      // ChangeListProperty() below. (marked as YYYY)
+      nsStyleChangeData* changeData;
+      aChangeList.ChangeAt(index, &changeData);
+      changeData->mFrame = nullptr;
+
       // If we ever start passing true here, be careful of restyles
       // that involve a reframe and animations.  In particular, if the
       // restyle we're processing here is an animation restyle, but
@@ -980,8 +993,8 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   while (0 <= --index) {
     const nsStyleChangeData* changeData;
     aChangeList.ChangeAt(index, &changeData);
-    if (changeData->mFrame) {
-      propTable->Delete(changeData->mFrame, ChangeListProperty());
+    if (changeData->mFrame) { // YYYY see above
+      propTable->DeleteSkippingBitCheck(changeData->mFrame, ChangeListProperty());
     }
 
 #ifdef DEBUG

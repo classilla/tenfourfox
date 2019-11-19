@@ -8914,8 +8914,9 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
       parentReflowState(aPresContext, parentFrame, aRenderingContext,
                         LogicalSize(parentWM, parentSize),
                         nsHTMLReflowState::DUMMY_PARENT_REFLOW_STATE);
-    parentFrame->RemoveStateBits(~nsFrameState(0));
-    parentFrame->AddStateBits(savedState);
+    const nsFrameState bitsToLeaveUntouched = NS_FRAME_HAS_PROPERTIES;
+    parentFrame->RemoveStateBits(~bitsToLeaveUntouched);
+    parentFrame->AddStateBits(savedState & ~bitsToLeaveUntouched);
 
     // This may not do very much useful, but it's probably worth trying.
     if (parentSize.width != NS_INTRINSICSIZE)

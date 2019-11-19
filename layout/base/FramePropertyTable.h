@@ -92,6 +92,7 @@ public:
    * 'property value is null'.
    */
   void* Get(const nsIFrame* aFrame, const FramePropertyDescriptor* aProperty,
+            bool  aSkipBitCheck,
             bool* aFoundResult = nullptr);
   /**
    * Remove a property value for a frame. This requires one hashtable
@@ -105,14 +106,30 @@ public:
    * 'property value is null'.
    */
   void* Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aProperty,
+               bool  aSkipBitCheck,
                bool* aFoundResult = nullptr);
   /**
    * Remove and destroy a property value for a frame. This requires one
    * hashtable lookup (using the frame as the key) and a linear search
    * through the properties of that frame. If the frame has no such
    * property, nothing happens.
+   *
+   * The DeleteSkippingBitCheck variant doesn't test
+   * NS_FRAME_HAS_PROPERTIES on aFrame, so it is safe to call after
+   * aFrame has been destroyed as long as, since that destruction
+   * happened, it isn't possible for a new frame to have been created
+   * and the same property added.
    */
-  void Delete(nsIFrame* aFrame, const FramePropertyDescriptor* aProperty);
+  void Delete(nsIFrame* aFrame, const FramePropertyDescriptor* aProperty,
+              bool      aSkipBitCheck);
+
+  // TenFourFox issue 375, from M1353187.
+  void DeleteSkippingBitCheck(nsIFrame* aFrame,
+       const FramePropertyDescriptor* aProperty)
+  {
+    Delete(aFrame, aProperty, true /* aSkipBitCheck */);
+  }
+
   /**
    * Remove and destroy all property values for a frame. This requires one
    * hashtable lookup (using the frame as the key).
@@ -129,7 +146,16 @@ public:
   bool Has(const nsIFrame* aFrame, const FramePropertyDescriptor* aProperty)
   {
     bool foundResult = false;
-    (void)Get(aFrame, aProperty, &foundResult);
+    (void)Get(aFrame, aProperty, false /* aSkipBitCheck */, &foundResult);
+    return foundResult;
+  }
+
+  // TenFourFox issue 375, from M1353187.
+  bool HasSkippingBitCheck(const nsIFrame* aFrame,
+       const FramePropertyDescriptor* aProperty)
+  {
+    bool foundResult = false;
+    (void)Get(aFrame, aProperty, true /* aSkipBitCheck */, &foundResult);
     return foundResult;
   }
 
@@ -237,22 +263,22 @@ public:
   void* Get(const FramePropertyDescriptor* aProperty,
             bool* aFoundResult = nullptr) const
   {
-    return mTable->Get(mFrame, aProperty, aFoundResult);
+    return mTable->Get(mFrame, aProperty, false /* aSkipBitCheck */, aFoundResult);
   }
   void* Remove(const FramePropertyDescriptor* aProperty,
                bool* aFoundResult = nullptr) const
   {
-    return mTable->Remove(mFrame, aProperty, aFoundResult);
+    return mTable->Remove(mFrame, aProperty, false /* aSkipBitCheck */, aFoundResult);
   }
   void Delete(const FramePropertyDescriptor* aProperty)
   {
-    mTable->Delete(mFrame, aProperty);
+    mTable->Delete(mFrame, aProperty, false /* aSkipBitCheck */);
   }
   // TenFourFox issue 493
   bool Has(const FramePropertyDescriptor* aProperty)
   {
     bool foundResult;
-    (void)mTable->Get(mFrame, aProperty, &foundResult);
+    (void)mTable->Get(mFrame, aProperty, false /* aSkipBitCheck */, &foundResult);
     return foundResult;
   }
 

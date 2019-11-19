@@ -1995,7 +1995,8 @@ PresShell::NotifyDestroyingFrame(nsIFrame* aFrame)
     // the DisplayItemData destructor will use the destroyed frame when it
     // tries to remove it from the (array) value of this property.
     mPresContext->PropertyTable()->
-      Delete(aFrame, FrameLayerBuilder::LayerManagerDataProperty());
+      Delete(aFrame, FrameLayerBuilder::LayerManagerDataProperty(),
+             false /* aSkipBitCheck */);
   }
 }
 

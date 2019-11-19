@@ -19,6 +19,7 @@ FramePropertyTable::Set(nsIFrame* aFrame, const FramePropertyDescriptor* aProper
   if (mLastFrame != aFrame || !mLastEntry) {
     mLastFrame = aFrame;
     mLastEntry = mEntries.PutEntry(aFrame);
+    aFrame->AddStateBits(NS_FRAME_HAS_PROPERTIES);
   }
   Entry* entry = mLastEntry;
 
@@ -61,6 +62,7 @@ FramePropertyTable::Set(nsIFrame* aFrame, const FramePropertyDescriptor* aProper
 void*
 FramePropertyTable::Get(const nsIFrame* aFrame,
                         const FramePropertyDescriptor* aProperty,
+                        bool  aSkipBitCheck,
                         bool* aFoundResult)
 {
   NS_ASSERTION(aFrame, "Null frame?");
@@ -70,11 +72,19 @@ FramePropertyTable::Get(const nsIFrame* aFrame,
     *aFoundResult = false;
   }
 
+  if (!aSkipBitCheck && !(aFrame->GetStateBits() & NS_FRAME_HAS_PROPERTIES)) {
+    return nullptr;
+  }
+
   if (mLastFrame != aFrame) {
     mLastFrame = const_cast<nsIFrame*>(aFrame);
     mLastEntry = mEntries.GetEntry(mLastFrame);
   }
   Entry* entry = mLastEntry;
+
+  // If this assertion fires, see bug 1353187 (TenFourFox issue 375).
+  MOZ_ASSERT(entry || aSkipBitCheck,
+             "NS_FRAME_HAS_PROPERTIES bit should match whether entry exists");
   if (!entry)
     return nullptr;
 
@@ -103,7 +113,9 @@ FramePropertyTable::Get(const nsIFrame* aFrame,
 }
 
 void*
-FramePropertyTable::Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aProperty,
+FramePropertyTable::Remove(nsIFrame* aFrame,
+                           const FramePropertyDescriptor* aProperty,
+                           bool  aSkipBitCheck,
                            bool* aFoundResult)
 {
   NS_ASSERTION(aFrame, "Null frame?");
@@ -113,11 +125,19 @@ FramePropertyTable::Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aPro
     *aFoundResult = false;
   }
 
+  if (!aSkipBitCheck && !(aFrame->GetStateBits() & NS_FRAME_HAS_PROPERTIES)) {
+    return nullptr;
+  }
+
   if (mLastFrame != aFrame) {
     mLastFrame = aFrame;
     mLastEntry = mEntries.GetEntry(aFrame);
   }
   Entry* entry = mLastEntry;
+
+  // If this assertion fires, see bug 1353187 (TenFourFox issue 375).
+  MOZ_ASSERT(entry || aSkipBitCheck,
+             "NS_FRAME_HAS_PROPERTIES bit should match whether entry exists");
   if (!entry)
     return nullptr;
 
@@ -125,6 +145,7 @@ FramePropertyTable::Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aPro
     // There's only one entry and it's the one we want
     void* value = entry->mProp.mValue;
     mEntries.RawRemoveEntry(entry);
+    aFrame->RemoveStateBits(NS_FRAME_HAS_PROPERTIES);
     mLastEntry = nullptr;
     if (aFoundResult) {
       *aFoundResult = true;
@@ -164,13 +185,15 @@ FramePropertyTable::Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aPro
 }
 
 void
-FramePropertyTable::Delete(nsIFrame* aFrame, const FramePropertyDescriptor* aProperty)
+FramePropertyTable::Delete(nsIFrame* aFrame,
+                           const FramePropertyDescriptor* aProperty,
+                           bool  aSkipBitCheck)
 {
   NS_ASSERTION(aFrame, "Null frame?");
   NS_ASSERTION(aProperty, "Null property?");
 
   bool found;
-  void* v = Remove(aFrame, aProperty, &found);
+  void* v = Remove(aFrame, aProperty, aSkipBitCheck, &found);
   if (found) {
     PropertyValue pv(aProperty, v);
     pv.DestroyValueFor(aFrame);
@@ -197,7 +220,14 @@ FramePropertyTable::DeleteAllFor(nsIFrame* aFrame)
 {
   NS_ASSERTION(aFrame, "Null frame?");
 
+  if (!(aFrame->GetStateBits() & NS_FRAME_HAS_PROPERTIES)) {
+    return;
+  }
+
   Entry* entry = mEntries.GetEntry(aFrame);
+  // If this assertion fires, see bug 1353187 (TenFourFox issue 375).
+  MOZ_ASSERT(entry,
+             "NS_FRAME_HAS_PROPERTIES bit should match whether entry exists");
   if (!entry)
     return;
 
@@ -210,6 +240,8 @@ FramePropertyTable::DeleteAllFor(nsIFrame* aFrame)
 
   DeleteAllForEntry(entry);
   mEntries.RawRemoveEntry(entry);
+
+  // Don't bother unsetting NS_FRAME_HAS_PROPERTIES, since aFrame is going away
 }
 
 void

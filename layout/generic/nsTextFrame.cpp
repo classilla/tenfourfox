@@ -4213,9 +4213,12 @@ nsContinuingTextFrame::Init(nsIContent*       aContent,
     FramePropertyTable *propTable = PresContext()->PropertyTable();
     // Get all the properties from the prev-in-flow first to take
     // advantage of the propTable's cache and simplify the assertion below
-    void* embeddingLevel = propTable->Get(aPrevInFlow, EmbeddingLevelProperty());
-    void* baseLevel = propTable->Get(aPrevInFlow, BaseLevelProperty());
-    void* paragraphDepth = propTable->Get(aPrevInFlow, ParagraphDepthProperty());
+    void* embeddingLevel = propTable->Get(aPrevInFlow, EmbeddingLevelProperty(),
+false /* aSkipBitCheck */);
+    void* baseLevel = propTable->Get(aPrevInFlow, BaseLevelProperty(), false /*
+aSkipBitCheck */);
+    void* paragraphDepth = propTable->Get(aPrevInFlow, ParagraphDepthProperty(),
+false /* aSkipBitCheck */);
     propTable->Set(this, EmbeddingLevelProperty(), embeddingLevel);
     propTable->Set(this, BaseLevelProperty(), baseLevel);
     propTable->Set(this, ParagraphDepthProperty(), paragraphDepth);
@@ -4227,9 +4230,12 @@ nsContinuingTextFrame::Init(nsIContent*       aContent,
       while (nextContinuation &&
              nextContinuation->GetContentOffset() < mContentOffset) {
         NS_ASSERTION(
-          embeddingLevel == propTable->Get(nextContinuation, EmbeddingLevelProperty()) &&
-          baseLevel == propTable->Get(nextContinuation, BaseLevelProperty()) &&
-          paragraphDepth == propTable->Get(nextContinuation, ParagraphDepthProperty()),
+          embeddingLevel == propTable->Get(nextContinuation,
+EmbeddingLevelProperty(), false /* aSkipBitCheck */) &&
+          baseLevel == propTable->Get(nextContinuation, BaseLevelProperty(),
+false /* aSkipBitCheck */) &&
+          paragraphDepth == propTable->Get(nextContinuation,
+ParagraphDepthProperty(), false /* aSkipBitCheck */),
           "stealing text from different type of BIDI continuation");
         nextContinuation->mContentOffset = mContentOffset;
         nextContinuation = static_cast<nsTextFrame*>(nextContinuation->GetNextContinuation());

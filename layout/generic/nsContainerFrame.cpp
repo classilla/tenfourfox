@@ -169,12 +169,12 @@ nsContainerFrame::SafelyDestroyFrameListProp(nsIFrame* aDestructRoot,
   // delete the property -- that's why we fetch the property again before
   // removing each frame rather than fetching it once and iterating the list.
   while (nsFrameList* frameList =
-           static_cast<nsFrameList*>(aPropTable->Get(this, aProp))) {
+           static_cast<nsFrameList*>(aPropTable->Get(this, aProp, false /* aSkipBitCheck */))) {
     nsIFrame* frame = frameList->RemoveFirstChild();
     if (MOZ_LIKELY(frame)) {
       frame->DestroyFrom(aDestructRoot);
     } else {
-      aPropTable->Remove(this, aProp);
+      aPropTable->Remove(this, aProp, false /* aSkipBitCheck */);
       frameList->Delete(aPresShell);
       return;
     }
@@ -201,8 +201,8 @@ nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
   SafelyDestroyFrameListProp(aDestructRoot, shell, props, OverflowProperty());
 
   MOZ_ASSERT(IsFrameOfType(nsIFrame::eCanContainOverflowContainers) ||
-             !(props->Get(this, nsContainerFrame::OverflowContainersProperty()) ||
-               props->Get(this, nsContainerFrame::ExcessOverflowContainersProperty())),
+             !(props->Get(this, nsContainerFrame::OverflowContainersProperty(), false /* aSkipBitCheck */) ||
+               props->Get(this, nsContainerFrame::ExcessOverflowContainersProperty(), false /* aSkipBitCheck */)),
              "this type of frame should't have overflow containers");
 
   SafelyDestroyFrameListProp(aDestructRoot, shell, props,
@@ -248,7 +248,7 @@ static void AppendIfNonempty(const nsIFrame* aFrame,
                             nsIFrame::ChildListID aListID)
 {
   nsFrameList* list = static_cast<nsFrameList*>(
-    aPropTable->Get(aFrame, aProperty));
+    aPropTable->Get(aFrame, aProperty, false /* aSkipBitCheck */));
   if (list) {
     list->AppendIfNonempty(aLists, aListID);
   }
@@ -1337,11 +1337,11 @@ static bool
 TryRemoveFrame(nsIFrame* aFrame, FramePropertyTable* aPropTable,
                const FramePropertyDescriptor* aProp, nsIFrame* aChildToRemove)
 {
-  nsFrameList* list = static_cast<nsFrameList*>(aPropTable->Get(aFrame, aProp));
+  nsFrameList* list = static_cast<nsFrameList*>(aPropTable->Get(aFrame, aProp, false /* aSkipBitCheck */));
   if (list && list->StartRemoveFrame(aChildToRemove)) {
     // aChildToRemove *may* have been removed from this list.
     if (list->IsEmpty()) {
-      aPropTable->Remove(aFrame, aProp);
+      aPropTable->Remove(aFrame, aProp, false /* aSkipBitCheck */);
       list->Delete(aFrame->PresContext()->PresShell());
     }
     return true;
@@ -1359,10 +1359,10 @@ nsContainerFrame::StealFrame(nsIFrame* aChild,
     if (!list || !list->ContainsFrame(aChild)) {
       FramePropertyTable* propTable = PresContext()->PropertyTable();
       list = static_cast<nsFrameList*>(
-               propTable->Get(this, OverflowContainersProperty()));
+               propTable->Get(this, OverflowContainersProperty(), false /* aSkipBitCheck */));
       if (!list || !list->ContainsFrame(aChild)) {
         list = static_cast<nsFrameList*>(
-                 propTable->Get(this, ExcessOverflowContainersProperty()));
+                 propTable->Get(this, ExcessOverflowContainersProperty(), false /* aSkipBitCheck */));
         MOZ_ASSERT(list && list->ContainsFrame(aChild), "aChild isn't our child"
                    " or on a frame list not supported by StealFrame");
       }
@@ -1534,14 +1534,14 @@ nsFrameList*
 nsContainerFrame::GetPropTableFrames(const FramePropertyDescriptor* aProperty) const
 {
   FramePropertyTable* propTable = PresContext()->PropertyTable();
-  return static_cast<nsFrameList*>(propTable->Get(this, aProperty));
+  return static_cast<nsFrameList*>(propTable->Get(this, aProperty, false /* aSkipBitCheck */));
 }
 
 nsFrameList*
 nsContainerFrame::RemovePropTableFrames(const FramePropertyDescriptor* aProperty)
 {
   FramePropertyTable* propTable = PresContext()->PropertyTable();
-  return static_cast<nsFrameList*>(propTable->Remove(this, aProperty));
+  return static_cast<nsFrameList*>(propTable->Remove(this, aProperty, false /* aSkipBitCheck */));
 }
 
 void
@@ -1957,10 +1957,12 @@ nsOverflowContinuationTracker::EndFinish(nsIFrame* aChild)
   nsPresContext* pc = aChild->PresContext();
   FramePropertyTable* propTable = pc->PropertyTable();
   nsFrameList* eoc = static_cast<nsFrameList*>(propTable->Get(mParent,
-                       nsContainerFrame::ExcessOverflowContainersProperty()));
+                       nsContainerFrame::ExcessOverflowContainersProperty(),
+                       false /* aSkipBitCheck */));
   if (eoc != mOverflowContList) {
     nsFrameList* oc = static_cast<nsFrameList*>(propTable->Get(mParent,
-                        nsContainerFrame::OverflowContainersProperty()));
+                        nsContainerFrame::OverflowContainersProperty(),
+                        false /* aSkipBitCheck */));
     if (oc != mOverflowContList) {
       // mOverflowContList was deleted
       mPrevOverflowCont = nullptr;

@@ -765,7 +765,7 @@ nsMathMLmtableOuterFrame::AttributeChanged(int32_t  aNameSpaceID,
              aAttribute == nsGkAtoms::columnlines_) {
     // clear any cached property list for this table
     presContext->PropertyTable()->
-      Delete(tableFrame, AttributeToProperty(aAttribute));
+      Delete(tableFrame, AttributeToProperty(aAttribute), false /* aSkipBitCheck */);
     // Reparse the new attribute on the table.
     ParseFrameAttribute(tableFrame, aAttribute, true);
   } else {
@@ -1117,7 +1117,7 @@ nsMathMLmtrFrame::AttributeChanged(int32_t  aNameSpaceID,
     return NS_OK;
   }
 
-  presContext->PropertyTable()->Delete(this, AttributeToProperty(aAttribute));
+  presContext->PropertyTable()->Delete(this, AttributeToProperty(aAttribute), false /* aSkipBitCheck */);
 
   bool allowMultiValues = (aAttribute == nsGkAtoms::columnalign_);
 
@@ -1175,7 +1175,7 @@ nsMathMLmtdFrame::AttributeChanged(int32_t  aNameSpaceID,
       aAttribute == nsGkAtoms::columnalign_) {
 
     nsPresContext* presContext = PresContext();
-    presContext->PropertyTable()->Delete(this, AttributeToProperty(aAttribute));
+    presContext->PropertyTable()->Delete(this, AttributeToProperty(aAttribute), false /* aSkipBitCheck */);
 
     // Reparse the attribute.
     ParseFrameAttribute(this, aAttribute, false);
