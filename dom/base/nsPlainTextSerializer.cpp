@@ -53,7 +53,6 @@ static int32_t GetUnicharStringWidth(const char16_t* pwcs, int32_t n);
 
 // Someday may want to make this non-const:
 static const uint32_t TagStackSize = 500;
-static const uint32_t OLStackSize = 100;
 
 nsresult
 NS_NewPlainTextSerializer(nsIContentSerializer** aSerializer)
@@ -101,10 +100,6 @@ nsPlainTextSerializer::nsPlainTextSerializer()
   mTagStackIndex = 0;
   mIgnoreAboveIndex = (uint32_t)kNotFound;
 
-  // initialize the OL stack, where numbers for ordered lists are kept
-  mOLStack = new int32_t[OLStackSize];
-  mOLStackIndex = 0;
-
   mULCount = 0;
 
   mIgnoredChildNodeLevel = 0;
@@ -113,7 +108,6 @@ nsPlainTextSerializer::nsPlainTextSerializer()
 nsPlainTextSerializer::~nsPlainTextSerializer()
 {
   delete[] mTagStack;
-  delete[] mOLStack;
   NS_WARN_IF_FALSE(mHeadLevel == 0, "Wrong head level!");
 }
 
@@ -198,6 +192,8 @@ nsPlainTextSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
 
   // XXX We should let the caller decide whether to do this or not
   mFlags &= ~nsIDocumentEncoder::OutputNoFramesContent;
+
+  MOZ_ASSERT(mOLStack.IsEmpty());
 
   return NS_OK;
 }
@@ -447,6 +443,8 @@ nsPlainTextSerializer::AppendDocumentStart(nsIDocument *aDocument,
   return NS_OK;
 }
 
+constexpr int32_t kOlStackDummyValue = 0;
+
 nsresult
 nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
 {
@@ -625,53 +623,52 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
   }
   else if (aTag == nsGkAtoms::ul) {
     // Indent here to support nested lists, which aren't included in li :-(
-    EnsureVerticalSpace(mULCount + mOLStackIndex == 0 ? 1 : 0);
+    EnsureVerticalSpace(IsInOlOrUl() ? 0 : 1);
          // Must end the current line before we change indention
     mIndent += kIndentSizeList;
     mULCount++;
   }
   else if (aTag == nsGkAtoms::ol) {
-    EnsureVerticalSpace(mULCount + mOLStackIndex == 0 ? 1 : 0);
+    EnsureVerticalSpace(IsInOlOrUl() ? 0 : 1);
     if (mFlags & nsIDocumentEncoder::OutputFormatted) {
       // Must end the current line before we change indention
-      if (mOLStackIndex < OLStackSize) {
-        nsAutoString startAttr;
-        int32_t startVal = 1;
-        if (NS_SUCCEEDED(GetAttributeValue(nsGkAtoms::start, startAttr))) {
-          nsresult rv = NS_OK;
-          startVal = startAttr.ToInteger(&rv);
-          if (NS_FAILED(rv))
-            startVal = 1;
+      nsAutoString startAttr;
+      int32_t startVal = 1;
+      if (NS_SUCCEEDED(GetAttributeValue(nsGkAtoms::start, startAttr))) {
+        nsresult rv = NS_OK;
+        startVal = startAttr.ToInteger(&rv);
+        if (NS_FAILED(rv)) {
+          startVal = 1;
         }
-        mOLStack[mOLStackIndex++] = startVal;
       }
+      mOLStack.AppendElement(startVal);
     } else {
-      mOLStackIndex++;
+      mOLStack.AppendElement(kOlStackDummyValue);
     }
     mIndent += kIndentSizeList;  // see ul
   }
   else if (aTag == nsGkAtoms::li &&
            (mFlags & nsIDocumentEncoder::OutputFormatted)) {
     if (mTagStackIndex > 1 && IsInOL()) {
-      if (mOLStackIndex > 0) {
+      if (!mOLStack.IsEmpty()) {
         nsAutoString valueAttr;
         if (NS_SUCCEEDED(GetAttributeValue(nsGkAtoms::value, valueAttr))) {
           nsresult rv = NS_OK;
           int32_t valueAttrVal = valueAttr.ToInteger(&rv);
-          if (NS_SUCCEEDED(rv))
-            mOLStack[mOLStackIndex-1] = valueAttrVal;
+          if (NS_SUCCEEDED(rv)) {
+            mOLStack.LastElement() = valueAttrVal;
+          }
         }
         // This is what nsBulletFrame does for OLs:
-        mInIndentString.AppendInt(mOLStack[mOLStackIndex-1]++, 10);
-      }
-      else {
+        mInIndentString.AppendInt(mOLStack.LastElement(), 10);
+        mOLStack.LastElement()++;
+      } else {
         mInIndentString.Append(char16_t('#'));
       }
 
       mInIndentString.Append(char16_t('.'));
 
-    }
-    else {
+    } else {
       static char bulletCharArray[] = "*o+#";
       uint32_t index = mULCount > 0 ? (mULCount - 1) : 3;
       char bulletChar = bulletCharArray[index % 4];
@@ -679,33 +676,26 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
     }
 
     mInIndentString.Append(char16_t(' '));
-  }
-  else if (aTag == nsGkAtoms::dl) {
+  } else if (aTag == nsGkAtoms::dl) {
     EnsureVerticalSpace(1);
-  }
-  else if (aTag == nsGkAtoms::dt) {
+  } else if (aTag == nsGkAtoms::dt) {
     EnsureVerticalSpace(0);
-  }
-  else if (aTag == nsGkAtoms::dd) {
+  } else if (aTag == nsGkAtoms::dd) {
     EnsureVerticalSpace(0);
     mIndent += kIndentSizeDD;
-  }
-  else if (aTag == nsGkAtoms::span) {
+  } else if (aTag == nsGkAtoms::span) {
     ++mSpanLevel;
-  }
-  else if (aTag == nsGkAtoms::blockquote) {
+  } else if (aTag == nsGkAtoms::blockquote) {
     // Push
     PushBool(mIsInCiteBlockquote, isInCiteBlockquote);
     if (isInCiteBlockquote) {
       EnsureVerticalSpace(0);
       mCiteQuoteLevel++;
-    }
-    else {
+    } else {
       EnsureVerticalSpace(1);
       mIndent += kTabSize; // Check for some maximum value?
     }
-  }
-  else if (aTag == nsGkAtoms::q) {
+  } else if (aTag == nsGkAtoms::q) {
     Write(NS_LITERAL_STRING("\""));
   }
 
@@ -887,7 +877,8 @@ nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
   else if (aTag == nsGkAtoms::ul) {
     FlushLine();
     mIndent -= kIndentSizeList;
-    if (--mULCount + mOLStackIndex == 0) {
+    --mULCount;
+    if (!IsInOlOrUl()) {
       mFloatingLines = 1;
       mLineBreakDue = true;
     }
@@ -895,31 +886,26 @@ nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
   else if (aTag == nsGkAtoms::ol) {
     FlushLine(); // Doing this after decreasing OLStackIndex would be wrong.
     mIndent -= kIndentSizeList;
-    NS_ASSERTION(mOLStackIndex, "Wrong OLStack level!");
-    mOLStackIndex--;
-    if (mULCount + mOLStackIndex == 0) {
+    MOZ_ASSERT(!mOLStack.IsEmpty(), "Wrong OLStack level!");
+    mOLStack.RemoveElementAt(mOLStack.Length() - 1); // mOLStack.RemoveLastElement();
+    if (!IsInOlOrUl()) {
       mFloatingLines = 1;
       mLineBreakDue = true;
     }
-  }  
-  else if (aTag == nsGkAtoms::dl) {
+  } else if (aTag == nsGkAtoms::dl) {
     mFloatingLines = 1;
     mLineBreakDue = true;
-  }
-  else if (aTag == nsGkAtoms::dd) {
+  } else if (aTag == nsGkAtoms::dd) {
     FlushLine();
     mIndent -= kIndentSizeDD;
-  }
-  else if (aTag == nsGkAtoms::span) {
+  } else if (aTag == nsGkAtoms::span) {
     NS_ASSERTION(mSpanLevel, "Span level will be negative!");
     --mSpanLevel;
-  }
-  else if (aTag == nsGkAtoms::div) {
+  } else if (aTag == nsGkAtoms::div) {
     if (mFloatingLines < 0)
       mFloatingLines = 0;
     mLineBreakDue = true;
-  }
-  else if (aTag == nsGkAtoms::blockquote) {
+  } else if (aTag == nsGkAtoms::blockquote) {
     FlushLine();    // Is this needed?
 
     // Pop
@@ -930,17 +916,14 @@ nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
       mCiteQuoteLevel--;
       mFloatingLines = 0;
       mHasWrittenCiteBlockquote = true;
-    }
-    else {
+    } else {
       mIndent -= kTabSize;
       mFloatingLines = 1;
     }
     mLineBreakDue = true;
-  }
-  else if (aTag == nsGkAtoms::q) {
+  } else if (aTag == nsGkAtoms::q) {
     Write(NS_LITERAL_STRING("\""));
-  }
-  else if (IsElementBlock(mElement) && aTag != nsGkAtoms::script) {
+  } else if (IsElementBlock(mElement) && aTag != nsGkAtoms::script) {
     // All other blocks get 1 vertical space after them
     // in formatted mode, otherwise 0.
     // This is hard. Sometimes 0 is a better number, but
@@ -1864,6 +1847,10 @@ nsPlainTextSerializer::IsInOL()
   }
   // We may reach here for orphan LI's.
   return false;
+}
+
+bool nsPlainTextSerializer::IsInOlOrUl() const {
+  return (mULCount > 0) || !mOLStack.IsEmpty();
 }
 
 /*
