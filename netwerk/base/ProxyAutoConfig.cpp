@@ -265,7 +265,8 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
   PACResolver()
-    : mStatus(NS_ERROR_FAILURE)
+    : mStatus(NS_ERROR_FAILURE),
+      mMutex("PACResolver::Mutex")
   {
   }
 
@@ -274,12 +275,17 @@ public:
                                  nsIDNSRecord *record,
                                  nsresult status) override
   {
-    if (mTimer) {
-      mTimer->Cancel();
-      mTimer = nullptr;
+    nsCOMPtr<nsITimer> timer;
+    {
+      MutexAutoLock lock(mMutex);
+      timer.swap(mTimer);
+      mRequest = nullptr;
     }
 
-    mRequest = nullptr;
+    if (timer) {
+      timer->Cancel();
+    }
+
     mStatus = status;
     mResponse = record;
     return NS_OK;
@@ -298,6 +304,7 @@ public:
   nsCOMPtr<nsICancelable> mRequest;
   nsCOMPtr<nsIDNSRecord>  mResponse;
   nsCOMPtr<nsITimer>      mTimer;
+  Mutex                   mMutex;
 
 private:
   ~PACResolver() {}
