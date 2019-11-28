@@ -288,7 +288,6 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                 EXACT_URL("https://www.wm.com/etc.clientlibs/wm/clientlibs/react-app/resources/fonts/4f99cc7e-9e83-4698-bf36-c7033e16db05.woff");
                 EXACT_URL("https://www.wm.com/etc.clientlibs/wm/clientlibs/react-app/resources/fonts/4d27f3a7-2889-440f-a415-734d7d9e80a7.woff");
 
-		EXACT_URL("https://www.kulturstiftung-des-bundes.de/typo3conf/ext/base_ksb/Resources/Public/9437aea92626957f9d7fd0e5f548b689.woff2");
 		EXACT_URL("https://www.kulturstiftung-des-bundes.de/typo3conf/ext/base_ksb/Resources/Public/38c1bdeb69b2cae2f59fae38f127aa6d.woff2");
 
                 // Get the hostname to eliminate creating unnecessary test strings.
@@ -331,6 +330,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 
                     HTTP_OR_HTTPS_SUBDIR("cdn.theatlantic.com", "/assets/static/a/frontend/dist/theatlantic/fonts/garamond/AGaramondPro");
                     HTTP_OR_HTTPS_SUBDIR("cdn.theatlantic.com", "/assets/static/a/frontend/dist/theatlantic/fonts/atlantic-serif/Atlantic-Serif");
+
+                    HTTP_OR_HTTPS_SUBDIR("www.kulturstiftung-des-bundes.de", "/typo3conf/ext/base_ksb/Resources/Public/");
 
                     // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");
