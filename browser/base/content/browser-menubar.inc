@@ -557,10 +557,6 @@
                             accesskey="&errorConsoleCmd.accesskey;"/>
                   <menuitem id="menu_devtools_connect"
                             observes="devtoolsMenuBroadcaster_connect"/>
-                  <menuseparator id="devToolsEndSeparator"/>
-                  <menuitem id="getMoreDevtools"
-                            observes="devtoolsMenuBroadcaster_GetMoreTools"
-                            accesskey="&getMoreDevtoolsCmd.accesskey;"/>
                 </menupopup>
               </menu>
               <menuitem id="menu_pageInfo"
