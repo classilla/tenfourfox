@@ -1041,9 +1041,6 @@ pref("dom.disable_window_open_feature.status",      true);
 
 pref("dom.allow_scripts_to_close_windows",          false);
 
-// TenFourFox issue 463
-pref("tenfourfox.dom.requestIdleCallback.enabled",  false);
-
 pref("dom.require_user_interaction_for_beforeunload", true);
 
 pref("dom.disable_open_during_load",                false);
@@ -5159,7 +5156,13 @@ pref("toolkit.pageThumbs.minHeight", 0);
 // when the page is reloaded. To turn this feature off, just set the limit to 0.
 pref("prompts.authentication_dialog_abuse_limit", 3);
 
+// TenFourFox issue 463
+pref("tenfourfox.dom.requestIdleCallback.enabled",  false);
+
 pref("tenfourfox.adblock.enabled", false);
 pref("tenfourfox.adblock.logging.enabled", false);
 pref("tenfourfox.dom.forms.date", true);
 pref("tenfourfox.dom.forms.time", true);
+
+// TenFourFox issue 583
+pref("tenfourfox.reader.force-enable", true);

@@ -11,6 +11,9 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/ExtensionContent.jsm");
 
+const g104FxForcePref = "tenfourfox.reader.force-enable"; // TenFourFox issue 583
+Cu.import("resource://gre/modules/Preferences.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
   "resource:///modules/E10SUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
@@ -254,6 +257,7 @@ AboutPrivateBrowsingListener.init(this);
 var AboutReaderListener = {
 
   _articlePromise: null,
+  _alwaysAllowReaderMode: true, // TenFourFox issue 583
 
   init: function() {
     addEventListener("AboutReaderContentLoaded", this, false, true);
@@ -262,6 +266,17 @@ var AboutReaderListener = {
     addEventListener("pagehide", this, false);
     addMessageListener("Reader:ParseDocument", this);
     addMessageListener("Reader:PushState", this);
+    Services.prefs.addObserver(g104FxForcePref, this, false);
+  },
+
+  // TenFourFox issue 583
+  uninit: function() {
+    Services.prefs.removeObserver(g104FxForcePref, this, false);
+  },
+  observe: function(subject, topic, data) { // jshint ignore:line
+    if (topic === "nsPref:changed") {
+      this._alwaysAllowReaderMode = Preferences.get(g104FxForcePref, true);
+    }
   },
 
   receiveMessage: function(message) {
@@ -357,6 +372,17 @@ var AboutReaderListener = {
 
   onPaintWhenWaitedFor: function(forceNonArticle) {
     this.cancelPotentialPendingReadabilityCheck();
+
+    // TenFourFox issue 583
+    // If we are always allowing reader mode, don't bother spending any time
+    // processing the page. But don't let just everything through.
+    if (!this.isAboutReader) {
+      if (this._alwaysAllowReaderMode && !(content.document.documentURI.startsWith("about:"))) {
+        sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: true });
+        return;
+      }
+    }
+
     // Only send updates when there are articles; there's no point updating with
     // |false| all the time.
     if (ReaderMode.isProbablyReaderable(content.document)) {
