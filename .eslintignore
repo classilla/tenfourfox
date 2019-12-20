@@ -166,6 +166,7 @@ toolkit/components/places/**
 # Uses preprocessing
 toolkit/content/contentAreaUtils.js
 toolkit/components/jsdownloads/src/DownloadIntegration.jsm
+toolkit/components/reader/Readerable.jsm
 toolkit/components/search/nsSearchService.js
 toolkit/components/url-classifier/**
 toolkit/components/urlformatter/nsURLFormatter.js

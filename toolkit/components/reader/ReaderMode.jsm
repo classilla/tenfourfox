@@ -27,64 +27,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "CommonUtils", "resource://services-comm
 XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ReaderWorker", "resource://gre/modules/reader/ReaderWorker.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task", "resource://gre/modules/Task.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch", "resource://gre/modules/TelemetryStopwatch.jsm");
-
-XPCOMUtils.defineLazyGetter(this, "Readability", function() {
-  let scope = {};
-  scope.dump = this.dump;
-  Services.scriptloader.loadSubScript("resource://gre/modules/reader/Readability.js", scope);
-  return scope["Readability"];
-});
+//XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch", "resource://gre/modules/TelemetryStopwatch.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Readerable", "resource://gre/modules/Readerable.jsm");
 
 this.ReaderMode = {
   // Version of the cache schema.
   CACHE_VERSION: 1,
 
   DEBUG: 0,
-
-  // Don't try to parse the page if it has too many elements (for memory and
-  // performance reasons)
-  get maxElemsToParse() {
-    delete this.parseNodeLimit;
-
-    Services.prefs.addObserver("reader.parse-node-limit", this, false);
-    return this.parseNodeLimit = Services.prefs.getIntPref("reader.parse-node-limit");
-  },
-
-  get isEnabledForParseOnLoad() {
-    delete this.isEnabledForParseOnLoad;
-
-    // Listen for future pref changes.
-    Services.prefs.addObserver("reader.parse-on-load.", this, false);
-
-    return this.isEnabledForParseOnLoad = this._getStateForParseOnLoad();
-  },
-
-  get isOnLowMemoryPlatform() {
-    let memory = Cc["@mozilla.org/xpcom/memory-service;1"].getService(Ci.nsIMemory);
-    delete this.isOnLowMemoryPlatform;
-    return this.isOnLowMemoryPlatform = memory.isLowMemoryPlatform();
-  },
-
-  _getStateForParseOnLoad: function () {
-    let isEnabled = Services.prefs.getBoolPref("reader.parse-on-load.enabled");
-    let isForceEnabled = Services.prefs.getBoolPref("reader.parse-on-load.force-enabled");
-    // For low-memory devices, don't allow reader mode since it takes up a lot of memory.
-    // See https://bugzilla.mozilla.org/show_bug.cgi?id=792603 for details.
-    return isForceEnabled || (isEnabled && !this.isOnLowMemoryPlatform);
-  },
-
-  observe: function(aMessage, aTopic, aData) {
-    switch(aTopic) {
-      case "nsPref:changed":
-        if (aData.startsWith("reader.parse-on-load.")) {
-          this.isEnabledForParseOnLoad = this._getStateForParseOnLoad();
-        } else if (aData === "reader.parse-node-limit") {
-          this.parseNodeLimit = Services.prefs.getIntPref(aData);
-        }
-        break;
-    }
-  },
 
   /**
    * Returns original URL from an about:reader URL.
@@ -112,39 +62,6 @@ this.ReaderMode = {
   },
 
   /**
-   * Decides whether or not a document is reader-able without parsing the whole thing.
-   *
-   * @param doc A document to parse.
-   * @return boolean Whether or not we should show the reader mode button.
-   */
-  isProbablyReaderable: function(doc) {
-    // Only care about 'real' HTML documents:
-    if (doc.mozSyntheticDocument || !(doc instanceof doc.defaultView.HTMLDocument)) {
-      return false;
-    }
-
-    let uri = Services.io.newURI(doc.location.href, null, null);
-    if (!this._shouldCheckUri(uri)) {
-      return false;
-    }
-
-    let utils = this.getUtilsForWin(doc.defaultView);
-    // We pass in a helper function to determine if a node is visible, because
-    // it uses gecko APIs that the engine-agnostic readability code can't rely
-    // upon.
-    return new Readability(uri, doc).isProbablyReaderable(this.isNodeVisible.bind(this, utils));
-  },
-
-  isNodeVisible: function(utils, node) {
-    let bounds = utils.getBoundsWithoutFlushing(node);
-    return bounds.height > 0 && bounds.width > 0;
-  },
-
-  getUtilsForWin: function(win) {
-    return win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-  },
-
-  /**
    * Gets an article from a loaded browser's document. This method will not attempt
    * to parse certain URIs (e.g. about: URIs).
    *
@@ -154,7 +71,7 @@ this.ReaderMode = {
    */
   parseDocument: Task.async(function* (doc) {
     let uri = Services.io.newURI(doc.documentURI, null, null);
-    if (!this._shouldCheckUri(uri)) {
+    if (!Readerable.shouldCheckUri(uri)) {
       this.log("Reader mode disabled for URI");
       return null;
     }
@@ -171,12 +88,12 @@ this.ReaderMode = {
    */
   downloadAndParseDocument: Task.async(function* (url) {
     let uri = Services.io.newURI(url, null, null);
-    TelemetryStopwatch.start("READER_MODE_DOWNLOAD_MS");
+    //TelemetryStopwatch.start("READER_MODE_DOWNLOAD_MS");
     let doc = yield this._downloadDocument(url).catch(e => {
-      TelemetryStopwatch.finish("READER_MODE_DOWNLOAD_MS");
+      //TelemetryStopwatch.finish("READER_MODE_DOWNLOAD_MS");
       throw e;
     });
-    TelemetryStopwatch.finish("READER_MODE_DOWNLOAD_MS");
+    //TelemetryStopwatch.finish("READER_MODE_DOWNLOAD_MS");
     return yield this._readerParse(uri, doc);
   }),
 
@@ -306,39 +223,6 @@ this.ReaderMode = {
       dump("Reader: " + msg);
   },
 
-  _blockedHosts: [
-    "twitter.com",
-    "mail.google.com",
-    "github.com",
-    "reddit.com",
-  ],
-
-  _shouldCheckUri: function (uri) {
-    if (!(uri.schemeIs("http") || uri.schemeIs("https"))) {
-      this.log("Not parsing URI scheme: " + uri.scheme);
-      return false;
-    }
-
-    try {
-      uri.QueryInterface(Ci.nsIURL);
-    } catch (ex) {
-      // If this doesn't work, presumably the URL is not well-formed or something
-      return false;
-    }
-    // Sadly, some high-profile pages have false positives, so bail early for those:
-    let asciiHost = uri.asciiHost;
-    if (this._blockedHosts.some(blockedHost => asciiHost.endsWith(blockedHost))) {
-      return false;
-    }
-
-    if (!uri.filePath || uri.filePath == "/") {
-      this.log("Not parsing home page: " + uri.spec);
-      return false;
-    }
-
-    return true;
-  },
-
   /**
    * Attempts to parse a document into an article. Heavy lifting happens
    * in readerWorker.js.
@@ -349,16 +233,17 @@ this.ReaderMode = {
    * @resolves JS object representing the article, or null if no article is found.
    */
   _readerParse: Task.async(function* (uri, doc) {
-    let histogram = Services.telemetry.getHistogramById("READER_MODE_PARSE_RESULT");
+    //let histogram = Services.telemetry.getHistogramById("READER_MODE_PARSE_RESULT");
     if (this.parseNodeLimit) {
       let numTags = doc.getElementsByTagName("*").length;
       if (numTags > this.parseNodeLimit) {
         this.log("Aborting parse for " + uri.spec + "; " + numTags + " elements found");
-        histogram.add(PARSE_ERROR_TOO_MANY_ELEMENTS);
+        //histogram.add(PARSE_ERROR_TOO_MANY_ELEMENTS);
         return null;
       }
     }
 
+    let { documentURI } = doc;
     let uriParam = {
       spec: uri.spec,
       host: uri.host,
@@ -367,37 +252,39 @@ this.ReaderMode = {
       pathBase: Services.io.newURI(".", null, uri).spec
     };
 
-    TelemetryStopwatch.start("READER_MODE_SERIALIZE_DOM_MS");
+    //TelemetryStopwatch.start("READER_MODE_SERIALIZE_DOM_MS");
     let serializer = Cc["@mozilla.org/xmlextras/xmlserializer;1"].
                      createInstance(Ci.nsIDOMSerializer);
     let serializedDoc = serializer.serializeToString(doc);
-    TelemetryStopwatch.finish("READER_MODE_SERIALIZE_DOM_MS");
+    //TelemetryStopwatch.finish("READER_MODE_SERIALIZE_DOM_MS");
 
-    TelemetryStopwatch.start("READER_MODE_WORKER_PARSE_MS");
+    //TelemetryStopwatch.start("READER_MODE_WORKER_PARSE_MS");
     let article = null;
     try {
       article = yield ReaderWorker.post("parseDocument", [uriParam, serializedDoc]);
     } catch (e) {
       Cu.reportError("Error in ReaderWorker: " + e);
-      histogram.add(PARSE_ERROR_WORKER);
+      //histogram.add(PARSE_ERROR_WORKER);
     }
-    TelemetryStopwatch.finish("READER_MODE_WORKER_PARSE_MS");
+    //TelemetryStopwatch.finish("READER_MODE_WORKER_PARSE_MS");
 
     if (!article) {
       this.log("Worker did not return an article");
-      histogram.add(PARSE_ERROR_NO_ARTICLE);
+      //histogram.add(PARSE_ERROR_NO_ARTICLE);
       return null;
     }
 
-    // Readability returns a URI object, but we only care about the URL.
-    article.url = article.uri.spec;
+    // Readability returns a URI object based on the baseURI, but we only care
+    // about the original document's URL from now on. This also avoids spoofing
+    // attempts where the baseURI doesn't match the domain of the documentURI
+    article.url = documentURI;
     delete article.uri;
 
     let flags = Ci.nsIDocumentEncoder.OutputSelectionOnly | Ci.nsIDocumentEncoder.OutputAbsoluteLinks;
     article.title = Cc["@mozilla.org/parserutils;1"].getService(Ci.nsIParserUtils)
                                                     .convertToPlainText(article.title, flags, 0);
 
-    histogram.add(PARSE_SUCCESS);
+    //histogram.add(PARSE_SUCCESS);
     return article;
   }),
 
