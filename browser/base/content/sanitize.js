@@ -17,8 +17,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
                                   "resource:///modules/DownloadsCommon.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
-                                  "resource://gre/modules/TelemetryStopwatch.jsm");
+//XPCOMUtils.defineLazyModuleGetter(this, "//TelemetryStopwatch",
+//                                 "resource://gre/modules///TelemetryStopwatch.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "serviceWorkerManager",
+                                   "@mozilla.org/serviceworkers/manager;1",
+                                   "nsIServiceWorkerManager");
+XPCOMUtils.defineLazyServiceGetter(this, "quotaManagerService",
+                                   "@mozilla.org/dom/quota-manager-service;1",
+                                   "nsIQuotaManagerService");
+
 
 function Sanitizer() {}
 Sanitizer.prototype = {
@@ -128,7 +135,7 @@ Sanitizer.prototype = {
       return deferred.promise;
     }
 
-    TelemetryStopwatch.start("FX_SANITIZE_TOTAL");
+    //TelemetryStopwatch.start("FX_SANITIZE_TOTAL");
 
     // Cache the range of times to clear
     if (this.ignoreTimespan)
@@ -139,7 +146,7 @@ Sanitizer.prototype = {
     let itemCount = Object.keys(itemsToClear).length;
     let onItemComplete = function() {
       if (!--itemCount) {
-        TelemetryStopwatch.finish("FX_SANITIZE_TOTAL");
+        //TelemetryStopwatch.finish("FX_SANITIZE_TOTAL");
         seenError ? deferred.reject() : deferred.resolve();
       }
     };
@@ -185,7 +192,7 @@ Sanitizer.prototype = {
     cache: {
       clear: function ()
       {
-        TelemetryStopwatch.start("FX_SANITIZE_CACHE");
+        //TelemetryStopwatch.start("FX_SANITIZE_CACHE");
 
         var cache = Cc["@mozilla.org/netwerk/cache-storage-service;1"].
                     getService(Ci.nsICacheStorageService);
@@ -201,7 +208,7 @@ Sanitizer.prototype = {
           imageCache.clearCache(false); // true=chrome, false=content
         } catch(er) {}
 
-        TelemetryStopwatch.finish("FX_SANITIZE_CACHE");
+        //TelemetryStopwatch.finish("FX_SANITIZE_CACHE");
       },
 
       get canClear()
@@ -213,8 +220,8 @@ Sanitizer.prototype = {
     cookies: {
       clear: function (aCallback)
       {
-        TelemetryStopwatch.start("FX_SANITIZE_COOKIES");
-        TelemetryStopwatch.start("FX_SANITIZE_COOKIES_2");
+        //TelemetryStopwatch.start("FX_SANITIZE_COOKIES");
+        //TelemetryStopwatch.start("FX_SANITIZE_COOKIES_2");
 
         var cookieMgr = Components.classes["@mozilla.org/cookiemanager;1"]
                                   .getService(Ci.nsICookieManager);
@@ -234,7 +241,7 @@ Sanitizer.prototype = {
           cookieMgr.removeAll();
         }
 
-        TelemetryStopwatch.finish("FX_SANITIZE_COOKIES_2");
+        //TelemetryStopwatch.finish("FX_SANITIZE_COOKIES_2");
 
         // Clear deviceIds. Done asynchronously (returns before complete).
         let mediaMgr = Components.classes["@mozilla.org/mediaManagerService;1"]
@@ -242,11 +249,11 @@ Sanitizer.prototype = {
         mediaMgr.sanitizeDeviceIds(this.range && this.range[0]);
 
         // Clear plugin data.
-        TelemetryStopwatch.start("FX_SANITIZE_PLUGINS");
+        //TelemetryStopwatch.start("FX_SANITIZE_PLUGINS");
         this.clearPluginCookies().then(
           function() {
-            TelemetryStopwatch.finish("FX_SANITIZE_PLUGINS");
-            TelemetryStopwatch.finish("FX_SANITIZE_COOKIES");
+            //TelemetryStopwatch.finish("FX_SANITIZE_PLUGINS");
+            //TelemetryStopwatch.finish("FX_SANITIZE_COOKIES");
             aCallback();
           });
         return true;
@@ -301,10 +308,30 @@ Sanitizer.prototype = {
     offlineApps: {
       clear: function ()
       {
-        TelemetryStopwatch.start("FX_SANITIZE_OFFLINEAPPS");
+        // AppCache
+        //TelemetryStopwatch.start("FX_SANITIZE_OFFLINEAPPS");
         Components.utils.import("resource:///modules/offlineAppCache.jsm");
         OfflineAppCacheHelper.clear();
-        TelemetryStopwatch.finish("FX_SANITIZE_OFFLINEAPPS");
+        //TelemetryStopwatch.finish("FX_SANITIZE_OFFLINEAPPS");
+
+        // LocalStorage
+        Services.obs.notifyObservers(null, "extension:purge-localStorage", null);
+
+        // ServiceWorkers
+	// NYI because service workers are disabled
+	// See bug 1047098
+/*
+        let serviceWorkers = serviceWorkerManager.getAllRegistrations();
+        for (let i = 0; i < serviceWorkers.length; i++) {
+          let sw = serviceWorkers.queryElementAt(i, Ci.nsIServiceWorkerRegistrationInfo);
+          let host = sw.principal.URI.host;
+          serviceWorkerManager.removeAndPropagate(host);
+        }
+*/
+
+        // QuotaManager
+        // NYI due to missing getUsage() in quotaManagerService
+	// See bug 1047098 and bug 1348660 (esp. part 5, but unsure if useable)
       },
 
       get canClear()
@@ -316,7 +343,7 @@ Sanitizer.prototype = {
     history: {
       clear: function ()
       {
-        TelemetryStopwatch.start("FX_SANITIZE_HISTORY");
+        //TelemetryStopwatch.start("FX_SANITIZE_HISTORY");
 
         if (this.range)
           PlacesUtils.history.removeVisitsByTimeframe(this.range[0], this.range[1]);
@@ -337,7 +364,7 @@ Sanitizer.prototype = {
           predictor.reset();
         } catch (e) { }
 
-        TelemetryStopwatch.finish("FX_SANITIZE_HISTORY");
+        //TelemetryStopwatch.finish("FX_SANITIZE_HISTORY");
       },
 
       get canClear()
@@ -351,7 +378,7 @@ Sanitizer.prototype = {
     formdata: {
       clear: function ()
       {
-        TelemetryStopwatch.start("FX_SANITIZE_FORMDATA");
+        //TelemetryStopwatch.start("FX_SANITIZE_FORMDATA");
 
         // Clear undo history of all searchBars
         var windowManager = Components.classes['@mozilla.org/appshell/window-mediator;1']
@@ -378,7 +405,7 @@ Sanitizer.prototype = {
         }
         FormHistory.update(change);
 
-        TelemetryStopwatch.finish("FX_SANITIZE_FORMDATA");
+        //TelemetryStopwatch.finish("FX_SANITIZE_FORMDATA");
       },
 
       canClear : function(aCallback, aArg)
@@ -425,7 +452,7 @@ Sanitizer.prototype = {
     downloads: {
       clear: function ()
       {
-        TelemetryStopwatch.start("FX_SANITIZE_DOWNLOADS");
+        //TelemetryStopwatch.start("FX_SANITIZE_DOWNLOADS");
         Task.spawn(function*() {
           let filterByTime = null;
           if (this.range) {
@@ -439,9 +466,9 @@ Sanitizer.prototype = {
           // Clear all completed/cancelled downloads
           let list = yield Downloads.getList(Downloads.ALL);
           list.removeFinished(filterByTime);
-          TelemetryStopwatch.finish("FX_SANITIZE_DOWNLOADS");
+          //TelemetryStopwatch.finish("FX_SANITIZE_DOWNLOADS");
         }.bind(this)).then(null, error => {
-          TelemetryStopwatch.finish("FX_SANITIZE_DOWNLOADS");
+          //TelemetryStopwatch.finish("FX_SANITIZE_DOWNLOADS");
           Components.utils.reportError(error);
         });
       },
@@ -456,7 +483,7 @@ Sanitizer.prototype = {
     sessions: {
       clear: function ()
       {
-        TelemetryStopwatch.start("FX_SANITIZE_SESSIONS");
+        //TelemetryStopwatch.start("FX_SANITIZE_SESSIONS");
 
         // clear all auth tokens
         var sdr = Components.classes["@mozilla.org/security/sdr;1"]
@@ -468,7 +495,7 @@ Sanitizer.prototype = {
                            .getService(Components.interfaces.nsIObserverService);
         os.notifyObservers(null, "net:clear-active-logins", null);
 
-        TelemetryStopwatch.finish("FX_SANITIZE_SESSIONS");
+        //TelemetryStopwatch.finish("FX_SANITIZE_SESSIONS");
       },
 
       get canClear()
@@ -480,7 +507,7 @@ Sanitizer.prototype = {
     siteSettings: {
       clear: function ()
       {
-        TelemetryStopwatch.start("FX_SANITIZE_SITESETTINGS");
+        //TelemetryStopwatch.start("FX_SANITIZE_SITESETTINGS");
 
         // Clear site-specific permissions like "Allow this site to open popups"
         // we ignore the "end" range and hope it is now() - none of the
@@ -530,7 +557,7 @@ Sanitizer.prototype = {
           dump("Web Push may not be available.\n");
         }
 
-        TelemetryStopwatch.finish("FX_SANITIZE_SITESETTINGS");
+        //TelemetryStopwatch.finish("FX_SANITIZE_SITESETTINGS");
       },
 
       get canClear()
@@ -592,7 +619,7 @@ Sanitizer.prototype = {
 
         // If/once we get here, we should actually be able to close all windows.
 
-        TelemetryStopwatch.start("FX_SANITIZE_OPENWINDOWS");
+        //TelemetryStopwatch.start("FX_SANITIZE_OPENWINDOWS");
 
         // First create a new window. We do this first so that on non-mac, we don't
         // accidentally close the app by closing all the windows.
@@ -617,7 +644,7 @@ Sanitizer.prototype = {
           newWindowOpened = true;
           // If we're the last thing to happen, invoke callback.
           if (numWindowsClosing == 0) {
-            TelemetryStopwatch.finish("FX_SANITIZE_OPENWINDOWS");
+            //TelemetryStopwatch.finish("FX_SANITIZE_OPENWINDOWS");
             aCallback();
           }
         }
@@ -629,7 +656,7 @@ Sanitizer.prototype = {
             Services.obs.removeObserver(onWindowClosed, "xul-window-destroyed");
             // If we're the last thing to happen, invoke callback.
             if (newWindowOpened) {
-              TelemetryStopwatch.finish("FX_SANITIZE_OPENWINDOWS");
+              //TelemetryStopwatch.finish("FX_SANITIZE_OPENWINDOWS");
               aCallback();
             }
           }

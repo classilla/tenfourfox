@@ -490,7 +490,8 @@ nsresult
 DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
 {
   // Clear everything, caches + database
-  if (!strcmp(aTopic, "cookie-cleared")) {
+  if (!strcmp(aTopic, "cookie-cleared") ||
+      !strcmp(aTopic, "extension:purge-localStorage-caches")) {
     ClearCaches(DOMStorageCache::kUnloadComplete, EmptyCString());
     return NS_OK;
   }
