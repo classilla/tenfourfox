@@ -19,6 +19,7 @@
 #include "nsIDateTimeFormat.h"
 #include "nsDateTimeFormatCID.h"
 #include "nsServiceManagerUtils.h"
+#include "mozilla/net/DNS.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -1033,8 +1034,9 @@ ProcessGeneralName(PLArenaPool *arena,
     break;
   case certIPAddress:
     {
-      char buf[INET6_ADDRSTRLEN];
       PRStatus status = PR_FAILURE;
+      // According to DNS.h, this includes space for the null-terminator
+      char buf[net::kNetAddrMaxCStrBufSize] = {0};
       PRNetAddr addr;
       memset(&addr, 0, sizeof(addr));
       nssComponent->GetPIPNSSBundleString("CertDumpIPAddress", key);
