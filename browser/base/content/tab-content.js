@@ -375,13 +375,21 @@ var AboutReaderListener = {
   onPaintWhenWaitedFor: function(forceNonArticle) {
     this.cancelPotentialPendingReadabilityCheck();
 
+    let doc = content.document;
+    if (!doc) return;
+
     // TenFourFox issue 583
     // If we are always allowing reader mode, don't bother spending any time
     // processing the page. But don't let just everything through.
-    if (!this.isAboutReader) {
-      if (this._alwaysAllowReaderMode && !(content.document.documentURI.startsWith("about:"))) {
-        sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: true });
-        return;
+    if (!this.isAboutReader && this._alwaysAllowReaderMode) {
+      // This borrows a bit from isProbablyReaderable()
+      if (!doc.mozSyntheticDocument &&
+           doc instanceof doc.defaultView.HTMLDocument) {
+        let uri = Services.io.newURI(doc.location.href, null, null);
+        if (uri && Readerable.shouldCheckUri(uri)) {
+          sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: true });
+          return;
+        }
       }
     }
 
