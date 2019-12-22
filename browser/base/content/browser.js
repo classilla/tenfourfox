@@ -15,8 +15,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
                                   "resource://gre/modules/Preferences.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
                                   "resource://gre/modules/Deprecated.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "BrowserUITelemetry",
-                                  "resource:///modules/BrowserUITelemetry.jsm");
+//XPCOMUtils.defineLazyModuleGetter(this, "BrowserUITelemetry",
+//                                  "resource:///modules/BrowserUITelemetry.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
                                   "resource:///modules/E10SUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
@@ -163,8 +163,8 @@ this.__defineSetter__("AddonManager", function (val) {
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
   "resource://gre/modules/PluralForm.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
-  "resource://gre/modules/TelemetryStopwatch.jsm");
+//XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
+//  "resource://gre/modules/TelemetryStopwatch.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "gCustomizeMode", function() {
   let scope = {};
@@ -1093,9 +1093,9 @@ var gBrowserInit = {
 
   _delayedStartup: function() {
     let tmp = {};
-    Cu.import("resource://gre/modules/TelemetryTimestamps.jsm", tmp);
-    let TelemetryTimestamps = tmp.TelemetryTimestamps;
-    TelemetryTimestamps.add("delayedStartupStarted");
+    //Cu.import("resource://gre/modules/TelemetryTimestamps.jsm", tmp);
+    //let TelemetryTimestamps = tmp.TelemetryTimestamps;
+    //TelemetryTimestamps.add("delayedStartupStarted");
 
     this._cancelDelayedStartup();
 
@@ -1333,8 +1333,11 @@ var gBrowserInit = {
 
     LightWeightThemeWebInstaller.init();
 
+// See bug 1356587. This is never called on TenFourFox.
+/*
     if (Win7Features)
       Win7Features.onOpenWindow();
+*/
 
     FullScreen.init();
 
@@ -1523,8 +1526,10 @@ var gBrowserInit = {
     if (this._boundDelayedStartup) {
       this._cancelDelayedStartup();
     } else {
+/*
       if (Win7Features)
         Win7Features.onCloseWindow();
+*/
 
       gPrefService.removeObserver(ctrlTab.prefName, ctrlTab);
       ctrlTab.uninit();
@@ -2750,7 +2755,7 @@ var BrowserOnClick = {
     mm.addMessageListener("Browser:EnableOnlineMode", this);
     mm.addMessageListener("Browser:SendSSLErrorReport", this);
     mm.addMessageListener("Browser:SetSSLErrorReportAuto", this);
-    mm.addMessageListener("Browser:SSLErrorReportTelemetry", this);
+    //mm.addMessageListener("Browser:SSLErrorReportTelemetry", this);
     mm.addMessageListener("Browser:OverrideWeakCrypto", this);
     mm.addMessageListener("Browser:SSLErrorGoBack", this);
   },
@@ -2762,7 +2767,7 @@ var BrowserOnClick = {
     mm.removeMessageListener("Browser:EnableOnlineMode", this);
     mm.removeMessageListener("Browser:SendSSLErrorReport", this);
     mm.removeMessageListener("Browser:SetSSLErrorReportAuto", this);
-    mm.removeMessageListener("Browser:SSLErrorReportTelemetry", this);
+    //mm.removeMessageListener("Browser:SSLErrorReportTelemetry", this);
     mm.removeMessageListener("Browser:OverrideWeakCrypto", this);
     mm.removeMessageListener("Browser:SSLErrorGoBack", this);
   },
@@ -3823,8 +3828,8 @@ const BrowserSearch = {
    *        item was in the suggestion list and how the user selected it.
    */
   recordSearchInHealthReport: function (engine, source, selection) {
-    BrowserUITelemetry.countSearchEvent(source, null, selection);
-    this.recordSearchInTelemetry(engine, source);
+    //BrowserUITelemetry.countSearchEvent(source, null, selection);
+    //this.recordSearchInTelemetry(engine, source);
 
     let reporter = AppConstants.MOZ_SERVICES_HEALTHREPORT
                    ? Cc["@mozilla.org/datareporting/service;1"]
