@@ -9118,12 +9118,6 @@ class MStoreElementHole
     JSValueType unboxedType() const {
         return unboxedType_;
     }
-    AliasSet getAliasSet() const override {
-        // StoreElementHole can update the initialized length, the array length
-        // or reallocate obj->elements.
-        return AliasSet::Store(AliasSet::ObjectFields |
-                               AliasSet::BoxedOrUnboxedElements(unboxedType()));
-    }
 
     ALLOW_CLONE(MStoreElementHole)
 };
