@@ -1,0 +1,2 @@
+This version of NSPR is specific to TenFourFox and ABI-compatible with NSPR
+4.24. It is not intended for other consumers; you should use mainline NSPR.
