@@ -27,7 +27,8 @@ include $(CORE_DEPTH)/coreconf/config.mk
 #######################################################################
 
 ifdef NSS_DISABLE_GTESTS
-DIRS := $(filter-out external_tests,$(DIRS))
+DIRS := $(filter-out gtests,$(DIRS))
+DIRS := $(filter-out cpputil,$(DIRS))
 endif
 
 #######################################################################
@@ -46,7 +47,7 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 # (7) Execute "local" rules. (OPTIONAL).                              #
 #######################################################################
 
-nss_build_all: build_nspr all
+nss_build_all: build_nspr all latest
 
 nss_clean_all: clobber_nspr clobber
 
@@ -83,7 +84,15 @@ ifdef USE_STATIC_RTL
 NSPR_CONFIGURE_OPTS += --enable-static-rtl
 endif
 ifdef NS_USE_GCC
-NSPR_COMPILERS = CC=gcc CXX=g++
+NSPR_CONFIGURE_ENV = CC=gcc CXX=g++
+endif
+# Make sure to remove -arch arguments. NSPR can't handle that.
+remove_arch = $(filter-out __REMOVEME%,$(subst $(NULL) -arch , __REMOVEME,$(1)))
+ifdef CC
+NSPR_CONFIGURE_ENV = CC="$(call remove_arch,$(CC))"
+endif
+ifdef CCC
+NSPR_CONFIGURE_ENV += CXX="$(call remove_arch,$(CCC))"
 endif
 
 #
@@ -107,16 +116,29 @@ else
 NSPR_PREFIX = $$(topsrcdir)/../dist/$(OBJDIR_NAME)
 endif
 
+ifndef NSS_GYP_PREFIX
 $(NSPR_CONFIG_STATUS): $(NSPR_CONFIGURE)
 	mkdir -p $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME)
 	cd $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) ; \
-	$(NSPR_COMPILERS) sh ../configure \
+	$(NSPR_CONFIGURE_ENV) sh ../configure \
 	$(NSPR_CONFIGURE_OPTS) \
 	--with-dist-prefix='$(NSPR_PREFIX)' \
 	--with-dist-includedir='$(NSPR_PREFIX)/include'
+else
+$(NSPR_CONFIG_STATUS): $(NSPR_CONFIGURE)
+	mkdir -p $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME)
+	cd $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) ; \
+	$(NSPR_CONFIGURE_ENV) sh ../configure \
+	$(NSPR_CONFIGURE_OPTS) \
+	--prefix='$(NSS_GYP_PREFIX)'
+endif
 
 build_nspr: $(NSPR_CONFIG_STATUS)
 	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME)
+	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME)/pr/tests
+
+install_nspr: build_nspr
+	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) install
 
 clobber_nspr: $(NSPR_CONFIG_STATUS)
 	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) clobber
@@ -132,3 +154,5 @@ nss_RelEng_bld: import all
 package:
 	$(MAKE) -C pkg publish
 
+latest:
+	echo $(OBJDIR_NAME) > $(CORE_DEPTH)/../dist/latest

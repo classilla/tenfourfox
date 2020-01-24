@@ -14,6 +14,18 @@ my @objsize;
 $constants{CK_TRUE} = "static const CK_BBOOL ck_true = CK_TRUE;\n";
 $constants{CK_FALSE} = "static const CK_BBOOL ck_false = CK_FALSE;\n";
 
+if( scalar @ARGV == 0 ) {
+  print STDERR "Usage: $0 <input-file> [output-file]\n";
+  exit 1;
+}
+
+open(STDIN, '<', $ARGV[0])
+  or die "Could not open input file '$ARGV[0]' $!";
+if( scalar @ARGV > 1 ) {
+  open(STDOUT, '>', $ARGV[1])
+    or die "Could not open output file '$ARGV[1]' $!";
+}
+
 while(<>) {
   my @fields = ();
   my $size;
@@ -81,11 +93,6 @@ while(<>) {
   if( $fields[0] =~ /CKA_CLASS/ ) {
     $count++;
     $objsize[$count] = 0;
-  }
-
-  # Fields we don't support should go in this list.
-  if ( $fields[0] =~ /CKA_NSS_MOZILLA_CA_POLICY/ ) {
-    next;
   }
 
   @{$objects[$count][$objsize[$count]++]} = ( "$fields[0]", $fields[2], "$size" );

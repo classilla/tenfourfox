@@ -13,7 +13,7 @@ DEFAULT_COMPILER = cl
 ifdef NS_USE_GCC
 	CC           = gcc
 	CCC          = g++
-	LINK         = ld
+	LD           = ld
 	AR           = ar
 	AR          += cr $@
 	RANLIB       = ranlib
@@ -23,7 +23,7 @@ ifdef NS_USE_GCC
 else
 	CC           = cl
 	CCC          = cl
-	LINK         = link
+	LD           = link
         LDFLAGS += -nologo
 	AR           = lib
 	AR          += -nologo -OUT:$@
@@ -104,7 +104,7 @@ endif
 DLL_SUFFIX   = dll
 
 ifdef NS_USE_GCC
-    OS_CFLAGS += -mwindows -mms-bitfields -Werror
+    OS_CFLAGS += -mwindows
     _GEN_IMPORT_LIB=-Wl,--out-implib,$(IMPORT_LIBRARY)
     DLLFLAGS  += -mwindows -o $@ -shared -Wl,--export-all-symbols $(if $(IMPORT_LIBRARY),$(_GEN_IMPORT_LIB))
     ifdef BUILD_OPT
@@ -116,21 +116,17 @@ ifdef NS_USE_GCC
 	DEFINES    += -UDEBUG -DNDEBUG
     else
 	OPTIMIZER  += -g
-	NULLSTRING :=
-	SPACE      := $(NULLSTRING) # end of the line
-	USERNAME   := $(subst $(SPACE),_,$(USERNAME))
-	USERNAME   := $(subst -,_,$(USERNAME))
-	DEFINES    += -DDEBUG -UNDEBUG -DDEBUG_$(USERNAME)
+	DEFINES    += -DDEBUG -UNDEBUG
     endif
 else # !NS_USE_GCC
-    OS_CFLAGS += -W3 -nologo -D_CRT_SECURE_NO_WARNINGS \
-		 -D_CRT_NONSTDC_NO_WARNINGS
+    WARNING_CFLAGS = -W3 -nologo -D_CRT_SECURE_NO_WARNINGS \
+                      -D_CRT_NONSTDC_NO_WARNINGS
     OS_DLLFLAGS += -nologo -DLL -SUBSYSTEM:WINDOWS
     ifndef NSS_ENABLE_WERROR
         NSS_ENABLE_WERROR = 1
     endif
     ifeq ($(NSS_ENABLE_WERROR),1)
-        OS_CFLAGS += -WX
+        WARNING_CFLAGS += -WX
     endif
     ifeq ($(_MSC_VER),$(_MSC_VER_6))
     ifndef MOZ_DEBUG_SYMBOLS
@@ -179,10 +175,7 @@ else # !NS_USE_GCC
     else
 	OPTIMIZER += -Zi -Fd$(OBJDIR)/ -Od
 	NULLSTRING :=
-	SPACE      := $(NULLSTRING) # end of the line
-	USERNAME   := $(subst $(SPACE),_,$(USERNAME))
-	USERNAME   := $(subst -,_,$(USERNAME))
-	DEFINES    += -DDEBUG -UNDEBUG -DDEBUG_$(USERNAME)
+	DEFINES    += -DDEBUG -UNDEBUG
 	DLLFLAGS   += -DEBUG -OUT:$@
 	LDFLAGS    += -DEBUG 
 ifeq ($(_MSC_VER),$(_MSC_VER_6))
@@ -219,6 +212,7 @@ ifdef USE_64
 	ifeq ($(_MSC_VER_GE_11),1)
 		LDFLAGS += -SUBSYSTEM:CONSOLE,5.02
 	endif
+	CPU_ARCH = x86_64
 else
 	DEFINES += -D_X86_
 	# VS2012 defaults to -arch:SSE2. Use -arch:IA32 to avoid requiring
@@ -231,6 +225,7 @@ else
 		endif
 		LDFLAGS += -SUBSYSTEM:CONSOLE,5.01
 	endif
+	CPU_ARCH = x386
 endif
 endif
 ifeq ($(CPU_ARCH), ALPHA)
@@ -262,8 +257,14 @@ ifdef USE_64
 	ASFLAGS = -nologo -Cp -Sn -Zi $(INCLUDES)
 else
 	AS	= ml.exe
-	ASFLAGS = -nologo -Cp -Sn -Zi -coff $(INCLUDES)
+	ASFLAGS = -nologo -Cp -Sn -Zi -coff -safeseh $(INCLUDES)
 endif
+endif
+
+# clear any CSTD and CXXSTD unless we're using GCC
+ifndef NS_USE_GCC
+        CSTD    =
+        CXXSTD  =
 endif
 
 #

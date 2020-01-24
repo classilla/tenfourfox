@@ -14,6 +14,7 @@ include manifest.mn
 # (2) Include "global" configuration information. (OPTIONAL)          #
 #######################################################################
 
+USE_GCOV =
 include $(CORE_DEPTH)/coreconf/config.mk
 
 #######################################################################
@@ -43,6 +44,8 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 #######################################################################
 # (7) Execute "local" rules. (OPTIONAL).                              #
 #######################################################################
+
+WARNING_CFLAGS = $(NULL)
 
 export:: private_export
 
