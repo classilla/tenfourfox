@@ -88,9 +88,10 @@ ifndef WARNING_CFLAGS
             NSS_ENABLE_WERROR = 1
           endif
         endif
+	# Our TenFourFox mozconfigs whack NSS here, so just assume WERROR.
+	NSS_ENABLE_WERROR = 1
         ifndef NSS_ENABLE_WERROR
-          # shut up!
-          # $(warning Unable to find gcc 4.8 or greater, disabling -Werror)
+          $(warning Unable to find gcc 4.8 or greater, disabling -Werror)
           NSS_ENABLE_WERROR = 0
         endif
       endif
