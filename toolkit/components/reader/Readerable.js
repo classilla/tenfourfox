@@ -60,6 +60,11 @@ var Readerable = {
     if (!(uri.schemeIs("http") || uri.schemeIs("https"))) {
       return false;
     }
+    if (!(this.isEnabledForParseOnLoad())) {
+      // TenFourFox issue 585
+      // Do this check here as well.
+      return false;
+    }
     if (!isBaseUri) {
       // Sadly, some high-profile pages have false positives, so bail early for those:
       let asciiHost = uri.asciiHost;
