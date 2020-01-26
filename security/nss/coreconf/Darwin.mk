@@ -88,11 +88,14 @@ endif
 OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK $(DARWIN_SDK_CFLAGS)
 
 ifdef BUILD_OPT
-ifeq (11,$(ALLOW_OPT_CODE_SIZE)$(OPT_CODE_SIZE))
-	OPTIMIZER       = -Oz
-else
-	OPTIMIZER	= -O2
-endif
+
+# TenFourFox overrides optimization settings; let it.
+#ifeq (11,$(ALLOW_OPT_CODE_SIZE)$(OPT_CODE_SIZE))
+#	OPTIMIZER       = -Oz
+#else
+#	OPTIMIZER	= -O2
+#endif
+
 ifdef MOZ_DEBUG_SYMBOLS
 	ifdef MOZ_DEBUG_FLAGS
 		OPTIMIZER += $(MOZ_DEBUG_FLAGS)
