@@ -58,7 +58,8 @@ nsBaseDragService::nsBaseDragService()
     mDragAction(DRAGDROP_ACTION_NONE),
     mDragActionFromChildProcess(DRAGDROP_ACTION_UNINITIALIZED), mTargetSize(0,0),
     mScreenX(-1), mScreenY(-1), mSuppressLevel(0),
-    mInputSource(nsIDOMMouseEvent::MOZ_SOURCE_MOUSE)
+    mInputSource(nsIDOMMouseEvent::MOZ_SOURCE_MOUSE),
+    mEndingSession(false)
 {
 }
 
@@ -379,9 +380,11 @@ nsBaseDragService::TakeChildProcessDragAction()
 NS_IMETHODIMP
 nsBaseDragService::EndDragSession(bool aDoneDrag)
 {
-  if (!mDoingDrag) {
+  if (!mDoingDrag || mEndingSession) {
     return NS_ERROR_FAILURE;
   }
+
+  mEndingSession = true;
 
   if (aDoneDrag && !mSuppressLevel) {
     FireDragEventAtSource(eDragEnd);
@@ -401,6 +404,7 @@ nsBaseDragService::EndDragSession(bool aDoneDrag)
   mChildProcesses.Clear();
 
   mDoingDrag = false;
+  mEndingSession = false;
   mCanDrop = false;
 
   // release the source we've been holding on to.

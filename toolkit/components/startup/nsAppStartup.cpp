@@ -283,6 +283,11 @@ nsAppStartup::Run(void)
       return rv;
   }
 
+  // Make sure that the appropriate quit notifications have been dispatched
+  // regardless of whether the event loop has spun or not. Note that this call
+  // is a no-op if Quit has already been called previously.
+  Quit(eForceQuit);
+
   nsresult retval = NS_OK;
   if (mRestart) {
     retval = NS_SUCCESS_RESTART_APP;
