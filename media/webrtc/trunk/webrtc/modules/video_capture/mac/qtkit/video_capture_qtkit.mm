@@ -83,7 +83,7 @@ int32_t VideoCaptureMacQTKit::Init(
 
     const int32_t nameLength =
         (int32_t) strlen((char*)iDeviceUniqueIdUTF8);
-    if(nameLength>kVideoCaptureUniqueNameLength)
+    if(nameLength >= kVideoCaptureUniqueNameLength)
         return -1;
 
     // Store the device name

@@ -80,7 +80,7 @@ int32_t ScreenDeviceInfoImpl::GetDeviceName(uint32_t deviceNumber,
 
     const char *deviceName = desktopDisplayDevice.getDeviceName();
     len = deviceName ? strlen(deviceName) : 0;
-    if (len && deviceNameUTF8 && len <= deviceNameUTF8Length) {
+    if (len && deviceNameUTF8 && len < deviceNameUTF8Length) {
       memcpy(deviceNameUTF8,
              deviceName,
              len);
@@ -88,7 +88,7 @@ int32_t ScreenDeviceInfoImpl::GetDeviceName(uint32_t deviceNumber,
 
     const char *deviceUniqueId = desktopDisplayDevice.getUniqueIdName();
     len = deviceUniqueId ? strlen(deviceUniqueId) : 0;
-    if (len && deviceUniqueIdUTF8 && len <= deviceUniqueIdUTF8Length) {
+    if (len && deviceUniqueIdUTF8 && len < deviceUniqueIdUTF8Length) {
       memcpy(deviceUniqueIdUTF8,
              deviceUniqueId,
              len);
@@ -174,13 +174,13 @@ int32_t AppDeviceInfoImpl::GetDeviceName(uint32_t deviceNumber,
 
     const char *deviceName = desktopApplication.getProcessAppName();
     len = deviceName ? strlen(deviceName) : 0;
-    if (len && len <= deviceNameUTF8Length) {
+    if (len && len < deviceNameUTF8Length) {
       memcpy(deviceNameUTF8, deviceName, len);
     }
 
     const char *deviceUniqueId = desktopApplication.getUniqueIdName();
     len = deviceUniqueId ? strlen(deviceUniqueId) : 0;
-    if (len && deviceUniqueIdUTF8 && len <= deviceUniqueIdUTF8Length) {
+    if (len && deviceUniqueIdUTF8 && len < deviceUniqueIdUTF8Length) {
       memcpy(deviceUniqueIdUTF8,
              deviceUniqueId,
              len);
@@ -276,7 +276,7 @@ int32_t WindowDeviceInfoImpl::GetDeviceName(uint32_t deviceNumber,
 
     const char *deviceName = desktopDisplayDevice.getDeviceName();
     len = deviceName ? strlen(deviceName) : 0;
-    if (len && deviceNameUTF8 && len <= deviceNameUTF8Length) {
+    if (len && deviceNameUTF8 && len < deviceNameUTF8Length) {
       memcpy(deviceNameUTF8,
              deviceName,
              len);
@@ -284,7 +284,7 @@ int32_t WindowDeviceInfoImpl::GetDeviceName(uint32_t deviceNumber,
 
     const char *deviceUniqueId = desktopDisplayDevice.getUniqueIdName();
     len = deviceUniqueId ? strlen(deviceUniqueId) : 0;
-    if (len && deviceUniqueIdUTF8 && len <= deviceUniqueIdUTF8Length) {
+    if (len && deviceUniqueIdUTF8 && len < deviceUniqueIdUTF8Length) {
       memcpy(deviceUniqueIdUTF8,
              deviceUniqueId,
              len);

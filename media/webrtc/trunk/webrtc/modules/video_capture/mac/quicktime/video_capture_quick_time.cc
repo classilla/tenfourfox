@@ -73,7 +73,7 @@ int32_t VideoCaptureMacQuickTime::Init(
 
     const int32_t nameLength =
         (int32_t) strlen((char*) deviceUniqueIdUTF8);
-    if (nameLength > kVideoCaptureUniqueNameLength)
+    if (nameLength >= kVideoCaptureUniqueNameLength)
         return -1;
 
     // Store the device name
