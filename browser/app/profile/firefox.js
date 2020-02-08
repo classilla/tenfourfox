@@ -290,11 +290,11 @@ pref("browser.urlbar.matchBehavior", 1);
 pref("browser.urlbar.filter.javascript", true);
 
 // the maximum number of results to show in autocomplete when doing richResults
-pref("browser.urlbar.maxRichResults", 12);
+pref("browser.urlbar.maxRichResults", 6);
 // The amount of time (ms) to wait after the user has stopped typing
 // before starting to perform autocomplete.  50 is the default set in
 // autocomplete.xml.
-pref("browser.urlbar.delay", 50);
+pref("browser.urlbar.delay", 100);
 
 // The special characters below can be typed into the urlbar to either restrict
 // the search to visited history, bookmarked, tagged pages; or force a match on
