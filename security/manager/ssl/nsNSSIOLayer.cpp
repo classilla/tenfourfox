@@ -61,6 +61,8 @@ using namespace mozilla::psm;
 
 namespace {
 
+#define MAX_ALPN_LENGTH 255
+
 void
 getSiteKey(const nsACString& hostName, uint16_t port,
            /*out*/ nsCSubstring& key)
@@ -93,6 +95,7 @@ nsNSSSocketInfo::nsNSSSocketInfo(SharedSSLState& aState, uint32_t providerFlags)
     mRememberClientAuthCertificate(false),
     mPreliminaryHandshakeDone(false),
     mNPNCompleted(false),
+    mEarlyDataAccepted(false),
     mFalseStartCallbackCalled(false),
     mFalseStarted(false),
     mIsFullHandshake(false),
@@ -313,6 +316,71 @@ nsNSSSocketInfo::GetNegotiatedNPN(nsACString& aNegotiatedNPN)
     return NS_ERROR_NOT_CONNECTED;
 
   aNegotiatedNPN = mNegotiatedNPN;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSSSocketInfo::GetAlpnEarlySelection(nsACString& aAlpnSelected)
+{
+  nsNSSShutDownPreventionLock locker;
+  if (isAlreadyShutDown() || isPK11LoggedOut()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  SSLNextProtoState alpnState;
+  unsigned char chosenAlpn[MAX_ALPN_LENGTH];
+  unsigned int chosenAlpnLen;
+  SECStatus rv = SSL_GetNextProto(mFd, &alpnState, chosenAlpn, &chosenAlpnLen,
+                                  AssertedCast<unsigned int>(ArrayLength(chosenAlpn)));
+
+  if (rv != SECSuccess || alpnState != SSL_NEXT_PROTO_EARLY_VALUE ||
+      chosenAlpnLen == 0) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  aAlpnSelected.Assign(BitwiseCast<char*, unsigned char*>(chosenAlpn),
+                       chosenAlpnLen);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSSSocketInfo::GetEarlyDataAccepted(bool* aAccepted)
+{
+  *aAccepted = mEarlyDataAccepted;
+  return NS_OK;
+}
+
+void
+nsNSSSocketInfo::SetEarlyDataAccepted(bool aAccepted)
+{
+  mEarlyDataAccepted = aAccepted;
+}
+
+NS_IMETHODIMP
+nsNSSSocketInfo::DriveHandshake()
+{
+  nsNSSShutDownPreventionLock locker;
+  if (isAlreadyShutDown() || isPK11LoggedOut()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  if (!mFd) {
+    return NS_ERROR_FAILURE;
+  }
+  PRErrorCode errorCode = GetErrorCode();
+  if (errorCode) {
+    return GetXPCOMFromNSSError(errorCode);
+  }
+
+  SECStatus rv = SSL_ForceHandshake(mFd);
+
+  if (rv != SECSuccess) {
+    errorCode = PR_GetError();
+    if (errorCode == PR_WOULD_BLOCK_ERROR) {
+      return NS_BASE_STREAM_WOULD_BLOCK;
+    }
+
+    SetCanceled(errorCode, PlainErrorMessage);
+    return GetXPCOMFromNSSError(errorCode);
+  }
   return NS_OK;
 }
 
@@ -704,7 +772,7 @@ nsSSLIOLayerHelpers::rememberTolerantAtVersion(const nsACString& hostName,
   mTLSIntoleranceInfo.Put(key, entry);
 }
 
-uint16_t
+void
 nsSSLIOLayerHelpers::forgetIntolerance(const nsACString& hostName,
                                        int16_t port)
 {
@@ -713,12 +781,10 @@ nsSSLIOLayerHelpers::forgetIntolerance(const nsACString& hostName,
 
   MutexAutoLock lock(mutex);
 
-  uint16_t tolerant = 0;
   IntoleranceEntry entry;
   if (mTLSIntoleranceInfo.Get(key, &entry)) {
     entry.AssertInvariant();
 
-    tolerant = entry.tolerant;
     entry.intolerant = 0;
     entry.intoleranceReason = 0;
     if (entry.strongCipherStatus != StrongCiphersWorked) {
@@ -728,8 +794,6 @@ nsSSLIOLayerHelpers::forgetIntolerance(const nsACString& hostName,
     entry.AssertInvariant();
     mTLSIntoleranceInfo.Put(key, entry);
   }
-
-  return tolerant;
 }
 
 bool
@@ -753,49 +817,7 @@ nsSSLIOLayerHelpers::rememberIntolerantAtVersion(const nsACString& hostName,
 {
   if (intolerant <= minVersion || fallbackLimitReached(hostName, intolerant)) {
     // We can't fall back any further. Assume that intolerance isn't the issue.
-    uint32_t tolerant = forgetIntolerance(hostName, port);
-    // If we know the server is tolerant at the version, we don't have to
-    // gather the telemetry.
-    if (intolerant <= tolerant) {
-      return false;
-    }
-
-    uint32_t fallbackLimitBucket = 0;
-    // added if the version has reached the min version.
-    if (intolerant <= minVersion) {
-      switch (minVersion) {
-        case SSL_LIBRARY_VERSION_TLS_1_0:
-          fallbackLimitBucket += 1;
-          break;
-        case SSL_LIBRARY_VERSION_TLS_1_1:
-          fallbackLimitBucket += 2;
-          break;
-        case SSL_LIBRARY_VERSION_TLS_1_2:
-          fallbackLimitBucket += 3;
-          break;
-      }
-    }
-    // added if the version has reached the fallback limit.
-    if (intolerant <= mVersionFallbackLimit) {
-      switch (mVersionFallbackLimit) {
-        case SSL_LIBRARY_VERSION_TLS_1_0:
-          fallbackLimitBucket += 4;
-          break;
-        case SSL_LIBRARY_VERSION_TLS_1_1:
-          fallbackLimitBucket += 8;
-          break;
-        case SSL_LIBRARY_VERSION_TLS_1_2:
-          fallbackLimitBucket += 12;
-          break;
-      }
-    }
-#if(0)
-    if (fallbackLimitBucket) {
-      Telemetry::Accumulate(Telemetry::SSL_FALLBACK_LIMIT_REACHED,
-                            fallbackLimitBucket);
-    }
-#endif
-
+    forgetIntolerance(hostName, port);
     return false;
   }
 
@@ -1047,6 +1069,7 @@ class SSLErrorRunnable : public SyncRunnableBase
 
 namespace {
 
+#if(0)
 uint32_t tlsIntoleranceTelemetryBucket(PRErrorCode err)
 {
   // returns a numeric code for where we track various errors in telemetry
@@ -1065,9 +1088,11 @@ uint32_t tlsIntoleranceTelemetryBucket(PRErrorCode err)
     case SSL_ERROR_DECODE_ERROR_ALERT: return 14;
     case PR_CONNECT_RESET_ERROR: return 16;
     case PR_END_OF_FILE_ERROR: return 17;
+    case SSL_ERROR_INTERNAL_ERROR_ALERT: return 18;
     default: return 0;
   }
 }
+#endif
 
 bool
 retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
@@ -1143,12 +1168,13 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
     return false;
   }
 
+#if(0)
+#error doesn't support TLS 1.3
   uint32_t reason = tlsIntoleranceTelemetryBucket(err);
   if (reason == 0) {
     return false;
   }
 
-#if(0)
   Telemetry::ID pre;
   Telemetry::ID post;
   switch (range.max) {
@@ -2564,8 +2590,11 @@ nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
   if (range.max < maxEnabledVersion) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
            ("[%p] nsSSLIOLayerSetOptions: enabling TLS_FALLBACK_SCSV\n", fd));
-    if (SECSuccess != SSL_OptionSet(fd, SSL_ENABLE_FALLBACK_SCSV, true)) {
-      return NS_ERROR_FAILURE;
+    // Some servers will choke if we send the fallback SCSV with TLS 1.2.
+    if (range.max < SSL_LIBRARY_VERSION_TLS_1_2) {
+      if (SECSuccess != SSL_OptionSet(fd, SSL_ENABLE_FALLBACK_SCSV, true)) {
+        return NS_ERROR_FAILURE;
+      }
     }
   }
 

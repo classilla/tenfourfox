@@ -891,6 +891,7 @@ PreliminaryHandshakeDone(PRFileDesc* fd)
   SSLChannelInfo channelInfo;
   if (SSL_GetChannelInfo(fd, &channelInfo, sizeof(channelInfo)) == SECSuccess) {
     infoObject->SetSSLVersionUsed(channelInfo.protocolVersion);
+    infoObject->SetEarlyDataAccepted(channelInfo.earlyDataAccepted);
 
     SSLCipherSuiteInfo cipherInfo;
     if (SSL_GetCipherSuiteInfo(channelInfo.cipherSuite, &cipherInfo,
@@ -905,7 +906,7 @@ PreliminaryHandshakeDone(PRFileDesc* fd)
       status->mHaveCipherSuiteAndProtocol = true;
       status->mCipherSuite = channelInfo.cipherSuite;
       status->mProtocolVersion = channelInfo.protocolVersion & 0xFF;
-      infoObject->SetKEAUsed(cipherInfo.keaType);
+      infoObject->SetKEAUsed(channelInfo.keaType);
       infoObject->SetKEAKeyBits(channelInfo.keaKeyBits);
       infoObject->SetMACAlgorithmUsed(cipherInfo.macAlgorithm);
     }
@@ -966,7 +967,7 @@ CanFalseStartCallback(PRFileDesc* fd, void* client_data, PRBool *canFalseStart)
                              sizeof (cipherInfo)) != SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("CanFalseStartCallback [%p] failed - "
                                       " KEA %d\n", fd,
-                                      static_cast<int32_t>(cipherInfo.keaType)));
+                                      static_cast<int32_t>(channelInfo.keaType)));
     return SECSuccess;
   }
 
@@ -982,10 +983,10 @@ CanFalseStartCallback(PRFileDesc* fd, void* client_data, PRBool *canFalseStart)
   }
 
   // See bug 952863 for why ECDHE is allowed, but DHE (and RSA) are not.
-  if (cipherInfo.keaType != ssl_kea_ecdh) {
+  if (channelInfo.keaType != ssl_kea_ecdh) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("CanFalseStartCallback [%p] failed - "
                                       "unsupported KEA %d\n", fd,
-                                      static_cast<int32_t>(cipherInfo.keaType)));
+                                      static_cast<int32_t>(channelInfo.keaType)));
     reasonsForNotFalseStarting |= KEA_NOT_SUPPORTED;
   }
 
@@ -1032,6 +1033,7 @@ CanFalseStartCallback(PRFileDesc* fd, void* client_data, PRBool *canFalseStart)
 }
 
 #if(0) // TenFourFox issue 334
+#error this no longer has correct constants and should not be reenabled
 static void
 AccumulateNonECCKeySize(Telemetry::ID probe, uint32_t bits)
 {
@@ -1156,7 +1158,7 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   if (rv == SECSuccess) {
 #if(0) // TenFourFox issue 334
     // Get the protocol version for telemetry
-    // 1=tls1, 2=tls1.1, 3=tls1.2
+    // 1=tls1, 2=tls1.1, 3=tls1.2, 4=tls1.3
     unsigned int versionEnum = channelInfo.protocolVersion & 0xFF;
     MOZ_ASSERT(versionEnum > 0);
     Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_VERSION, versionEnum);
@@ -1179,16 +1181,16 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
         infoObject->IsFullHandshake()
           ? Telemetry::SSL_KEY_EXCHANGE_ALGORITHM_FULL
           : Telemetry::SSL_KEY_EXCHANGE_ALGORITHM_RESUMED,
-        cipherInfo.keaType);
+        channelInfo.keaType);
 #endif
 
       DebugOnly<int16_t> KEAUsed;
       MOZ_ASSERT(NS_SUCCEEDED(infoObject->GetKEAUsed(&KEAUsed)) &&
-                 (KEAUsed == cipherInfo.keaType));
+                 (KEAUsed == channelInfo.keaType));
 
 #if(0)
       if (infoObject->IsFullHandshake()) {
-        switch (cipherInfo.keaType) {
+        switch (channelInfo.keaType) {
           case ssl_kea_rsa:
             AccumulateNonECCKeySize(Telemetry::SSL_KEA_RSA_KEY_SIZE_FULL,
                                     channelInfo.keaKeyBits);
@@ -1210,7 +1212,7 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
                               cipherInfo.authAlgorithm);
 
         // RSA key exchange doesn't use a signature for auth.
-        if (cipherInfo.keaType != ssl_kea_rsa) {
+        if (channelInfo.keaType != ssl_kea_rsa) {
           switch (cipherInfo.authAlgorithm) {
             case ssl_auth_rsa:
               AccumulateNonECCKeySize(Telemetry::SSL_AUTH_RSA_KEY_SIZE_FULL,
@@ -1241,11 +1243,16 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   }
 
   PRBool siteSupportsSafeRenego;
-  rv = SSL_HandshakeNegotiatedExtension(fd, ssl_renegotiation_info_xtn,
-                                        &siteSupportsSafeRenego);
-  MOZ_ASSERT(rv == SECSuccess);
-  if (rv != SECSuccess) {
-    siteSupportsSafeRenego = false;
+  if (channelInfo.protocolVersion != SSL_LIBRARY_VERSION_TLS_1_3) {
+    rv = SSL_HandshakeNegotiatedExtension(fd, ssl_renegotiation_info_xtn,
+                                          &siteSupportsSafeRenego);
+    MOZ_ASSERT(rv == SECSuccess);
+    if (rv != SECSuccess) {
+      siteSupportsSafeRenego = false;
+    }
+  } else {
+    // TLS 1.3 dropped support for renegotiation.
+    siteSupportsSafeRenego = true;
   }
   bool renegotiationUnsafe = !siteSupportsSafeRenego &&
                              ioLayerHelpers.treatUnsafeNegotiationAsBroken();

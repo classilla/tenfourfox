@@ -454,6 +454,15 @@ TransportLayerDtls::SetVerificationDigest(const std::string digest_algorithm,
   return NS_OK;
 }
 
+// These are the named groups that we will allow.
+static const SSLNamedGroup NamedGroupPreferences[] = {
+  ssl_grp_ec_curve25519,
+  ssl_grp_ec_secp256r1,
+  ssl_grp_ec_secp384r1,
+  ssl_grp_ffdhe_2048,
+  ssl_grp_ffdhe_3072
+};
+
 // TODO: make sure this is called from STS. Otherwise
 // we have thread safety issues
 bool TransportLayerDtls::Setup() {
@@ -588,6 +597,13 @@ bool TransportLayerDtls::Setup() {
     return false;
   }
 
+  rv = SSL_NamedGroupConfig(ssl_fd, NamedGroupPreferences,
+                            mozilla::ArrayLength(NamedGroupPreferences));
+  if (rv != SECSuccess) {
+    MOZ_MTLOG(ML_ERROR, "Couldn't set named groups");
+    return false;
+  }
+
   // Certificate validation
   rv = SSL_AuthCertificateHook(ssl_fd, AuthCertificateHook,
                                reinterpret_cast<void *>(this));
@@ -675,6 +691,7 @@ static const uint32_t EnabledCiphers[] = {
 static const uint32_t DisabledCiphers[] = {
   // ALL SHA384 ciphers are disabled per bug 1310061.
   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+  TLS_RSA_WITH_AES_256_GCM_SHA384,
 
   TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,
   TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
@@ -702,21 +719,13 @@ static const uint32_t DisabledCiphers[] = {
   TLS_RSA_WITH_AES_256_CBC_SHA256,
   TLS_RSA_WITH_CAMELLIA_256_CBC_SHA,
   TLS_RSA_WITH_SEED_CBC_SHA,
-  SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,
   TLS_RSA_WITH_3DES_EDE_CBC_SHA,
   TLS_RSA_WITH_RC4_128_SHA,
   TLS_RSA_WITH_RC4_128_MD5,
 
   TLS_DHE_RSA_WITH_DES_CBC_SHA,
   TLS_DHE_DSS_WITH_DES_CBC_SHA,
-  SSL_RSA_FIPS_WITH_DES_CBC_SHA,
   TLS_RSA_WITH_DES_CBC_SHA,
-
-  TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,
-  TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA,
-
-  TLS_RSA_EXPORT_WITH_RC4_40_MD5,
-  TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
 
   TLS_ECDHE_ECDSA_WITH_NULL_SHA,
   TLS_ECDHE_RSA_WITH_NULL_SHA,

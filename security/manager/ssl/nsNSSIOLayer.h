@@ -52,6 +52,7 @@ public:
                 const nsNSSShutDownPreventionLock& proofOfLock);
 
   void SetNegotiatedNPN(const char* value, uint32_t length);
+  void SetEarlyDataAccepted(bool aAccepted);
 
   void SetHandshakeCompleted();
   void NoteTimeUntilReady();
@@ -139,6 +140,7 @@ private:
 
   nsCString mNegotiatedNPN;
   bool      mNPNCompleted;
+  bool      mEarlyDataAccepted;
   bool      mFalseStartCallbackCalled;
   bool      mFalseStarted;
   bool      mIsFullHandshake;
@@ -216,9 +218,7 @@ public:
                                    PRErrorCode intoleranceReason);
   bool rememberStrongCiphersFailed(const nsACString& hostName, int16_t port,
                                    PRErrorCode intoleranceReason);
-  // returns the known tolerant version
-  // or 0 if there is no known tolerant version
-  uint16_t forgetIntolerance(const nsACString& hostname, int16_t port);
+  void forgetIntolerance(const nsACString& hostname, int16_t port);
   void adjustForTLSIntolerance(const nsACString& hostname, int16_t port,
                                /*in/out*/ SSLVersionRange& range,
                                /*out*/ StrongCipherStatus& strongCipherStatus);

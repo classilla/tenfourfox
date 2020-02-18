@@ -241,7 +241,8 @@ private:
 
     // Makes certain the SSL handshake is complete and NPN negotiation
     // has had a chance to happen
-    bool     EnsureNPNComplete();
+    bool     EnsureNPNComplete(nsresult &aOut0RTTWriteHandshakeValue,
+                               uint32_t &aOut0RTTBytesWritten);
     void     SetupSSL();
 
     // Start the Spdy transaction handler when NPN indicates spdy/*
@@ -349,6 +350,17 @@ private:
     // Flag to indicate connection is in inital keepalive period (fast detect).
     uint32_t                        mTCPKeepaliveConfig;
     nsCOMPtr<nsITimer>              mTCPKeepaliveTransitionTimer;
+
+    // Helper variable for 0RTT handshake;
+    bool                            m0RTTChecked; // Possible 0RTT has been
+                                                  // checked.
+    bool                            mWaitingFor0RTTResponse; // We have are
+                                                             // sending 0RTT
+                                                             // data and we
+                                                             // are waiting
+                                                             // for the end of
+                                                             // the handsake.
+    int64_t                        mContentBytesWritten0RTT;
 
 private:
     // For ForceSend()
