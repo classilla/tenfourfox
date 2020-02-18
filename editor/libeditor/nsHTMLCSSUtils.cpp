@@ -537,11 +537,8 @@ nsHTMLCSSUtils::GetComputedStyle(dom::Element* aElement)
   nsIDocument* doc = aElement->GetCurrentDoc();
   NS_ENSURE_TRUE(doc, nullptr);
 
-  nsIPresShell* presShell = doc->GetShell();
-  NS_ENSURE_TRUE(presShell, nullptr);
-
   RefPtr<nsComputedDOMStyle> style =
-    NS_NewComputedDOMStyle(aElement, EmptyString(), presShell);
+    NS_NewComputedDOMStyle(aElement, EmptyString(), doc);
 
   return style.forget();
 }

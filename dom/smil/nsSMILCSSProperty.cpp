@@ -38,14 +38,8 @@ GetCSSComputedValue(Element* aElem,
     return false;
   }
 
-  nsIPresShell* shell = doc->GetShell();
-  if (!shell) {
-    NS_WARNING("Unable to look up computed style -- no pres shell");
-    return false;
-  }
-
   RefPtr<nsComputedDOMStyle> computedStyle =
-    NS_NewComputedDOMStyle(aElem, EmptyString(), shell);
+    NS_NewComputedDOMStyle(aElem, EmptyString(), doc);
 
   computedStyle->GetPropertyValue(aPropID, aResult);
   return true;
