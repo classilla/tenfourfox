@@ -75,7 +75,7 @@ public:
 
   nsINode *GetParentObject() override
   {
-    return mElement;
+    return reinterpret_cast<nsINode*>(mElement.get());
   }
 
   static already_AddRefed<nsStyleContext>
