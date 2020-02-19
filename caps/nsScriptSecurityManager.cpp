@@ -990,6 +990,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("c.fqtag.com") ||
                 BLOK("new.fqtag.com") ||
 
+                BLOK("tag.1rx.io") ||
                 BLOK("a-nj.1rx.io") ||
                 BLOK("rxcdn.1rx.io") ||
 
@@ -1111,6 +1112,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("js.gumgum.com") ||
 
                 BLOK("cdn.digitru.st") ||
+                BLOK("prebid.digitru.st") ||
 
                 BLOK("collector.cint.com") ||
 
@@ -1184,6 +1186,25 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("ads.pro-market.net") ||
 
                 BLOK("tag.crsspxl.com") ||
+
+                BLOK("a.pub.network") ||
+                BLOK("a.publir.com") ||
+
+                BLOK("eb.proper.io") ||
+                BLOK("s2s.proper.io") ||
+                BLOK("bids.proper.io") ||
+                BLOK("events.proper.io") ||
+                BLOK("global.proper.io") ||
+                BLOK("propermedia-d.openx.net") ||
+
+                BLOK("stat.media") ||
+
+                BLOK("c.jsrdn.com") ||
+                BLOK("s.jsrdn.com") ||
+
+                BLOK("hb.emxdgt.com") ||
+
+                BLOK("lockerdome.com") ||
 
 #include "shavar-blocklist.h"
 
