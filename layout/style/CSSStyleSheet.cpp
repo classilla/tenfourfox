@@ -1918,6 +1918,40 @@ CSSStyleSheet::InsertRule(const nsAString& aRule,
   return InsertRuleInternal(aRule, aIndex, aReturn);
 }
 
+/* TenFourFox issue 592 */
+int32_t
+CSSStyleSheet::AddRule(const nsAString& aSelector, const nsAString& aBlock,
+                       const Optional<uint32_t>& aIndex, ErrorResult& aRv)
+{
+  uint32_t index;
+  if (aIndex.WasPassed()) {
+    index = aIndex.Value();
+  } else {
+    CSSRuleList* collection = GetCssRules(aRv);
+    if (!collection) {
+      // Must have thrown.
+      return -1;
+    }
+    index = collection->Length();
+  }
+
+  nsAutoString rule;
+  rule.Append(aSelector);
+  rule.AppendLiteral(" { ");
+  if (!aBlock.IsEmpty()) {
+    rule.Append(aBlock);
+    rule.Append(' ');
+  }
+  rule.Append('}');
+
+  uint32_t retval; // unused
+  nsresult rv = InsertRuleInternal(rule, index, &retval);
+  if (NS_FAILED(rv)) aRv.Throw(rv);
+
+  // As per Microsoft documentation, always return -1.
+  return -1;
+}
+
 static bool
 RuleHasPendingChildSheet(css::Rule *cssRule)
 {

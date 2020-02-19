@@ -320,6 +320,8 @@ public:
   void DeleteRule(uint32_t aIndex, ErrorResult& aRv) {
     aRv = DeleteRule(aIndex);
   }
+  int32_t AddRule(const nsAString& aSelector, const nsAString& aBlock,
+                  const dom::Optional<uint32_t>& aIndex, ErrorResult& aRv);
 
   // WebIDL miscellaneous bits
   dom::ParentObject GetParentObject() const {
