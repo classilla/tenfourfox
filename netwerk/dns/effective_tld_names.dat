@@ -982,8 +982,19 @@ fi
 // TODO: Check for updates (expected to be phased out around Q1/2009)
 aland.fi
 
-// fj : https://en.wikipedia.org/wiki/.fj
-*.fj
+// fj : http://domains.fj/
+// Submitted by registry <garth.miller@cocca.org.nz> 2020-02-11
+fj
+ac.fj
+biz.fj
+com.fj
+gov.fj
+info.fj
+mil.fj
+name.fj 
+net.fj
+org.fj
+pro.fj
 
 // fk : https://en.wikipedia.org/wiki/.fk
 *.fk
@@ -7074,7 +7085,7 @@ org.zw
 
 // newGTLDs
 
-// List of new gTLDs imported from https://www.icann.org/resources/registries/gtlds/v2/gtlds.json on 2020-02-01T17:46:27Z
+// List of new gTLDs imported from https://www.icann.org/resources/registries/gtlds/v2/gtlds.json on 2020-02-06T17:49:42Z
 // This list is auto-generated, don't edit it manually.
 // aaa : 2015-02-26 American Automobile Association, Inc.
 aaa
@@ -10532,7 +10543,7 @@ xin
 // xn--nyqy26a : 2014-11-07 Stable Tone Limited
 健康
 
-// xn--otu796d : 2017-08-06 Internet DotTrademark Organisation Limited
+// xn--otu796d : 2017-08-06 Jiang Yu Liang Cai Technology Company Limited
 招聘
 
 // xn--p1acf : 2013-12-12 Rusnames Limited
