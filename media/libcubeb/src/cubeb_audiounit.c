@@ -5,6 +5,15 @@
  * accompanying file LICENSE for details.
  */
 #undef NDEBUG
+#undef LOGGING_ENABLED
+
+#ifdef LOGGING_ENABLED
+#define LOG(...) do {                           \
+    fprintf(stderr, __VA_ARGS__);               \
+  } while(0)
+#else
+#define LOG(...)
+#endif
 
 #include <TargetConditionals.h>
 #include <assert.h>
@@ -738,7 +747,10 @@ audiounit_stream_init(cubeb * context, cubeb_stream ** stream, char const * stre
 static void
 audiounit_stream_destroy(cubeb_stream * stm)
 {
-  int r;
+  int r = audiounit_uninstall_device_changed_callback(stm);
+  if (r != CUBEB_OK) {
+    LOG("(%p) Could not uninstall all device change listeners", stm);
+  }
 
   stm->shutdown = 1;
 

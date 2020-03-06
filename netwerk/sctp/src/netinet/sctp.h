@@ -597,8 +597,10 @@ struct sctp_error_no_user_data {
 #define SCTP_MOBILITY_FASTHANDOFF        0x00000002
 #define SCTP_MOBILITY_PRIM_DELETED       0x00000004
 
-
-#define SCTP_SMALLEST_PMTU 512	 /* smallest pmtu allowed when disabling PMTU discovery */
+/* Smallest PMTU allowed when disabling PMTU discovery */
+#define SCTP_SMALLEST_PMTU 512
+/* Largest PMTU allowed when disabling PMTU discovery */
+#define SCTP_LARGEST_PMTU  65536
 
 #if defined(__Userspace_os_Windows)
 #pragma pack()
