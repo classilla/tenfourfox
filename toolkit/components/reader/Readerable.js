@@ -92,4 +92,9 @@ var Readerable = {
   }
 };
 Services.prefs.addObserver("reader.parse-on-load.", Readerable, false);
+// Get the prefs when we start up (TenFourFox issue 585).
+Readerable.isEnabled = Services.prefs.getBoolPref(
+  "reader.parse-on-load.enabled");
+Readerable.isForceEnabled = Services.prefs.getBoolPref(
+  "reader.parse-on-load.force-enabled");
 
