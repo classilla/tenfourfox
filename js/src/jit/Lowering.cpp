@@ -2034,68 +2034,6 @@ LIRGenerator::visitToObjectOrNull(MToObjectOrNull* ins)
     assignSafepoint(lir, ins);
 }
 
-static bool
-MustCloneRegExpForCall(MCall* call, uint32_t useIndex)
-{
-    // We have a regex literal flowing into a call. Return |false| iff
-    // this is a native call that does not let the regex escape.
-
-    JSFunction* target = call->getSingleTarget();
-    if (!target || !target->isNative())
-        return true;
-
-    if (useIndex == MCall::IndexOfThis() &&
-        (target->native() == regexp_exec || target->native() == regexp_test))
-    {
-        return false;
-    }
-
-    if (useIndex == MCall::IndexOfArgument(0) &&
-        (target->native() == str_split ||
-         target->native() == str_replace ||
-         target->native() == str_match ||
-         target->native() == str_search))
-    {
-        return false;
-    }
-
-    return true;
-}
-
-
-static bool
-MustCloneRegExp(MRegExp* regexp)
-{
-    if (regexp->mustClone())
-        return true;
-
-    // If this regex literal only flows into known natives that don't let
-    // it escape, we don't have to clone it.
-
-    for (MUseIterator iter(regexp->usesBegin()); iter != regexp->usesEnd(); iter++) {
-        MNode* node = iter->consumer();
-        if (!node->isDefinition())
-            return true;
-
-        MDefinition* def = node->toDefinition();
-        if (def->isRegExpTest()) {
-            MRegExpTest* test = def->toRegExpTest();
-            if (test->indexOf(*iter) == 1) {
-                // Optimized RegExp.prototype.test.
-                MOZ_ASSERT(test->regexp() == regexp);
-                continue;
-            }
-        } else if (def->isCall()) {
-            MCall* call = def->toCall();
-            if (!MustCloneRegExpForCall(call, call->indexOf(*iter)))
-                continue;
-        }
-
-        return true;
-    }
-    return false;
-}
-
 void
 LIRGenerator::visitRegExp(MRegExp* ins)
 {
