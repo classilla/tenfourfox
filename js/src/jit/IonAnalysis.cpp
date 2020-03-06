@@ -1878,6 +1878,9 @@ jit::ApplyTypeInformation(MIRGenerator* mir, MIRGraph& graph)
 bool
 jit::MakeMRegExpHoistable(MIRGenerator* mir, MIRGraph& graph)
 {
+    MOZ_CRASH("thou may not hoist this regex");
+    return false;
+#if(0)
     // If we are compiling try blocks, regular expressions may be observable
     // from catch blocks (which Ion does not compile). For now just disable the
     // pass in this case.
@@ -1945,6 +1948,7 @@ jit::MakeMRegExpHoistable(MIRGenerator* mir, MIRGraph& graph)
     }
 
     return true;
+#endif
 }
 
 bool
