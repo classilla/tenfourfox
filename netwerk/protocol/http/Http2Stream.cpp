@@ -70,6 +70,7 @@ Http2Stream::Http2Stream(nsAHttpTransaction *httpTransaction,
   , mTotalSent(0)
   , mTotalRead(0)
   , mPushSource(nullptr)
+  , mAttempting0RTT(false)
   , mIsTunnel(false)
   , mPlainTextTunnel(false)
 {
@@ -950,7 +951,9 @@ Http2Stream::TransmitFrame(const char *buf,
     *countUsed += mTxStreamFrameSize;
   }
 
-  mSession->FlushOutputQueue();
+  if (!mAttempting0RTT) {
+    mSession->FlushOutputQueue();
+  }
 
   // calling this will trigger waiting_for if mRequestBodyLenRemaining is 0
   UpdateTransportSendEvents(mTxInlineFrameUsed + mTxStreamFrameSize);
@@ -1483,6 +1486,26 @@ Http2Stream::MapStreamToHttpConnection()
   MOZ_ASSERT(qiTrans);
   qiTrans->MapStreamToHttpConnection(mSocketTransport,
                                      mTransaction->ConnectionInfo());
+}
+
+// -----------------------------------------------------------------------------
+// mirror nsAHttpTransaction
+// -----------------------------------------------------------------------------
+
+bool
+Http2Stream::Do0RTT()
+{
+  MOZ_ASSERT(mTransaction);
+  mAttempting0RTT = true;
+  return mTransaction->Do0RTT();
+}
+
+nsresult
+Http2Stream::Finish0RTT(bool aRestart, bool aAlpnChanged)
+{
+  MOZ_ASSERT(mTransaction);
+  mAttempting0RTT = false;
+  return mTransaction->Finish0RTT(aRestart, aAlpnChanged);
 }
 
 } // namespace net

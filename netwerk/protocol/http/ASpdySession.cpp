@@ -36,7 +36,8 @@ ASpdySession::~ASpdySession()
 
 ASpdySession *
 ASpdySession::NewSpdySession(uint32_t version,
-                             nsISocketTransport *aTransport)
+                             nsISocketTransport *aTransport,
+                             bool attemptingEarlyData)
 {
   // This is a necko only interface, so we can enforce version
   // requests as a precondition
@@ -49,12 +50,12 @@ ASpdySession::NewSpdySession(uint32_t version,
   // from a list provided in the SERVER HELLO filtered by our acceptable
   // versions, so there is no risk of the server ignoring our prefs.
 
-  Telemetry::Accumulate(Telemetry::SPDY_VERSION2, version);
+  //Telemetry::Accumulate(Telemetry::SPDY_VERSION2, version);
 
   if (version == SPDY_VERSION_31) {
     return new SpdySession31(aTransport);
   } else if (version == HTTP_VERSION_2) {
-    return new Http2Session(aTransport, version);
+    return new Http2Session(aTransport, version, attemptingEarlyData);
   }
 
   return nullptr;

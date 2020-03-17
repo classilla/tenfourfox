@@ -154,6 +154,10 @@ public:
                                 const nsACString &origin,
                                 RefPtr<nsStandardURL> &url);
 
+  // Mirrors nsAHttpTransaction
+  bool Do0RTT();
+  nsresult Finish0RTT(bool aRestart, bool aAlpnIgnored);
+
 protected:
   static void CreatePushHashKey(const nsCString &scheme,
                                 const nsCString &hostHeader,
@@ -327,6 +331,8 @@ private:
   // and flow control has not yet kicked in.
   nsCOMPtr<nsIInputStream> mInputBufferIn;
   nsCOMPtr<nsIOutputStream> mInputBufferOut;
+
+  bool mAttempting0RTT;
 
 /// connect tunnels
 public:
