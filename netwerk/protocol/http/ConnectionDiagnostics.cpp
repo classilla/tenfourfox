@@ -72,8 +72,8 @@ nsHttpConnectionMgr::PrintDiagnosticsCB(const nsACString &key,
                               ent->mHalfOpens.Length());
   self->mLogData.AppendPrintf("   Coalescing Keys Length = %u\n",
                               ent->mCoalescingKeys.Length());
-  self->mLogData.AppendPrintf("   Spdy using = %d, tested = %d, preferred = %d\n",
-                              ent->mUsingSpdy, ent->mTestedSpdy, ent->mInPreferredHash);
+  self->mLogData.AppendPrintf("   Spdy using = %d, preferred = %d\n",
+                              ent->mUsingSpdy, ent->mInPreferredHash);
   self->mLogData.AppendPrintf("   pipelinestate = %d penalty = %d\n",
                               ent->mPipelineState, ent->mPipeliningPenalty);
   for (i = 0; i < nsAHttpTransaction::CLASS_MAX; ++i) {

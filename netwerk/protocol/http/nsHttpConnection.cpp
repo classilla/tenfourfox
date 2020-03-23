@@ -260,8 +260,6 @@ nsHttpConnection::StartSpdy(uint8_t spdyVersion)
 
     mUsingSpdyVersion = spdyVersion;
     mEverUsedSpdy = true;
-    // see also bug 865314 for backbugs
-    // https://hg.mozilla.org/mozilla-central/rev/b1e8d6cf54e6
     if (!mDid0RTTSpdy) {
         mSpdySession = ASpdySession::NewSpdySession(spdyVersion,
                                                     mSocketTransport, false);
