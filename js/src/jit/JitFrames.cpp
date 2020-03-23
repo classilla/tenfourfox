@@ -221,6 +221,31 @@ JitFrameIterator::script() const
     return script;
 }
 
+JSScript*
+MaybeForwardedScriptFromCalleeToken(CalleeToken token) {
+    switch (GetCalleeTokenTag(token)) {
+      case CalleeToken_Script:
+        return MaybeForwarded(CalleeTokenToScript(token));
+      case CalleeToken_Function:
+      case CalleeToken_FunctionConstructing: {
+        JSFunction* fun = MaybeForwarded(CalleeTokenToFunction(token));
+        return MaybeForwarded(fun)->nonLazyScript();
+      }
+    }
+    MOZ_CRASH("invalid callee token tag");
+}
+
+JSScript*
+JitFrameIterator::maybeForwardedScript() const
+{
+    MOZ_ASSERT(isScripted());
+    if (isBaselineJS())
+      return MaybeForwardedScriptFromCalleeToken(baselineFrame()->calleeToken());
+    JSScript* script = MaybeForwardedScriptFromCalleeToken(calleeToken());
+    MOZ_ASSERT(script);
+    return script;
+}
+
 void
 JitFrameIterator::baselineScriptAndPc(JSScript** scriptRes, jsbytecode** pcRes) const
 {
