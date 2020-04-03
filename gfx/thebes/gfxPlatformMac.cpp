@@ -333,6 +333,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 
                     HTTP_OR_HTTPS_SUBDIR("www.kulturstiftung-des-bundes.de", "/typo3conf/ext/base_ksb/Resources/Public/");
 
+                    HTTP_OR_HTTPS_SUBDIR("cdn.trustpilot.net", "/brand-assets/2.1.0/fonts/trustpilot-default-font-");
+
                     // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");
                     HOST_AND_KEY("www.nerdwallet.com", "Gotham-Book--critical");
