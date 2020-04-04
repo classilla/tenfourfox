@@ -323,6 +323,7 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("ici.radio-canada.ca", "/unit/app/assets/fonts/Radio-Canada/");
 
                     HTTP_OR_HTTPS_SUBDIR("www.adac.de", "/assets/font/milo-");
+                    HTTP_OR_HTTPS_SUBDIR("www.adac.de", "/static/Milo");
 
                     HTTP_OR_HTTPS_SUBDIR("www.heise.de", "/sso/fonts/SourceSansPro-");
 
@@ -334,6 +335,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("www.kulturstiftung-des-bundes.de", "/typo3conf/ext/base_ksb/Resources/Public/");
 
                     HTTP_OR_HTTPS_SUBDIR("cdn.trustpilot.net", "/brand-assets/2.1.0/fonts/trustpilot-default-font-");
+
+                    HTTP_OR_HTTPS_SUBDIR("www.swr3.de", "/static/dist/fonts/TheSans/");
 
                     // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");
