@@ -17,6 +17,9 @@
   #include <mach-o/dyld.h>
 #endif /* XP_DARWIN */
 
+/* TenFourFox issue 599 */
+static bool sHQ = false;
+
 namespace mozilla
 {
 
@@ -26,7 +29,7 @@ FFmpegRuntimeLinker::LinkStatus FFmpegRuntimeLinker::sLinkStatus =
 template <int V> class FFmpegDecoderModule
 {
 public:
-  static already_AddRefed<PlatformDecoderModule> Create();
+  static already_AddRefed<PlatformDecoderModule> Create(bool hq);
 };
 
 static const char* sLibs[] = {
@@ -175,6 +178,9 @@ FFmpegRuntimeLinker::Bind(const char* aLibName)
     return false;
   }
 
+  /* This is the only safe place to get preferences. TenFourFox issue 599. */
+  sHQ = Preferences::GetBool("tenfourfox.mp4.high_quality", false);
+
   int version;
   switch (major) {
     case 53:
@@ -243,11 +249,11 @@ FFmpegRuntimeLinker::CreateDecoderModule()
 
   RefPtr<PlatformDecoderModule> module;
   switch (major) {
-    case 53: module = FFmpegDecoderModule<53>::Create(); break;
-    case 54: module = FFmpegDecoderModule<54>::Create(); break;
+    case 53: module = FFmpegDecoderModule<53>::Create(sHQ); break;
+    case 54: module = FFmpegDecoderModule<54>::Create(sHQ); break;
     case 55:
-    case 56: module = FFmpegDecoderModule<55>::Create(); break;
-    case 57: module = FFmpegDecoderModule<57>::Create(); break;
+    case 56: module = FFmpegDecoderModule<55>::Create(sHQ); break;
+    case 57: module = FFmpegDecoderModule<57>::Create(sHQ); break;
     default: module = nullptr;
   }
   return module.forget();

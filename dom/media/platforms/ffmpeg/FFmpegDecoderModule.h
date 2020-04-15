@@ -19,14 +19,14 @@ class FFmpegDecoderModule : public PlatformDecoderModule
 {
 public:
   static already_AddRefed<PlatformDecoderModule>
-  Create()
+  Create(bool hq)
   {
-    RefPtr<PlatformDecoderModule> pdm = new FFmpegDecoderModule();
+    RefPtr<PlatformDecoderModule> pdm = new FFmpegDecoderModule(hq);
 
     return pdm.forget();
   }
 
-  FFmpegDecoderModule() {}
+  FFmpegDecoderModule(bool hq) : mHQ(hq) {}
   virtual ~FFmpegDecoderModule() {}
 
   already_AddRefed<MediaDataDecoder>
@@ -75,6 +75,7 @@ public:
     }
   }
 
+  bool mHQ; // TenFourFox high quality mode (issue 599).
 };
 
 } // namespace mozilla

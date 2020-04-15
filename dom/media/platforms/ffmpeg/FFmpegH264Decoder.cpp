@@ -99,7 +99,7 @@ FFmpegH264Decoder<LIBAV_VER>::DecodeResult
 FFmpegH264Decoder<LIBAV_VER>::DoDecodeFrame(MediaRawData* aSample)
 {
   MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
-  if (PR_Now() < sLockOutDueToOOM) {
+  if (MOZ_UNLIKELY(PR_Now() < sLockOutDueToOOM)) {
     // Halt further allocations.
     NS_WARNING("** FFMPEG LOCKED OUT DUE TO OUT OF MEMORY **");
     mCallback->Error();
@@ -152,7 +152,7 @@ FFmpegH264Decoder<LIBAV_VER>::DoDecodeFrame(MediaRawData* aSample,
                                             uint8_t* aData, int aSize)
 {
   MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
-  if (PR_Now() < sLockOutDueToOOM) {
+  if (MOZ_UNLIKELY(PR_Now() < sLockOutDueToOOM)) {
     // Halt further allocations.
     NS_WARNING("** FFMPEG LOCKED OUT DUE TO OUT OF MEMORY **");
     mCallback->Error();

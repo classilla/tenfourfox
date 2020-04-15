@@ -38,6 +38,7 @@ public:
 
   static AVCodec* FindAVCodec(AVCodecID aCodec);
 
+  bool mHQ; // TenFourFox high quality mode (issue 599)
 protected:
   // Flush and Drain operation, always run
   virtual void ProcessFlush();

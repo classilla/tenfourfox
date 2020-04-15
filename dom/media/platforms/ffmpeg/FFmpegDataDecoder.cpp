@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <sys/sysctl.h>
 
 #include "FFmpegLog.h"
 #include "FFmpegDataDecoder.h"
@@ -41,6 +42,7 @@ FFmpegDataDecoder<LIBAV_VER>::FFmpegDataDecoder(FlushableTaskQueue* aTaskQueue,
   , mMonitor("FFMpegaDataDecoder")
   , mIsFlushing(false)
   , mCodecParser(nullptr)
+  , mHQ(false)
 {
   MOZ_COUNT_CTOR(FFmpegDataDecoder);
 }
@@ -108,9 +110,26 @@ FFmpegDataDecoder<LIBAV_VER>::InitDecoder()
   // FFmpeg will call back to this to negotiate a video pixel format.
   mCodecContext->get_format = ChoosePixelFormat;
 
-  mCodecContext->thread_count = PR_GetNumberOfProcessors();
+  //mCodecContext->thread_count = PR_GetNumberOfProcessors();
+  // PR_GetNumberOfProcessors() lies on TenFourFox. Get from sysctl().
+  // TenFourFox issue 599.
+  int mib[2] = { CTL_HW, HW_NCPU };
+  size_t len = sizeof(mCodecContext->thread_count);
+  if (sysctl(mib, 2, &(mCodecContext->thread_count), &len, NULL, 0) == -1)
+    mCodecContext->thread_count = 1;
+#if DEBUG
+  fprintf(stderr, "FFmpeg using %d CPUs.\n", mCodecContext->thread_count);
+#endif
   mCodecContext->thread_type = FF_THREAD_SLICE | FF_THREAD_FRAME;
   mCodecContext->thread_safe_callbacks = false;
+
+  if (!mHQ) {
+    // Enable skipping the loop filter and FFmpeg's lightly documented
+    // non-spec-compliant mode. TenFourFox issue 599. This is pushed here
+    // because this is not on the main thread, so we assert.
+    mCodecContext->flags2 |= CODEC_FLAG2_FAST;
+    mCodecContext->skip_loop_filter = AVDISCARD_ALL;
+  }
 
   if (mExtraData) {
     mCodecContext->extradata_size = mExtraData->Length();
