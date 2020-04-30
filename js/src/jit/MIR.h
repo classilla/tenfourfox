@@ -4737,9 +4737,10 @@ class MCreateThis
         return getOperand(0);
     }
 
-    // Although creation of |this| modifies global state, it is safely repeatable.
+    // Performs a property read from |newTarget| iff |newTarget| is a JSFunction
+    // with an own |.prototype| property.
     AliasSet getAliasSet() const override {
-        return AliasSet::None();
+        return AliasSet::Load(AliasSet::Any);
     }
     bool possiblyCalls() const override {
         return true;

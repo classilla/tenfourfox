@@ -1861,6 +1861,8 @@ XMLHttpRequest::SendInternal(SendRunnable* aRunnable,
   aRunnable->SetSyncLoopTarget(syncLoopTarget);
   aRunnable->SetHaveUploadListeners(hasUploadListeners);
 
+  mStateData.mFlagSend = true;
+
   if (!aRunnable->Dispatch(cx)) {
     // Dispatch() may have spun the event loop and we may have already unrooted.
     // If so we don't want autoUnpin to try again.
@@ -1879,7 +1881,11 @@ XMLHttpRequest::SendInternal(SendRunnable* aRunnable,
 
   autoUnpin.Clear();
 
-  if (!autoSyncLoop->Run()) {
+  bool succeeded = autoSyncLoop->Run();
+  mStateData.mFlagSend = false;
+
+  if (!succeeded) {
+    // Somehow we didn't throw. Throw now.
     aRv.Throw(NS_ERROR_FAILURE);
   }
 }
@@ -2083,7 +2089,7 @@ XMLHttpRequest::Send(ErrorResult& aRv)
     return;
   }
 
-  if (!mProxy) {
+  if (!mProxy || mStateData.mFlagSend) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }

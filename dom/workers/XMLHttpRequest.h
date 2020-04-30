@@ -44,11 +44,12 @@ public:
     nsresult mResponseTextResult;
     nsresult mStatusResult;
     nsresult mResponseResult;
+    bool mFlagSend; // TenFourFox issue 600 (backbugs for M1588248)
 
     StateData()
     : mStatus(0), mReadyState(0), mResponse(JS::UndefinedValue()),
       mResponseTextResult(NS_OK), mStatusResult(NS_OK),
-      mResponseResult(NS_OK)
+      mResponseResult(NS_OK), mFlagSend(false)
     { }
   };
 
