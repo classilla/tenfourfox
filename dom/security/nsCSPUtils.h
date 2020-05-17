@@ -169,7 +169,8 @@ inline CSPKeyword CSP_KeywordToEnum(const nsAString& aKey)
 
 class nsCSPHostSrc;
 
-nsCSPHostSrc* CSP_CreateHostSrcFromURI(nsIURI* aURI);
+// TenFourFox issue 602
+nsCSPHostSrc* CSP_CreateHostSrcFromURI(nsIURI* aURI, bool aIsSelf = false);
 bool CSP_IsValidDirective(const nsAString& aDir);
 bool CSP_IsDirective(const nsAString& aValue, CSPDirective aDir);
 bool CSP_IsKeyword(const nsAString& aValue, enum CSPKeyword aKey);
@@ -188,6 +189,12 @@ class nsCSPBaseSrc {
                          bool aReportOnly, bool aUpgradeInsecure) const;
     virtual bool allows(enum CSPKeyword aKeyword, const nsAString& aHashOrNonce) const;
     virtual void toString(nsAString& outStr) const = 0;
+
+/* TenFourFox issue 602 */
+    bool getCameFromSelf() const;
+    void setCameFromSelf(bool isSelf);
+ private:
+    bool mCameFromSelf;
 };
 
 /* =============== nsCSPSchemeSrc ============ */
@@ -214,6 +221,9 @@ class nsCSPHostSrc : public nsCSPBaseSrc {
 
     bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
                  bool aReportOnly, bool aUpgradeInsecure) const;
+/* TenFourFox issue 602 */
+    bool allows(enum CSPKeyword aKeyword, const nsAString& aHashOrNonce) const;
+
     void toString(nsAString& outStr) const;
 
     void setScheme(const nsAString& aScheme);
