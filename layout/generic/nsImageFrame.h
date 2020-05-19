@@ -104,6 +104,8 @@ public:
                                     nsIAtom* aAttribute,
                                     int32_t aModType) override;
 
+  bool ShouldShowBrokenImageIcon() const;
+
 #ifdef ACCESSIBILITY
   virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
