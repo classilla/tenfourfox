@@ -688,6 +688,34 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
        return NS_ERROR_DOM_BAD_URI;
     }
 
+    // See TenFourFox issue 607
+    // determine if this is a script we want to block
+    // Scripts that somehow hit hard limits should go in here
+    if (!mIsTenFourFoxTroublesomeJsAllowed &&
+            (targetScheme.EqualsLiteral("http") || targetScheme.EqualsLiteral("https"))) {
+        nsAutoCString hostname;
+        if (MOZ_LIKELY(NS_SUCCEEDED(targetBaseURI->GetHost(hostname)))) {
+            ToLowerCase(hostname);
+#define BLOC(q) hostname.EqualsLiteral(q)
+            if (0 ||
+
+#ifdef __ppc__
+                BLOC("static.twitchcdn.net") ||
+#endif // __ppc__
+
+                    0) {
+#undef BLOC
+
+#ifndef DEBUG
+                if (mIsTenFourFoxTroublesomeJsLoggingEnabled)
+#endif
+                fprintf(stderr, "Warning: TenFourFox blocking problematic script from %s.\n",
+                    hostname.get());
+                return NS_ERROR_DOM_BAD_URI;
+            }
+        }
+    }
+
     // TenFourFox issue 469
     // determine if this is a script we want to block
     if (mIsTenFourFoxAdBlockEnabled &&
@@ -1790,6 +1818,7 @@ static const char* kObservedPrefs[] = {
   sFileOriginPolicyPrefName,
   "capability.policy.",
   "tenfourfox.adblock.",
+  "tenfourfox.troublesome-js.",
   nullptr
 };
 
@@ -1810,6 +1839,8 @@ nsScriptSecurityManager::nsScriptSecurityManager(void)
     , mIsJavaScriptEnabled(false)
     , mIsTenFourFoxAdBlockEnabled(false)
     , mIsTenFourFoxAdBlockLoggingEnabled(false)
+    , mIsTenFourFoxTroublesomeJsAllowed(false)
+    , mIsTenFourFoxTroublesomeJsLoggingEnabled(false)
 {
     static_assert(sizeof(intptr_t) == sizeof(void*),
                   "intptr_t and void* have different lengths on this platform. "
@@ -1950,6 +1981,12 @@ nsScriptSecurityManager::ScriptSecurityPrefChanged()
         Preferences::GetBool("tenfourfox.adblock.enabled", mIsTenFourFoxAdBlockEnabled);
     mIsTenFourFoxAdBlockLoggingEnabled =
         Preferences::GetBool("tenfourfox.adblock.logging.enabled", mIsTenFourFoxAdBlockLoggingEnabled);
+    mIsTenFourFoxTroublesomeJsAllowed =
+        Preferences::GetBool("tenfourfox.troublesome-js.allow",
+                                        mIsTenFourFoxTroublesomeJsAllowed);
+    mIsTenFourFoxTroublesomeJsLoggingEnabled =
+        Preferences::GetBool("tenfourfox.troublesome-js.logging.enabled",
+                                        mIsTenFourFoxTroublesomeJsLoggingEnabled);
 
     //
     // Rebuild the set of principals for which we allow file:// URI loads. This
