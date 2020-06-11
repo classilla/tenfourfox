@@ -1,6 +1,12 @@
 . $topsrcdir/browser/config/mozconfig
-export CC="/opt/local/bin/gcc-mp-4.8 -flax-vector-conversions -O3 -m32 -march=pentium-m -read_only_relocs suppress -mdynamic-no-pic"
-export CXX="/opt/local/bin/g++-mp-4.8 -flax-vector-conversions -fpermissive -O3 -m32 -march=pentium-m -read_only_relocs suppress -mdynamic-no-pic"
+
+# we need to use -Wa,-Q to force the behaviour of the traditional assembler on MacPorts
+# as that is the only one that can accept all the output from gcc-4.8 without errors
+# recent changes in MacPorts will force clang as assembler if certain clangs are found otherwise
+export CC="/opt/local/bin/gcc-mp-4.8 -Wa,-Q -flax-vector-conversions -O3 -m32 -march=pentium-m -read_only_relocs suppress"
+export CXX="/opt/local/bin/g++-mp-4.8 -Wa,-Q -flax-vector-conversions -fpermissive -O3 -m32 -march=pentium-m -read_only_relocs suppress"
+
+
 mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-ff-dbg
 mk_add_options MOZ_MAKE_FLAGS="-s -j2"
 mk_add_options AUTOCONF=autoconf213

@@ -272,8 +272,7 @@ void FastConvertYUVToRGB32Row_SSE(const uint8* y_buf,
                                   int width);
   asm(
   ".text\n"
-  ".global FastConvertYUVToRGB32Row_SSE\n"
-  ".type FastConvertYUVToRGB32Row_SSE, @function\n"
+  ".globl FastConvertYUVToRGB32Row_SSE\n"
 "FastConvertYUVToRGB32Row_SSE:\n"
   "pusha\n"
   "mov    0x24(%esp),%edx\n"
@@ -350,8 +349,7 @@ void ScaleYUVToRGB32Row_SSE(const uint8* y_buf,
                             int source_dx);
   asm(
   ".text\n"
-  ".global ScaleYUVToRGB32Row_SSE\n"
-  ".type ScaleYUVToRGB32Row_SSE, @function\n"
+  ".globl ScaleYUVToRGB32Row_SSE\n"
 "ScaleYUVToRGB32Row_SSE:\n"
   "pusha\n"
   "mov    0x24(%esp),%edx\n"
@@ -444,8 +442,7 @@ void LinearScaleYUVToRGB32Row_SSE(const uint8* y_buf,
                                   int source_dx);
   asm(
   ".text\n"
-  ".global LinearScaleYUVToRGB32Row_SSE\n"
-  ".type LinearScaleYUVToRGB32Row_SSE, @function\n"
+  ".globl LinearScaleYUVToRGB32Row_SSE\n"
 "LinearScaleYUVToRGB32Row_SSE:\n"
   "pusha\n"
   "mov    0x24(%esp),%edx\n"

@@ -57,7 +57,7 @@ endif
 
 # try to find autoconf 2.13 - discard errors from 'which'
 # MacOS X 10.4 sends "no autoconf*" errors to stdout, discard those via grep
-AUTOCONF ?= $(shell which autoconf-2.13 autoconf2.13 autoconf213 2>/dev/null | grep -v '^no autoconf' | head -1)
+AUTOCONF ?= $(shell /usr/bin/which autoconf-2.13 autoconf2.13 autoconf213 2>/dev/null | grep -v '^no autoconf' | head -1)
 
 # See if the autoconf package was installed through fink
 ifeq (,$(strip $(AUTOCONF)))
