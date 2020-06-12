@@ -125,6 +125,8 @@ private:
     bool mIsJavaScriptEnabled;
     bool mIsTenFourFoxAdBlockEnabled;
     bool mIsTenFourFoxAdBlockLoggingEnabled;
+    bool mIsTenFourFoxTroublesomeJsAllowed;
+    bool mIsTenFourFoxTroublesomeJsLoggingEnabled;
     nsTArray<nsCOMPtr<nsIURI>> mFileURIWhitelist;
 
     // This machinery controls new-style domain policies. The old-style

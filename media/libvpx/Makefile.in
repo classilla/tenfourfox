@@ -9,6 +9,15 @@ VPX_AS=gcc
 VPX_ASM_SUFFIX=s
 endif
 
+ifdef VPX_X86_ASM
+# TO DO - pass these in as an environment variable
+CC=clang-mp-3.4
+CC += -arch i386
+CC += -O3
+VPX_AS=yasm
+VPX_ASM_SUFFIX=asm
+endif
+
 # Set up the libvpx assembler config.
 
 AS=$(VPX_AS)

@@ -10,6 +10,17 @@ CXX_WRAPPER =
 
 default::
 
+ifeq (86,$(findstring 86,$(OS_TEST)))
+# TenFourFox Intel fix
+# TO DO - pass the compiler in as an environment variable
+CC=clang-mp-3.4
+CC              += -arch i386
+CC              += -O3
+CCC=clang++-mp-3.4
+CCC += -arch i386
+CCC += -O3
+endif
+
 include $(topsrcdir)/config/makefiles/functions.mk
 
 NSS_LIBS = \

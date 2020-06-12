@@ -102,6 +102,7 @@ if CONFIG['CLANG_CL'] or not CONFIG['_MSC_VER']:
 if CONFIG['GNU_CC']:
     CFLAGS += ['-Wno-sign-compare']
 
+
 ASFLAGS += CONFIG['VPX_ASFLAGS']
 ASFLAGS += [
     '-I.',
@@ -109,7 +110,10 @@ ASFLAGS += [
     '-I%s/media/libvpx/vpx_ports/' % TOPSRCDIR,
 ]
 # moved from Makefile.in for TenFourFox
-ASFLAGS += ['-force_cpusubtype_ALL']
+
+# this only works on gcc-as (ie PPC)
+if not '86' in CONFIG['OS_TEST']:
+    ASFLAGS += ['-force_cpusubtype_ALL']
 
 if CONFIG['OS_TARGET'] == 'Android':
     # For LIBVPX_RAND
