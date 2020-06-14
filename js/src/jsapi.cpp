@@ -1079,6 +1079,11 @@ JS_ResolveStandardClass(JSContext* cx, HandleObject obj, HandleId id, bool* reso
                               JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_RESOLVING);
     }
 
+    // Resolve a "globalThis" self-referential property if necessary.
+    if (idAtom == cx->names().globalThis) {
+        return GlobalObject::maybeResolveGlobalThis(cx, global, resolved);
+    }
+
     /* Try for class constructors/prototypes named by well-known atoms. */
     stdnm = LookupStdName(cx->names(), idAtom, standard_class_names);
 
@@ -1128,6 +1133,7 @@ JS_MayResolveStandardClass(const JSAtomState& names, jsid id, JSObject* maybeObj
     JSAtom* atom = JSID_TO_ATOM(id);
 
     return atom == names.undefined ||
+           atom == names.globalThis ||
            LookupStdName(names, atom, standard_class_names) ||
            LookupStdName(names, atom, builtin_property_names);
 }
