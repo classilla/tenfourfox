@@ -943,6 +943,8 @@ public:
   virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
 
+  nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const override;
+
 protected:
   nsHTMLScrollFrame(nsStyleContext* aContext, bool aIsRoot);
   void SetSuppressScrollbarUpdate(bool aSuppress) {
