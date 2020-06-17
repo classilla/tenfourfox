@@ -240,6 +240,13 @@
         <parameter name="aIgnoreNextCall"/>
         <body>
           <![CDATA[
+          // _setEventListener is only used for setting the attribute event
+          // handlers, which we want to ignore if our document is sandboxed
+          // without the allow-scripts keyword.
+          if (document.hasScriptsBlockedBySandbox) {
+            return true;
+          }
+
           // attribute event handlers should only be added if the
           // document's CSP allows it.
           if (!document.inlineScriptAllowedByCSP) {

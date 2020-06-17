@@ -2678,6 +2678,8 @@ public:
     return mUserHasInteracted;
   }
 
+  bool HasScriptsBlockedBySandbox();
+
   bool InlineScriptAllowedByCSP();
 
   void SetLinkHandlingEnabled(bool aValue) { mLinksEnabled = aValue; }
