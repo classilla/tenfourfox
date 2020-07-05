@@ -700,7 +700,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             if (0 ||
 
 #ifdef __ppc__
-                BLOC("static.twitchcdn.net") ||
+                /* No sites in blocklist currently */
 #endif // __ppc__
 
                     0) {

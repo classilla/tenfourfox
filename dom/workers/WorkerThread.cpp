@@ -24,9 +24,13 @@ using namespace mozilla::ipc;
 
 namespace {
 
-// The C stack size. We use the same stack size on all platforms for
-// consistency.
+// The C stack size.
+#ifdef __ppc__
+// TenFourFox issue 607.
+const uint32_t kWorkerStackSize = 16384 * sizeof(size_t) * 1024;
+#else
 const uint32_t kWorkerStackSize = 256 * sizeof(size_t) * 1024;
+#endif
 
 } // namespace
 
