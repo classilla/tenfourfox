@@ -875,6 +875,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 
                 BLOK("ads.rubiconproject.com") ||
                 BLOK("fastlane.rubiconproject.com") ||
+                BLOK("optimized-by.rubiconproject.com") ||
                 
                 BLOK("cdn.engine.4dsply.com") ||
                 
@@ -1233,6 +1234,13 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("hb.emxdgt.com") ||
 
                 BLOK("lockerdome.com") ||
+
+                BLOK("get.s-onetag.com") ||
+                BLOK("beacon.s-onetag.com") ||
+
+                BLOK("cdn.boomtrain.com") ||
+
+                BLOK("w.usabilla.com") ||
 
 #include "shavar-blocklist.h"
 
