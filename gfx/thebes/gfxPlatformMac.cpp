@@ -338,6 +338,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 
                     HTTP_OR_HTTPS_SUBDIR("www.swr3.de", "/static/dist/fonts/TheSans/");
 
+                    HTTP_OR_HTTPS_SUBDIR("hartzfacts.de", "/google-fonts/s/notoseriftc/v7/");
+
                     // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");
                     HOST_AND_KEY("www.nerdwallet.com", "Gotham-Book--critical");
