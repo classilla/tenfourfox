@@ -96,7 +96,11 @@ using mozilla::dom::indexedDB::IndexedDatabaseManager;
 // Half the size of the actual C stack, to be safe.
 // We need a little larger than regular Firefox.
 // This should be less than kWorkerStackSize in WorkerThread.cpp.
+#ifdef __ppc__
 #define WORKER_CONTEXT_NATIVE_STACK_LIMIT 15360 * sizeof(size_t) * 1024
+#else
+#define WORKER_CONTEXT_NATIVE_STACK_LIMIT 512 * sizeof(size_t) * 1024
+#endif
 
 // The maximum number of threads to use for workers, overridable via pref.
 #define MAX_WORKERS_PER_DOMAIN 10
