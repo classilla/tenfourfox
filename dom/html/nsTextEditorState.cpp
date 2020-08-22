@@ -397,6 +397,7 @@ NS_IMETHODIMP
 nsTextInputSelectionImpl::SetCaretReadOnly(bool aReadOnly)
 {
   if (!mPresShellWeak) return NS_ERROR_NOT_INITIALIZED;
+  if (!mFrameSelection) return NS_ERROR_FAILURE;
   nsresult result;
   nsCOMPtr<nsIPresShell> shell = do_QueryReferent(mPresShellWeak, &result);
   if (shell)

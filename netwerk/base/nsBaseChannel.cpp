@@ -575,6 +575,12 @@ NS_IMETHODIMP
 nsBaseChannel::SetContentDispositionFilename(const nsAString &aContentDispositionFilename)
 {
   mContentDispositionFilename = new nsString(aContentDispositionFilename);
+
+  // For safety reasons ensure the filename doesn't contain null characters and
+  // replace them with underscores. We may later pass the extension to system
+  // MIME APIs that expect null terminated strings.
+  mContentDispositionFilename->ReplaceChar(char16_t(0), '_');
+
   return NS_OK;
 }
 

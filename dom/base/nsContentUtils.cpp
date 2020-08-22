@@ -4855,6 +4855,12 @@ nsContentUtils::TriggerLink(nsIContent *aContent,
       fileName.SetIsVoid(true); // No actionable download attribute was found.
     }
 
+    // Sanitize fileNames containing null characters by replacing them with
+    // underscores.
+    if (!fileName.IsVoid()) {
+      fileName.ReplaceChar(char16_t(0), '_');
+    }
+
     nsDocShell::Cast(docShell)->OnLinkClick(aContent, aLinkURI,
                          fileName.IsVoid() ? aTargetSpec.get() : EmptyString().get(),
                          fileName, nullptr, nullptr, aIsTrusted);
