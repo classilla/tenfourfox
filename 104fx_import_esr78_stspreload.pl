@@ -1,7 +1,5 @@
 #!/usr/bin/perl -s
 
-$source ||= "../esr60/security/manager/ssl/nsSTSPreloadList.inc";
-open(W, $source) || die("unable to open $source: $!\nspecify -source=/path ?\n");
 print <<'EOF';
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,13 +10,13 @@ print <<'EOF';
 /* nsSiteSecurityService.cpp, you shouldn't be #including it.                */
 /*****************************************************************************/
 
-/* imported from ESR60 by TenFourFox conversion script */
+/* imported from ESR78 by TenFourFox conversion script */
 
 #include <stdint.h>
 EOF
 
 # let's have a little paranoia.
-while(<W>) {
+while(<>) {
 	if (/^const PRTime gPreloadListExpirationTime = INT64_C/) {
 		print;
 		$got_time = 1;
@@ -41,7 +39,7 @@ class nsSTSPreload
 static const nsSTSPreload kSTSPreloadList[] = {
 EOF
 
-while(<W>) {
+while(<>) {
 	chomp;
 	last if (/%%/);
 	($host, $subd, $crap) = split(/, /, $_, 3);
