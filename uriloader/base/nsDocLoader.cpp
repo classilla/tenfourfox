@@ -1090,14 +1090,7 @@ NS_IMETHODIMP nsDocLoader::OnStatus(nsIRequest* aRequest, nsISupports* ctxt,
     if (!sbs)
       return NS_ERROR_FAILURE;
     nsXPIDLString msg;
-    /* TenFourFox issue 590. Map NS_NET_STATUS_TLS_HANDSHAKE_STARTING and
-       NS_NET_STATUS_TLS_HANDSHAKE_ENDED to NS_NET_STATUS_CONNECTED_TO so
-       that we don't instantly invalidate all our locales. See also
-       netwerk/locales/en-US/necko.properties XXX */
-    nsresult rv = sbs->FormatStatusMessage(
-    (aStatus == NS_NET_STATUS_TLS_HANDSHAKE_STARTING ||
-     aStatus == NS_NET_STATUS_TLS_HANDSHAKE_ENDED) ?
-     NS_NET_STATUS_CONNECTED_TO : aStatus,
+    nsresult rv = sbs->FormatStatusMessage(aStatus,
                                            aStatusArg,
                                            getter_Copies(msg));
     if (NS_FAILED(rv))
