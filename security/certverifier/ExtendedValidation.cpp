@@ -101,8 +101,8 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
   // 1.3.6.1.4.1.13769.666.666.666.1.500.9.1.
   // (multiple entries with the same OID is ok)
   // If you add or remove debug EV certs you must also modify NUM_TEST_EV_ROOTS
-  // so that the correct number of certs are skipped as these debug EV certs are
-  // NOT part of the default trust store.
+  // so that the correct number of certs are skipped as these debug EV certs
+  // are NOT part of the default trust store.
   {
     // This is the PSM xpcshell testing EV certificate. It can be generated
     // using pycert.py and the following specification:
@@ -119,11 +119,11 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     // following entry with the new fingerprint, issuer, and serial number.
     "1.3.6.1.4.1.13769.666.666.666.1.500.9.1",
     "DEBUGtesting EV OID",
-    { 0xE4, 0xFB, 0x04, 0x16, 0x10, 0x32, 0x67, 0x08, 0x6C, 0x84, 0x2E,
-      0x91, 0xF3, 0xEF, 0x0E, 0x45, 0x99, 0xBC, 0xA8, 0x54, 0x73, 0xF5,
-      0x03, 0x2C, 0x7B, 0xDC, 0x09, 0x70, 0x76, 0x49, 0xBF, 0xAA },
+    { 0x70, 0xED, 0xCB, 0x5A, 0xCE, 0x02, 0xC7, 0xC5, 0x0B, 0xA3, 0xD2, 0xD7,
+      0xC6, 0xF5, 0x0E, 0x18, 0x02, 0x19, 0x17, 0xF5, 0x48, 0x08, 0x9C, 0xB3,
+      0x8E, 0xEF, 0x9A, 0x1A, 0x4D, 0x7F, 0x82, 0x94 },
     "MBExDzANBgNVBAMMBmV2cm9vdA==",
-    "W9j5PS8YoKgynZdYa9i2Kwexnp8=",
+    "IZSHsVgzcvhPgdfrgdMGlpSfMeg=",
   },
   {
     // This is an RSA root with an inadequate key size. It is used to test that
@@ -142,11 +142,11 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     // following entry with the new fingerprint, issuer, and serial number.
     "1.3.6.1.4.1.13769.666.666.666.1.500.9.1",
     "DEBUGtesting EV OID",
-    { 0x49, 0x46, 0x10, 0xF4, 0xF5, 0xB1, 0x96, 0xE7, 0xFB, 0xFA, 0x4D,
-      0xA6, 0x34, 0x03, 0xD0, 0x99, 0x22, 0xD4, 0x77, 0x20, 0x3F, 0x84,
-      0xE0, 0xDF, 0x1C, 0xAD, 0xB4, 0xC2, 0x76, 0xBB, 0x63, 0x24 },
+    { 0x40, 0xAB, 0x5D, 0xA5, 0x89, 0x15, 0xA9, 0x4B, 0x82, 0x87, 0xB8, 0xA6,
+      0x9A, 0x84, 0xB1, 0xDB, 0x7A, 0x9D, 0xDB, 0xB8, 0x4E, 0xE1, 0x23, 0xE3,
+      0xC6, 0x64, 0xE7, 0x50, 0xDC, 0x35, 0x8C, 0x68  },
     "MBsxGTAXBgNVBAMMEGV2X3Jvb3RfcnNhXzIwNDA=",
-    "P1iIBgxk6kH+x64EUBTV3qoHuas=",
+    "J7nCMgtzNcSPG7jAh3CWzlTGHQg=",
   },
 #endif
 //
@@ -342,6 +342,20 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "RWtQVA==",
   },
   {
+    // CN=Entrust Root Certification Authority - G4,OU="(c) 2015 Entrust, Inc. - for authorized use only",OU=See www.entrust.net/legal-terms,O="Entrust, Inc.",C=US
+    "2.16.840.1.114028.10.1.2",
+    "Entrust EV OID",
+    { 0xDB, 0x35, 0x17, 0xD1, 0xF6, 0x73, 0x2A, 0x2D, 0x5A, 0xB9, 0x7C,
+      0x53, 0x3E, 0xC7, 0x07, 0x79, 0xEE, 0x32, 0x70, 0xA6, 0x2F, 0xB4,
+      0xAC, 0x42, 0x38, 0x37, 0x24, 0x60, 0xE6, 0xF0, 0x1E, 0x88 },
+    "MIG+MQswCQYDVQQGEwJVUzEWMBQGA1UEChMNRW50cnVzdCwgSW5jLjEoMCYGA1UE"
+    "CxMfU2VlIHd3dy5lbnRydXN0Lm5ldC9sZWdhbC10ZXJtczE5MDcGA1UECxMwKGMp"
+    "IDIwMTUgRW50cnVzdCwgSW5jLiAtIGZvciBhdXRob3JpemVkIHVzZSBvbmx5MTIw"
+    "MAYDVQQDEylFbnRydXN0IFJvb3QgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkgLSBH"
+    "NA==",
+    "ANm1Q3+vqTkPAAAAAFVlrVg=",
+  },
+  {
     // CN=GlobalSign Root CA,OU=Root CA,O=GlobalSign nv-sa,C=BE
     "2.23.140.1.1",
     "CA/Browser Forum EV OID",
@@ -351,17 +365,6 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "MFcxCzAJBgNVBAYTAkJFMRkwFwYDVQQKExBHbG9iYWxTaWduIG52LXNhMRAwDgYD"
     "VQQLEwdSb290IENBMRswGQYDVQQDExJHbG9iYWxTaWduIFJvb3QgQ0E=",
     "BAAAAAABFUtaw5Q=",
-  },
-  {
-    // CN=GlobalSign,O=GlobalSign,OU=GlobalSign Root CA - R2
-    "2.23.140.1.1",
-    "CA/Browser Forum EV OID",
-    { 0xCA, 0x42, 0xDD, 0x41, 0x74, 0x5F, 0xD0, 0xB8, 0x1E, 0xB9, 0x02,
-      0x36, 0x2C, 0xF9, 0xD8, 0xBF, 0x71, 0x9D, 0xA1, 0xBD, 0x1B, 0x1E,
-      0xFC, 0x94, 0x6F, 0x5B, 0x4C, 0x99, 0xF4, 0x2C, 0x1B, 0x9E },
-    "MEwxIDAeBgNVBAsTF0dsb2JhbFNpZ24gUm9vdCBDQSAtIFIyMRMwEQYDVQQKEwpH"
-    "bG9iYWxTaWduMRMwEQYDVQQDEwpHbG9iYWxTaWdu",
-    "BAAAAAABD4Ym5g0=",
   },
   {
     // CN=GlobalSign,O=GlobalSign,OU=GlobalSign Root CA - R3
@@ -397,19 +400,6 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "QTgyNzQzMjg3MRswGQYDVQQKExJBQyBDYW1lcmZpcm1hIFMuQS4xKTAnBgNVBAMT"
     "IENoYW1iZXJzIG9mIENvbW1lcmNlIFJvb3QgLSAyMDA4",
     "AKPaQn6ksa7a",
-  },
-  {
-    // CN=Global Chambersign Root - 2008,O=AC Camerfirma S.A.,serialNumber=A82743287,L=Madrid (see current address at www.camerfirma.com/address),C=EU
-    "1.3.6.1.4.1.17326.10.8.12.1.2",
-    "Camerfirma EV OID b",
-    { 0x13, 0x63, 0x35, 0x43, 0x93, 0x34, 0xA7, 0x69, 0x80, 0x16, 0xA0,
-      0xD3, 0x24, 0xDE, 0x72, 0x28, 0x4E, 0x07, 0x9D, 0x7B, 0x52, 0x20,
-      0xBB, 0x8F, 0xBD, 0x74, 0x78, 0x16, 0xEE, 0xBE, 0xBA, 0xCA },
-    "MIGsMQswCQYDVQQGEwJFVTFDMEEGA1UEBxM6TWFkcmlkIChzZWUgY3VycmVudCBh"
-    "ZGRyZXNzIGF0IHd3dy5jYW1lcmZpcm1hLmNvbS9hZGRyZXNzKTESMBAGA1UEBRMJ"
-    "QTgyNzQzMjg3MRswGQYDVQQKExJBQyBDYW1lcmZpcm1hIFMuQS4xJzAlBgNVBAMT"
-    "Hkdsb2JhbCBDaGFtYmVyc2lnbiBSb290IC0gMjAwOA==",
-    "AMnN0+nVfSPO",
   },
   {
     // CN=AffirmTrust Commercial,O=AffirmTrust,C=US
