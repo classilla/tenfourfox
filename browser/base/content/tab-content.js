@@ -12,6 +12,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/ExtensionContent.jsm");
 
 const g104FxForcePref = "tenfourfox.reader.force-enable"; // TenFourFox issue 583
+const g104FxStickyPref = "tenfourfox.reader.sticky"; // TenFourFox issue 620
 Cu.import("resource://gre/modules/Preferences.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
@@ -260,6 +261,7 @@ var AboutReaderListener = {
 
   _articlePromise: null,
   _alwaysAllowReaderMode: true, // TenFourFox issue 583
+  _stickyReaderMode: true, // TenFourFox issue 620
 
   init: function() {
     addEventListener("AboutReaderContentLoaded", this, false, true);
@@ -269,15 +271,22 @@ var AboutReaderListener = {
     addMessageListener("Reader:ParseDocument", this);
     addMessageListener("Reader:PushState", this);
     Services.prefs.addObserver(g104FxForcePref, this, false);
+    Services.prefs.addObserver(g104FxStickyPref, this, false);
+    Services.obs.addObserver(this, "AboutReader:Ready", false);
   },
 
   // TenFourFox issue 583
   uninit: function() {
     Services.prefs.removeObserver(g104FxForcePref, this, false);
+    Services.obs.removeObserver(this, "AboutReader:Ready");
   },
   observe: function(subject, topic, data) { // jshint ignore:line
     if (topic === "nsPref:changed") {
       this._alwaysAllowReaderMode = Preferences.get(g104FxForcePref, true);
+      this._stickyReaderMode = Preferences.get(g104FxStickyPref, true);
+    }
+    if (topic === "AboutReader:Ready") {
+      this.stickyReaderLinks();
     }
   },
 
@@ -353,6 +362,24 @@ var AboutReaderListener = {
     }
 
     this.scheduleReadabilityCheckPostPaint(forceNonArticle);
+  },
+
+  stickyReaderLinks: function() { /* TenFourFox issue 620 */
+    if (!this.isAboutReader || !this._stickyReaderMode) return;
+
+    let i = 0;
+    let ls = content.document.links;
+    if (!ls || !ls.length || ls.length == 0) return;
+
+    for (i=0; i<ls.length; i++) {
+      if (ls[i].href && ls[i].href.startsWith("http"))
+        ls[i].href = "about:reader?url=" + encodeURIComponent(ls[i].href);
+/*
+        ls[i].onclick = function() {
+		this.href='about:reader?url='+encodeURIComponent(this.href);
+	};
+*/
+    }
   },
 
   cancelPotentialPendingReadabilityCheck: function() {
