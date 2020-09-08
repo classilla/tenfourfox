@@ -81,6 +81,12 @@ this.SafeBrowsing = {
     let providerName = this.listToProvider[listname];
     let provider = this.providers[providerName];
 
+    if (!providerName || !provider) {
+      log("No provider info found for " + listname);
+      log("Check browser.safebrowsing.provider.[google/mozilla].lists");
+      return;
+    }
+
     listManager.registerTable(listname, providerName, provider.updateURL, provider.gethashURL);
   },
 
@@ -272,9 +278,14 @@ this.SafeBrowsing = {
     for (let i = 0; i < trackingProtectionLists.length; ++i) {
       if (this.trackingEnabled) {
         listManager.enableUpdate(trackingProtectionLists[i]);
-        listManager.enableUpdate(trackingProtectionWhitelists[i]);
       } else {
         listManager.disableUpdate(trackingProtectionLists[i]);
+      }
+    }
+    for (let i = 0; i < trackingProtectionWhitelists.length; ++i) {
+      if (this.trackingEnabled) {
+        listManager.enableUpdate(trackingProtectionWhitelists[i]);
+      } else {
         listManager.disableUpdate(trackingProtectionWhitelists[i]);
       }
     }
