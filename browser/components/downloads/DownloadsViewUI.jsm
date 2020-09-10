@@ -219,7 +219,8 @@ this.DownloadsViewUI.DownloadElementShell.prototype = {
       }
 
       let referrer = this.download.source.referrer || this.download.source.url;
-      let [displayHost, fullHost] = DownloadUtils.getURIHost(referrer);
+      //let [displayHost, fullHost] = DownloadUtils.getURIHost(referrer);
+      let [displayHost, fullHost] = DownloadUtils.getURIHost(this.download.source.url);
 
       let date = new Date(this.download.endTime);
       let [displayDate, fullDate] = DownloadUtils.getReadableDates(date);
