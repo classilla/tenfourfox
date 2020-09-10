@@ -58,6 +58,9 @@
                 label="&openLinkCmdInTab.label;"
                 accesskey="&openLinkCmdInTab.accesskey;"
                 oncommand="gContextMenu.openLinkInTab();"/>
+      <menuitem id="context-openlinkintabreaderview"
+                label="&openLinkCmdInTab.label;"
+                oncommand="gContextMenu.openLinkInTabReaderView();"/>
       <menuitem id="context-openlink"
                 label="&openLinkCmd.label;"
                 accesskey="&openLinkCmd.accesskey;"

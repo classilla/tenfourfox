@@ -10,6 +10,9 @@ Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
+// TenFourFox issue 620
+const gReaderBundle =
+Services.strings.createBundle("chrome://global/locale/aboutReader.properties");
 
 XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
   "resource:///modules/CustomizableUI.jsm");
@@ -150,6 +153,24 @@ nsContextMenu.prototype = {
     this.showItem("context-openlink", shouldShow && !isWindowPrivate);
     this.showItem("context-openlinkprivate", shouldShow);
     this.showItem("context-openlinkintab", shouldShow);
+
+    // TenFourFox issue 620
+    if (shouldShow && this.linkURI && gReaderBundle &&
+        !this.linkURI.spec.startsWith("about:reader") &&
+         this.linkURI.spec.startsWith("http")) {
+      let k = document.getElementById("context-openlinkintabreaderview");
+      // This is a hack to create a new locale string out of existing ones.
+      // Unfortunately one string is in a DTD and the other is a property,
+      // so we need this silly little song and dance to not keep adding the
+      // string over and over every time the context menu opens.
+      let l = gReaderBundle.GetStringFromName("readerView.enter");
+      if (k.getAttribute("label").indexOf(l) == -1)
+        k.setAttribute("label", k.getAttribute("label") + ", " + l);
+      this.showItem("context-openlinkintabreaderview", true);
+    } else {
+      this.showItem("context-openlinkintabreaderview", false);
+    }
+
     this.showItem("context-openlinkincurrent", this.onPlainTextLink);
     this.showItem("context-sep-open", shouldShow);
   },
@@ -223,6 +244,7 @@ nsContextMenu.prototype = {
   },
 
   initPocketItems: function CM_initPocketItems() {
+/*
     var showSaveCurrentPageToPocket = !(this.onTextInput || this.onLink ||
                                         this.isContentSelected || this.onImage ||
                                         this.onCanvas || this.onVideo || this.onAudio);
@@ -237,6 +259,10 @@ nsContextMenu.prototype = {
     let showSaveLinkToPocket = canPocket && !showSaveCurrentPageToPocket &&
                                (this.onSaveableLink || this.onPlainTextLink);
     this.showItem("context-savelinktopocket", showSaveLinkToPocket);
+*/
+    // Nothing in my pocketses! Or yours!
+    this.showItem("context-pocket", false);
+    this.showItem("context-savelinktopocket", false);
   },
 
   initViewItems: function CM_initViewItems() {
@@ -975,6 +1001,40 @@ nsContextMenu.prototype = {
     urlSecurityCheck(this.linkURL, this.principal);
     openLinkIn(this.linkURL, "window",
                this._openLinkInParameters({ private: true }));
+  },
+
+  // Open linked-to URL in a new tab starting Reader View immediately.
+  // TenFourFox issue 620
+  openLinkInTabReaderView: function() {
+    urlSecurityCheck(this.linkURL, this.principal);
+    let referrerURI = gContextMenuContentData.documentURIObject;
+
+    // if the mixedContentChannel is present and the referring URI passes
+    // a same origin check with the target URI, we can preserve the users
+    // decision of disabling MCB on a page for it's child tabs.
+    let persistAllowMixedContentInChildTab = false;
+
+    if (this.browser.docShell && this.browser.docShell.mixedContentChannel) {
+      const sm = Services.scriptSecurityManager;
+      try {
+        let targetURI = this.linkURI;
+        sm.checkSameOriginURI(referrerURI, targetURI, false);
+        persistAllowMixedContentInChildTab = true;
+      }
+      catch (e) { }
+    }
+
+    let doInBackground = false;
+    try {
+      doInBackground = Services.prefs.getBoolPref("tenfourfox.reader.sticky.tabs.loadInBackground");
+    } catch (e) { }
+
+    let params = this._openLinkInParameters({
+      allowMixedContent: persistAllowMixedContentInChildTab,
+      inBackground: doInBackground,
+    });
+    openLinkIn("about:reader?url="+encodeURIComponent(this.linkURL),
+               "tab", params);
   },
 
   // Open linked-to URL in a new tab.
@@ -1859,10 +1919,12 @@ nsContextMenu.prototype = {
     return JSON.stringify(rv);
   },
 
+/*
   _checkTelemetryForMenu: function(aXulMenu) {
     this._telemetryClickID = null;
     this._telemetryPageContext = this._getTelemetryPageContextInfo();
     this._telemetryHadCustomItems = this.hasPageMenu;
     this._getTelemetryClickInfo(aXulMenu);
   },
+*/
 };
