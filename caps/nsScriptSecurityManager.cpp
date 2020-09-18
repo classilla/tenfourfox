@@ -702,21 +702,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             if (0 ||
 
 #ifdef __ppc__
-/* // Wallpaper issue 621
-BLOCU("https://static-exp1.licdn.com/sc/h/br/a9r8138k1irfu2dd3nc8lsbix") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/7lllmhir13652hrt9onk67idy") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/ykrp2se5j5958492sngjpz25") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/44lpm3xommt4uaobb0rsjjk0w") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/vlr4p5f5ashr0bmvreet5pvx") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/alufmlg2at1ul00ieyk97ixid") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/b24igfxqe5873icdp0jjivlxm") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/eebyccxtdylbl8mwqaz4jbzuo") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/157ealvvl2h15m378fl1ql2ko") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/1xfk2iz9afmrcwfdn8fqqu87r") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/238gxgltll8zj8cws2vtlows2") ||
-BLOCU("https://static-exp1.licdn.com/sc/h/br/y57044rjondvhcx610qaq6ok") ||
-*/
-BLOCU("https://static-exp1.licdn.com/sc/h/br/2smvxovs24agey0kv9qjzih51") ||
+                    BLOC("static-exp1.licdn.com") || // wallpaper issue 621
 #endif // __ppc__
 
                     0) {
