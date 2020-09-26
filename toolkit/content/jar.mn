@@ -61,6 +61,7 @@ toolkit.jar:
    content/global/select-child.js
    content/global/TopLevelVideoDocument.js
    content/global/treeUtils.js
+   content/global/jsToggle.js
    content/global/viewZoomOverlay.js
    content/global/sluggo.xhtml
    content/global/sluggo.jpg

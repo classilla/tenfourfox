@@ -255,6 +255,8 @@ These should match what Safari and other Apple applications use on OS X Lion. --
 <!ENTITY loopMenuItem.label           "Start a conversation…">
 <!ENTITY loopMenuItem.accesskey       "t">
 
+<!ENTITY JavascriptToggleCmd.label    "Enable JavaScript">
+
 <!ENTITY webDeveloperMenu.label       "Web Developer">
 <!ENTITY webDeveloperMenu.accesskey   "W">
 
