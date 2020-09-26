@@ -482,7 +482,8 @@
             <menu id="tools-menu"
                   label="&toolsMenu.label;"
                   accesskey="&toolsMenu.accesskey;"
-                  onpopupshowing="mirrorShow(this)">
+                  onpopupshowing="mirrorShow(this);
+                                    jsToggle.updateMenu();">
               <menupopup id="menu_ToolsPopup"
 # We have to use setTimeout() here to avoid a flickering menu bar when opening
 # the Tools menu, see bug 970769. This can be removed once we got rid of the
@@ -516,6 +517,12 @@
                         accesskey="&syncReAuthItem.accesskey;"
                         observes="sync-reauth-state"
                         oncommand="gSyncUI.openSignInAgainPage('menubar');"/>
+              <menuseparator/>
+              <menuitem id="toggle_javascript"
+                        label="&JavascriptToggleCmd.label;"
+                        type="checkbox"
+                        command="cmd_toggleJavascript"
+                        checked="true"/>
               <menuseparator id="devToolsSeparator"/>
               <menu id="webDeveloperMenu"
                     label="&webDeveloperMenu.label;"
