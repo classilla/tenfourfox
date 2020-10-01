@@ -1245,6 +1245,11 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("w.usabilla.com") ||
 
+                BLOK("beacon.sojern.com") ||
+
+                BLOK("s3.buysellads.com") ||
+                BLOK("srv.buysellads.com") ||
+
 #include "shavar-blocklist.h"
 
                     0) {
