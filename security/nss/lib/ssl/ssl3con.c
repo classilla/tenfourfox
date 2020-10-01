@@ -6663,7 +6663,7 @@ ssl_CheckServerSessionIdCorrectness(sslSocket *ss, SECItem *sidBytes)
      * fake. Check for the real value. */
     if (sentRealSid) {
         sidMatch = (sidBytes->len == sid->u.ssl3.sessionIDLength) &&
-                   PORT_Memcmp(sid->u.ssl3.sessionID, sidBytes->data, sidBytes->len) == 0;
+                   (!sidBytes->len || PORT_Memcmp(sid->u.ssl3.sessionID, sidBytes->data, sidBytes->len) == 0);
     } else {
         /* Otherwise, the session ID was a fake if TLS 1.3 compat mode is
          * enabled.  If so, check for the fake value. */
