@@ -3218,12 +3218,15 @@ PropertyProvider::GetSpacing(uint32_t aStart, uint32_t aLength,
 }
 
 static bool
-CanAddSpacingAfter(gfxTextRun* aTextRun, uint32_t aOffset)
+CanAddSpacingAfter(gfxTextRun* aTextRun, uint32_t aOffset,
+                   bool aNewlineIsSignificant)
 {
   if (aOffset + 1 >= aTextRun->GetLength())
     return true;
   return aTextRun->IsClusterStart(aOffset + 1) &&
-    aTextRun->IsLigatureGroupStart(aOffset + 1);
+    aTextRun->IsLigatureGroupStart(aOffset + 1) &&
+   !aTextRun->CharIsFormattingControl(aOffset) &&
+   !(aNewlineIsSignificant && aTextRun->CharIsNewline(aOffset));
 }
 
 void
@@ -3247,11 +3250,13 @@ PropertyProvider::GetSpacingInternal(uint32_t aStart, uint32_t aLength,
     // Iterate over non-skipped characters
     nsSkipCharsRunIterator
       run(start, nsSkipCharsRunIterator::LENGTH_UNSKIPPED_ONLY, aLength);
+    bool newlineIsSignificant = mTextStyle->NewlineIsSignificant(mFrame);
     while (run.NextRun()) {
       uint32_t runOffsetInSubstring = run.GetSkippedOffset() - aStart;
       gfxSkipCharsIterator iter = run.GetPos();
       for (int32_t i = 0; i < run.GetRunLength(); ++i) {
-        if (CanAddSpacingAfter(mTextRun, run.GetSkippedOffset() + i)) {
+        if (CanAddSpacingAfter(mTextRun, run.GetSkippedOffset() + i,
+                               newlineIsSignificant)) {
           // End of a cluster, not in a ligature: put letter-spacing after it
           aSpacing[runOffsetInSubstring + i].mAfter += mLetterSpacing;
         }

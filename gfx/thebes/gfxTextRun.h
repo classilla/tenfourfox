@@ -133,6 +133,10 @@ public:
         NS_ASSERTION(aPos < GetLength(), "aPos out of range");
         return mCharacterGlyphs[aPos].CharMayHaveEmphasisMark();
     }
+    bool CharIsFormattingControl(uint32_t aPos) const {
+        MOZ_ASSERT(aPos < GetLength());
+        return mCharacterGlyphs[aPos].CharIsFormattingControl();
+    }
 
     // All uint32_t aStart, uint32_t aLength ranges below are restricted to
     // grapheme cluster boundaries! All offsets are in terms of the string
@@ -531,6 +535,9 @@ public:
     }
     void SetNoEmphasisMark(uint32_t aIndex) {
         EnsureComplexGlyph(aIndex).SetNoEmphasisMark();
+    }
+    void SetIsFormattingControl(uint32_t aIndex) {
+        EnsureComplexGlyph(aIndex).SetIsFormattingControl();
     }
 
     /**
