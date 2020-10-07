@@ -733,6 +733,7 @@
                        onclick="gPopupBlockerObserver.onReportButtonClick(event);"/>
                 <image id="reader-mode-button"
                        class="urlbar-icon"
+                       tooltip="dynamic-shortcut-tooltip"
                        hidden="true"
                        onclick="ReaderParent.buttonClick(event);"/>
               </hbox>
