@@ -517,12 +517,14 @@
                         accesskey="&syncReAuthItem.accesskey;"
                         observes="sync-reauth-state"
                         oncommand="gSyncUI.openSignInAgainPage('menubar');"/>
+#if WE_WILL_BRING_IT_BACK_IN_FPR29
               <menuseparator/>
               <menuitem id="toggle_javascript"
                         label="&JavascriptToggleCmd.label;"
                         type="checkbox"
                         command="cmd_toggleJavascript"
                         checked="true"/>
+#endif
               <menuseparator id="devToolsSeparator"/>
               <menu id="webDeveloperMenu"
                     label="&webDeveloperMenu.label;"
