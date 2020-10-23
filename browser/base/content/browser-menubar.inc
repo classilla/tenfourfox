@@ -324,7 +324,7 @@
                 <menuitem id="menu_readerModeItem"
                           observes="View:ReaderView"
                           key="key_toggleReaderMode"
-                          hidden="true"/>
+                          label="&toggleReaderMode.label;"/>
                 <menuitem id="menu_showAllTabs"
                           hidden="true"
                           accesskey="&showAllTabsCmd.accesskey;"
