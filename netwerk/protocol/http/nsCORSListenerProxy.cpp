@@ -1272,7 +1272,11 @@ nsCORSPreflightListener::CheckPreflightRequestApproved(nsIRequest* aRequest)
                         NS_ConvertUTF8toUTF16(method).get());
       return NS_ERROR_DOM_BAD_URI;
     }
-    foundMethod |= mPreflightMethod.Equals(method);
+    if (method.EqualsLiteral("*") && !mWithCredentials) {
+      foundMethod = true;
+    } else {
+      foundMethod |= mPreflightMethod.Equals(method);
+    }
   }
   if (!foundMethod) {
     LogBlockedRequest(aRequest, "CORSMethodNotFound", nullptr);
