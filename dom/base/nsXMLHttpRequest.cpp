@@ -1318,7 +1318,10 @@ nsXMLHttpRequest::IsSafeHeader(const nsACString& header, nsIHttpChannel* httpCha
       return false;
     }
 
-    if (token.EqualsLiteral("*")) {
+    if (token.EqualsLiteral("*") &&
+        (mState & XML_HTTP_REQUEST_AC_WITH_CREDENTIALS) !=
+XML_HTTP_REQUEST_AC_WITH_CREDENTIALS /* See this->SetWithCredentials */)
+    {
       isSafe = true;
     } else if (header.Equals(token, nsCaseInsensitiveCStringComparator())) {
       isSafe = true;
