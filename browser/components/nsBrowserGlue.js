@@ -834,7 +834,7 @@ BrowserGlue.prototype = {
     webrtcUI.init();
     AboutHome.init();
 
-    DirectoryLinksProvider.init();
+    //DirectoryLinksProvider.init(); // disabled
     NewTabUtils.init();
     NewTabUtils.links.addProvider(DirectoryLinksProvider);
     AboutNewTab.init();
