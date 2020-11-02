@@ -461,6 +461,12 @@ nsMenuItemIconX::OnFrameComplete(imgIRequest* aRequest)
     return NS_ERROR_FAILURE;
   }
 
+  // Fixes issues with scaling the menu icon on 10.4 and 10.5.
+  // According to Apple's doc, this is deprecated and unneeded in 10.6+.
+  // See OlgaTPark/tenfourfox #14.
+  if (!nsCocoaFeatures::OnSnowLeopardOrLater())
+    [newImage setScalesWhenResized:YES];
+
   [newImage setSize:NSMakeSize(kIconWidth, kIconHeight)];
   [mNativeMenuItem setImage:newImage];
 
