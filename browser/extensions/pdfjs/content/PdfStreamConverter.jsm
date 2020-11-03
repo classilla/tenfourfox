@@ -362,7 +362,7 @@ ChromeActions.prototype = {
   supportsDocumentFonts: function() {
     var prefBrowser = getIntPref('browser.display.use_document_fonts', 1);
     var prefGfx = getBoolPref('gfx.downloadable_fonts.enabled', true);
-    return (!!prefBrowser && prefGfx);
+    return (!!prefBrowser && prefGfx && getBoolPref('pdfjs.display.use_document_fonts', true));
   },
   supportsDocumentColors: function() {
     if (getIntPref('browser.display.document_color_use', 0) === 2 ||
