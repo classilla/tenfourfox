@@ -322,6 +322,7 @@
                           observes="View:FullScreen"/>
 #endif
                 <menuitem id="menu_readerModeItem"
+                          hidden="true"
                           observes="View:ReaderView"
                           key="key_toggleReaderMode"
                           label="&toggleReaderMode.label;"/>
