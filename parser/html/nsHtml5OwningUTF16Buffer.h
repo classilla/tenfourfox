@@ -52,7 +52,7 @@ public:
     nsrefcnt AddRef();
     nsrefcnt Release();
   private:
-    nsAutoRefCnt mRefCnt;
+    mozilla::ThreadSafeAutoRefCnt mRefCnt;
 };
 
 #endif // nsHtml5OwningUTF16Buffer_h
