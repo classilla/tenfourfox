@@ -36,6 +36,8 @@
 #include "nsITransport.h"
 #include "nsIOService.h"
 #include "nsISchedulingContext.h"
+#include "NSSErrorsService.h"
+#include "sslerr.h"
 #include <algorithm>
 
 #include "mozilla-config.h"
@@ -999,8 +1001,7 @@ nsHttpTransaction::Close(nsresult reason)
     // sent any data.  for this reason, mSendData == FALSE does not imply
     // mReceivedData == FALSE.  (see bug 203057 for more info.)
     //
-    if (reason == NS_ERROR_NET_RESET || reason == NS_OK) {
-
+    if (reason == NS_ERROR_NET_RESET || reason == NS_OK || reason == psm::GetXPCOMFromNSSError(SSL_ERROR_DOWNGRADE_WITH_EARLY_DATA)) {
         if (mForceRestart && NS_SUCCEEDED(Restart())) {
             if (mResponseHead) {
                 mResponseHead->Reset();
@@ -1027,8 +1028,10 @@ nsHttpTransaction::Close(nsresult reason)
         bool reallySentData =
             mSentData && (!mConnection || mConnection->BytesWritten());
 
-        if (!mReceivedData &&
-            (!reallySentData || connReused || mPipelinePosition)) {
+        if (reason == psm::GetXPCOMFromNSSError(SSL_ERROR_DOWNGRADE_WITH_EARLY_DATA) ||
+            (!mReceivedData &&
+            ((mRequestHead && mRequestHead->IsSafeMethod()) ||
+             !reallySentData || connReused))) {
             // if restarting fails, then we must proceed to close the pipe,
             // which will notify the channel that the transaction failed.
 
