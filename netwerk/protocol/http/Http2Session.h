@@ -510,7 +510,10 @@ private:
 
   bool mAttemptingEarlyData;
   // The ID(s) of the stream(s) that we are getting 0RTT data from.
-  nsTArray<uint32_t> m0RTTStreams;
+  nsTArray<WeakPtr<Http2Stream>> m0RTTStreams;
+  // The ID(s) of the stream(s) that are not able to send 0RTT data. We need to
+  // remember them put them into mReadyForWrite queue when 0RTT finishes.
+  nsTArray<WeakPtr<Http2Stream>> mCannotDo0RTTStreams;
 
 private:
 /// connect tunnels

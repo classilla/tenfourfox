@@ -23,6 +23,7 @@
 #include "mozilla/net/DNS.h"
 #include "nsISocketTransport.h"
 #include "nsISSLSocketControl.h"
+#include "mozilla/Services.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/net/DashboardTypes.h"
 #include "NullHttpTransaction.h"
@@ -101,11 +102,13 @@ nsHttpConnectionMgr::~nsHttpConnectionMgr()
 nsresult
 nsHttpConnectionMgr::EnsureSocketThreadTarget()
 {
-    nsresult rv;
     nsCOMPtr<nsIEventTarget> sts;
-    nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
-    if (NS_SUCCEEDED(rv))
-        sts = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
+    nsCOMPtr<nsIIOService> ioService = services::GetIOService();
+    if (ioService) {
+        nsCOMPtr<nsISocketTransportService> realSTS =
+            services::GetSocketTransportService();
+        sts = do_QueryInterface(realSTS);
+    }
 
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
@@ -115,7 +118,7 @@ nsHttpConnectionMgr::EnsureSocketThreadTarget()
 
     mSocketThreadTarget = sts;
 
-    return rv;
+    return sts ? NS_OK : NS_ERROR_NOT_AVAILABLE;
 }
 
 nsresult
@@ -853,7 +856,7 @@ nsHttpConnectionMgr::GetSpdyPreferredEnt(nsConnectionEntry *aOriginalEntry)
              "with %s connections. rv=%x isJoined=%d",
              preferred->mConnInfo->Origin(), aOriginalEntry->mConnInfo->Origin(),
              rv, isJoined));
-        Telemetry::Accumulate(Telemetry::SPDY_NPN_JOIN, false);
+        //Telemetry::Accumulate(Telemetry::SPDY_NPN_JOIN, false);
         return nullptr;
     }
 
@@ -863,7 +866,7 @@ nsHttpConnectionMgr::GetSpdyPreferredEnt(nsConnectionEntry *aOriginalEntry)
          "so %s will be coalesced with %s",
          preferred->mConnInfo->Origin(), aOriginalEntry->mConnInfo->Origin(),
          aOriginalEntry->mConnInfo->Origin(), preferred->mConnInfo->Origin()));
-    Telemetry::Accumulate(Telemetry::SPDY_NPN_JOIN, true);
+    //Telemetry::Accumulate(Telemetry::SPDY_NPN_JOIN, true);
     return preferred;
 }
 
@@ -1401,6 +1404,7 @@ nsHttpConnectionMgr::MakeNewConnection(nsConnectionEntry *ent,
                 transport->SetConnectionFlags(flags);
             }
 
+#if(0)
             Telemetry::AutoCounter<Telemetry::HTTPCONNMGR_USED_SPECULATIVE_CONN> usedSpeculativeConn;
             ++usedSpeculativeConn;
 
@@ -1408,6 +1412,7 @@ nsHttpConnectionMgr::MakeNewConnection(nsConnectionEntry *ent,
               Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PRECONNECTS_USED> totalPreconnectsUsed;
               ++totalPreconnectsUsed;
             }
+#endif
 
             // return OK because we have essentially opened a new connection
             // by converting a speculative half-open to general use
@@ -2053,6 +2058,7 @@ nsHttpConnectionMgr::BuildPipeline(nsConnectionEntry *ent,
 void
 nsHttpConnectionMgr::ReportProxyTelemetry(nsConnectionEntry *ent)
 {
+#if(0)
     enum { PROXY_NONE = 1, PROXY_HTTP = 2, PROXY_SOCKS = 3, PROXY_HTTPS = 4 };
 
     if (!ent->mConnInfo->UsingProxy())
@@ -2063,6 +2069,7 @@ nsHttpConnectionMgr::ReportProxyTelemetry(nsConnectionEntry *ent)
         Telemetry::Accumulate(Telemetry::HTTP_PROXY_TYPE, PROXY_HTTP);
     else
         Telemetry::Accumulate(Telemetry::HTTP_PROXY_TYPE, PROXY_SOCKS);
+#endif
 }
 
 nsresult
@@ -2110,7 +2117,7 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
         ent = preferredEntry;
     }
 
-    ReportProxyTelemetry(ent);
+    //ReportProxyTelemetry(ent);
 
     // Check if the transaction already has a sticky reference to a connection.
     // If so, then we can just use it directly by transferring its reference
@@ -2210,13 +2217,13 @@ nsHttpConnectionMgr::CreateTransport(nsConnectionEntry *ent,
     if (speculative) {
         sock->SetSpeculative(true);
         sock->SetAllow1918(allow1918);
-        Telemetry::AutoCounter<Telemetry::HTTPCONNMGR_TOTAL_SPECULATIVE_CONN> totalSpeculativeConn;
-        ++totalSpeculativeConn;
+        //Telemetry::AutoCounter<Telemetry::HTTPCONNMGR_TOTAL_SPECULATIVE_CONN> totalSpeculativeConn;
+        //++totalSpeculativeConn;
 
         if (isFromPredictor) {
           sock->SetIsFromPredictor(true);
-          Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PRECONNECTS_CREATED> totalPreconnectsCreated;
-          ++totalPreconnectsCreated;
+          //Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PRECONNECTS_CREATED> totalPreconnectsCreated;
+          //++totalPreconnectsCreated;
         }
     }
 
@@ -3090,8 +3097,10 @@ nsHalfOpenSocket::SetupStreams(nsISocketTransport **transport,
     nsCOMPtr<nsISocketTransport> socketTransport;
     nsCOMPtr<nsISocketTransportService> sts;
 
-    sts = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+    sts = services::GetSocketTransportService();
+    if (!sts) {
+        return NS_ERROR_NOT_AVAILABLE;
+    }
 
     LOG(("nsHalfOpenSocket::SetupStreams [this=%p ent=%s] "
          "setup routed transport to origin %s:%d via %s:%d\n",
@@ -3167,8 +3176,10 @@ nsHalfOpenSocket::SetupStreams(nsISocketTransport **transport,
     rv = socketTransport->SetSecurityCallbacks(this);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    /*
     Telemetry::Accumulate(Telemetry::HTTP_CONNECTION_ENTRY_CACHE_HIT_1,
                           mEnt->mUsedForConnection);
+                          */
     mEnt->mUsedForConnection = true;
 
     nsCOMPtr<nsIOutputStream> sout;
@@ -3967,6 +3978,7 @@ nsConnectionEntry::RemoveHalfOpen(nsHalfOpenSocket *halfOpen)
     // will result in it not being present in the halfopen table. That's expected.
     if (mHalfOpens.RemoveElement(halfOpen)) {
 
+#if(0)
         if (halfOpen->IsSpeculative()) {
             Telemetry::AutoCounter<Telemetry::HTTPCONNMGR_UNUSED_SPECULATIVE_CONN> unusedSpeculativeConn;
             ++unusedSpeculativeConn;
@@ -3976,6 +3988,7 @@ nsConnectionEntry::RemoveHalfOpen(nsHalfOpenSocket *halfOpen)
                 ++totalPreconnectsUnused;
             }
         }
+#endif
 
         MOZ_ASSERT(gHttpHandler->ConnMgr()->mNumHalfOpenConns);
         if (gHttpHandler->ConnMgr()->mNumHalfOpenConns) { // just in case
