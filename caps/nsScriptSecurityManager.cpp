@@ -1252,6 +1252,8 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 
                 BLOK("ads.intentiq.com") ||
 
+                BLOK("tag.durationmedia.net") ||
+
 #include "shavar-blocklist.h"
 
                     0) {
