@@ -1286,22 +1286,26 @@ nsStandardURL::SetSpec(const nsACString &input)
 {
     ENSURE_MUTABLE();
 
+#if DEBUG
+    // Don't pay the flat tax in optimized builds.
     const nsPromiseFlatCString &flat = PromiseFlatCString(input);
-    const char *spec = flat.get();
-    int32_t specLength = flat.Length();
-
-    LOG(("nsStandardURL::SetSpec [spec=%s]\n", spec));
-
-    if (!spec || !*spec)
-        return NS_ERROR_MALFORMED_URI;
+    LOG(("nsStandardURL::SetSpec [spec=%s]\n", flat.get()));
+#endif
 
     if (input.Length() > (uint32_t) net_GetURLMaxLength()) {
         return NS_ERROR_MALFORMED_URI;
     }
 
-    // NUL characters aren't allowed
-    // \r\n\t are stripped out instead of returning error(see below)
-    if (input.Contains('\0')) {
+    // filter out unexpected chars "\r\n\t" if necessary
+    nsAutoCString filteredURI;
+    net_FilterURIString(input, filteredURI);
+
+    if (filteredURI.Length() == 0) {
+        return NS_ERROR_MALFORMED_URI;
+    }
+
+    // NUL characters aren't allowed in the filtered URI.
+    if (filteredURI.Contains('\0')) {
         return NS_ERROR_MALFORMED_URI;
     }
 
@@ -1310,12 +1314,8 @@ nsStandardURL::SetSpec(const nsACString &input)
     prevURL.CopyMembers(this, eHonorRef);
     Clear();
 
-    // filter out unexpected chars "\r\n\t" if necessary
-    nsAutoCString buf1;
-    if (net_FilterURIString(spec, buf1)) {
-        spec = buf1.get();
-        specLength = buf1.Length();
-    }
+    const char *spec = filteredURI.get();
+    int32_t specLength = filteredURI.Length();
 
     // parse the given URL...
     nsresult rv = ParseURL(spec, specLength);
@@ -2069,18 +2069,12 @@ nsresult nsStandardURL::CopyMembers(nsStandardURL * source,
 NS_IMETHODIMP
 nsStandardURL::Resolve(const nsACString &in, nsACString &out)
 {
-    const nsPromiseFlatCString &flat = PromiseFlatCString(in);
-    const char *relpath = flat.get();
-
     // filter out unexpected chars "\r\n\t" if necessary
     nsAutoCString buf;
-    int32_t relpathLen;
-    if (net_FilterURIString(relpath, buf)) {
-        relpath = buf.get();
-        relpathLen = buf.Length();
-    } else
-        relpathLen = flat.Length();
-    
+    net_FilterURIString(in, buf);
+    const char *relpath = buf.get();
+    int32_t relpathLen = buf.Length();
+
     char *result = nullptr;
 
     LOG(("nsStandardURL::Resolve [this=%p spec=%s relpath=%s]\n",
@@ -2935,20 +2929,8 @@ nsStandardURL::Init(uint32_t urlType,
         mOriginCharset = charset;
     }
 
-    if (baseURI) {
-        uint32_t start, end;
-        // pull out the scheme and where it ends
-        nsresult rv = net_ExtractURLScheme(spec, &start, &end, nullptr);
-        if (NS_SUCCEEDED(rv) && spec.Length() > end+2) {
-            nsACString::const_iterator slash;
-            spec.BeginReading(slash);
-            slash.advance(end+1);
-            // then check if // follows
-            // if it follows, aSpec is really absolute ... 
-            // ignore aBaseURI in this case
-            if (*slash == '/' && *(++slash) == '/')
-                baseURI = nullptr;
-        }
+    if (baseURI && net_IsAbsoluteURL(spec)) {
+        baseURI = nullptr;
     }
 
     if (!baseURI)

@@ -14,6 +14,7 @@
 #include "nsNetCID.h"
 #include "mozilla/Preferences.h"
 #include "prnetdb.h"
+#include "mozilla/Tokenizer.h"
 
 #include "mozilla-config.h"
 #include "plvmx.h"
@@ -183,11 +184,11 @@ net_ParseFileURL(const nsACString &inURL,
     const nsPromiseFlatCString &flatURL = PromiseFlatCString(inURL);
     const char *url = flatURL.get();
     
-    uint32_t schemeBeg, schemeEnd;
-    rv = net_ExtractURLScheme(flatURL, &schemeBeg, &schemeEnd, nullptr);
+    nsAutoCString scheme;
+    rv = net_ExtractURLScheme(flatURL, scheme);
     if (NS_FAILED(rv)) return rv;
 
-    if (strncmp(url + schemeBeg, "file", schemeEnd - schemeBeg) != 0) {
+    if (!scheme.EqualsLiteral("file")) {
         NS_ERROR("must be a file:// url");
         return NS_ERROR_UNEXPECTED;
     }
@@ -486,57 +487,62 @@ net_ResolveRelativePath(const nsACString &relativePath,
 // scheme fu
 //----------------------------------------------------------------------------
 
+#if !defined(MOZILLA_XPCOMRT_API)
+static bool isAsciiAlpha(char c) {
+    return nsCRT::IsAsciiAlpha(c);
+}
+
+static bool
+net_IsValidSchemeChar(const char aChar)
+{
+    if (nsCRT::IsAsciiAlpha(aChar) || nsCRT::IsAsciiDigit(aChar) ||
+        aChar == '+' || aChar == '.' || aChar == '-') {
+        return true;
+    }
+    return false;
+}
+#endif
+
 /* Extract URI-Scheme if possible */
 nsresult
 net_ExtractURLScheme(const nsACString &inURI,
-                     uint32_t *startPos, 
-                     uint32_t *endPos,
-                     nsACString *scheme)
+                     nsACString& scheme)
 {
-    // search for something up to a colon, and call it the scheme
-    const nsPromiseFlatCString &flatURI = PromiseFlatCString(inURI);
-    const char* uri_start = flatURI.get();
-    const char* uri = uri_start;
+#if defined(MOZILLA_XPCOMRT_API)
+    NS_WARNING("net_ExtractURLScheme not implemented");
+    return NS_ERROR_NOT_IMPLEMENTED;
+#else
+    nsACString::const_iterator start, end;
+    inURI.BeginReading(start);
+    inURI.EndReading(end);
 
-    if (!uri)
-        return NS_ERROR_MALFORMED_URI;
-
-    // skip leading white space
-    while (nsCRT::IsAsciiSpace(*uri))
-        uri++;
-
-    uint32_t start = uri - uri_start;
-    if (startPos) {
-        *startPos = start;
-    }
-
-    uint32_t length = 0;
-    char c;
-    while ((c = *uri++) != '\0') {
-        // First char must be Alpha
-        if (length == 0 && nsCRT::IsAsciiAlpha(c)) {
-            length++;
-        } 
-        // Next chars can be alpha + digit + some special chars
-        else if (length > 0 && (nsCRT::IsAsciiAlpha(c) || 
-                 nsCRT::IsAsciiDigit(c) || c == '+' || 
-                 c == '.' || c == '-')) {
-            length++;
-        }
-        // stop if colon reached but not as first char
-        else if (c == ':' && length > 0) {
-            if (endPos) {
-                *endPos = start + length;
-            }
-
-            if (scheme)
-                scheme->Assign(Substring(inURI, start, length));
-            return NS_OK;
-        }
-        else 
+    // Strip C0 and space from begining
+    while (start != end) {
+        if ((uint8_t) *start > 0x20) {
             break;
+        }
+        start++;
     }
-    return NS_ERROR_MALFORMED_URI;
+
+    Tokenizer p(Substring(start, end), "\r\n\t");
+    p.Record();
+    if (!p.CheckChar(isAsciiAlpha)) {
+        // First char must be alpha
+        return NS_ERROR_MALFORMED_URI;
+    }
+
+    while (p.CheckChar(net_IsValidSchemeChar) || p.CheckWhite()) {
+        // Skip valid scheme characters or \r\n\t
+    }
+
+    if (!p.CheckChar(':')) {
+        return NS_ERROR_MALFORMED_URI;
+    }
+
+    p.Claim(scheme);
+    scheme.StripChars("\r\n\t");
+    return NS_OK;
+#endif
 }
 
 bool
@@ -560,86 +566,79 @@ net_IsValidScheme(const char *scheme, uint32_t schemeLen)
 }
 
 bool
-net_FilterURIString(const char *str, nsACString& result)
+net_IsAbsoluteURL(const nsACString& uri)
 {
-    NS_PRECONDITION(str, "Must have a non-null string!");
-    bool writing = false;
+#if !defined(MOZILLA_XPCOMRT_API)
+    nsACString::const_iterator start, end;
+    uri.BeginReading(start);
+    uri.EndReading(end);
+
+    // Strip C0 and space from begining
+    while (start != end) {
+        if ((uint8_t) *start > 0x20) {
+            break;
+        }
+        start++;
+    }
+
+    Tokenizer p(Substring(start, end), "\r\n\t");
+
+    // First char must be alpha
+    if (!p.CheckChar(isAsciiAlpha)) {
+        return false;
+    }
+
+    while (p.CheckChar(net_IsValidSchemeChar) || p.CheckWhite()) {
+        // Skip valid scheme characters or \r\n\t
+    }
+    if (!p.CheckChar(':')) {
+        return false;
+    }
+    p.SkipWhites();
+
+    if (!p.CheckChar('/')) {
+        return false;
+    }
+    p.SkipWhites();
+
+    if (p.CheckChar('/')) {
+        // aSpec is really absolute. Ignore aBaseURI in this case
+        return true;
+    }
+#endif
+    return false;
+}
+
+void
+net_FilterURIString(const nsACString& input, nsACString& result)
+{
     result.Truncate();
-    const char *p = str;
 
-    // Remove leading spaces, tabs, CR, LF if any.
-    while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') {
-        writing = true;
-        str = p + 1;
-        p++;
+    nsACString::const_iterator start, end;
+    input.BeginReading(start);
+    input.EndReading(end);
+
+    // Strip C0 and space from begining
+    while (start != end) {
+        if ((uint8_t) *start > 0x20) {
+            break;
+        }
+        start++;
     }
 
-    // Don't strip from the scheme, because other code assumes everything
-    // up to the ':' is the scheme, and it's bad not to have it match.
-    // If there's no ':', strip.
-    bool found_colon = false;
-    const char *first = nullptr;
-    while (*p) {
-        switch (*p) {
-            case '\t': 
-            case '\r': 
-            case '\n':
-                if (found_colon) {
-                    writing = true;
-                    // append chars up to but not including *p
-                    if (p > str)
-                        result.Append(str, p - str);
-                    str = p + 1;
-                } else {
-                    // remember where the first \t\r\n was in case we find no scheme
-                    if (!first)
-                        first = p;
-                }
-                break;
-
-            case ':':
-                found_colon = true;
-                break;
-
-            case '/':
-            case '@':
-                if (!found_colon) {
-                    // colon also has to precede / or @ to be a scheme
-                    found_colon = true; // not really, but means ok to strip
-                    if (first) {
-                        // go back and replace
-                        p = first;
-                        continue; // process *p again
-                    }
-                }
-                break;
-
-            default:
-                break;
-        }
-        p++;
-
-        // At end, if there was no scheme, and we hit a control char, fix
-        // it up now.
-        if (!*p && first != nullptr && !found_colon) {
-            // TRICKY - to avoid duplicating code, we reset the loop back
-            // to the point we found something to do
-            p = first;
-            // This also stops us from looping after we finish
-            found_colon = true; // so we'll replace \t\r\n
+    MOZ_ASSERT(!*end, "input should null terminated");
+    // Strip C0 and space from end
+    while (end != start) {
+        end--;
+        if ((uint8_t) *end > 0x20) {
+            end++;
+            break;
         }
     }
 
-    // Remove trailing spaces if any
-    while (((p-1) >= str) && (*(p-1) == ' ')) {
-        writing = true;
-        p--;
-    }
-
-    if (writing && p > str)
-        result.Append(str, p - str);
-
-    return writing;
+    nsAutoCString temp(Substring(start, end));
+    temp.StripChars("\r\n\t");
+    result.Assign(temp);
 }
 
 #if defined(XP_WIN)

@@ -263,12 +263,12 @@ Tokenizer::Parse(Token& aToken) const
     state = PARSE_WORD;
   } else if (IsNumber(*next)) {
     state = PARSE_INTEGER;
+  } else if (VMX_STRCHR(mWhitespaces, *next)) { // not UTF-8 friendly?
+    state = PARSE_WS;
   } else if (*next == '\r') {
     state = PARSE_CRLF;
   } else if (*next == '\n') {
     state = PARSE_LF;
-  } else if (VMX_STRCHR(mWhitespaces, *next)) { // not UTF-8 friendly?
-    state = PARSE_WS;
   } else {
     state = PARSE_CHAR;
   }
