@@ -702,7 +702,9 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             if (0 ||
 
 #ifdef __ppc__
-                    BLOC("static-exp1.licdn.com") || // wallpaper issue 621
+                    // wallpapers for issue 621
+                    BLOC("static-exp1.licdn.com") ||
+                    BLOCU("https://communities.apple.com/en202012231040/public/scripts/tldr/index.js") ||
 #endif // __ppc__
 
                     0) {
