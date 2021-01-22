@@ -1622,6 +1622,8 @@ pref("browser.pocket.oAuthConsumerKey", "40249-e88c401e1b1f2242d9e441c4");
 pref("browser.pocket.useLocaleList", true);
 pref("browser.pocket.enabledLocales", "cs de en-GB en-US en-ZA es-ES es-MX fr hu it ja ja-JP-mac ko nl pl pt-BR pt-PT ru zh-CN zh-TW");
 
+pref("signon.privateBrowsingCapture.enabled", true);
+
 pref("view_source.tab", true);
 
 pref("dom.webnotifications.serviceworker.enabled", true);

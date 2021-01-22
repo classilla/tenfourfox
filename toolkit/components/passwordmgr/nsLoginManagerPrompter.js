@@ -271,6 +271,12 @@ LoginManagerPrompter.prototype = {
     }
   },
 
+  get _allowRememberLogin() {
+    if (!this._inPrivateBrowsing) {
+      return true;
+    }
+    return LoginHelper.privateBrowsingCaptureEnabled;
+  },
 
 
 
@@ -321,10 +327,8 @@ LoginManagerPrompter.prototype = {
 
     // If hostname is null, we can't save this login.
     if (hostname) {
-      var canRememberLogin;
-      if (this._inPrivateBrowsing)
-        canRememberLogin = false;
-      else
+      var canRememberLogin = false;
+      if (this._allowRememberLogin)
         canRememberLogin = (aSavePassword ==
                             Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY) &&
                            this._pwmgr.getLoginSavingEnabled(hostname);
@@ -559,7 +563,7 @@ LoginManagerPrompter.prototype = {
       }
 
       var canRememberLogin = this._pwmgr.getLoginSavingEnabled(hostname);
-      if (this._inPrivateBrowsing)
+      if (!this._allowRememberLogin)
         canRememberLogin = false;
 
       // if checkboxLabel is null, the checkbox won't be shown at all.
@@ -773,7 +777,7 @@ LoginManagerPrompter.prototype = {
    *        This is "password-save" or "password-change" depending on the
    *        original notification type. This is used for telemetry and tests.
    */
-  _showLoginCaptureDoorhanger(login, type) {
+  _showLoginCaptureDoorhanger(login, type, options = {}) {
     let { browser } = this._getNotifyWindow();
 
     let saveMsgNames = {
@@ -981,7 +985,7 @@ LoginManagerPrompter.prototype = {
       "password-notification-icon",
       mainAction,
       secondaryActions,
-      {
+      Object.assign({
         timeout: Date.now() + 10000,
         displayURI: Services.io.newURI(login.hostname, null, null),
         persistWhileVisible: true,
@@ -1025,7 +1029,7 @@ LoginManagerPrompter.prototype = {
           }
           return false;
         },
-      }
+      }, options)
     );
   },
 
@@ -1065,7 +1069,9 @@ LoginManagerPrompter.prototype = {
 
     // Notification is a PopupNotification
     if (aNotifyObj == this._getPopupNote()) {
-      this._showLoginCaptureDoorhanger(aLogin, "password-save");
+      this._showLoginCaptureDoorhanger(aLogin, "password-save", {
+        dismissed: this._inPrivateBrowsing,
+      });
     } else {
       var notNowButtonText =
             this._getLocalizedString("notifyBarNotNowButtonText");
