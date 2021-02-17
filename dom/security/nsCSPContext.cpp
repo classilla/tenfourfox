@@ -740,6 +740,11 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
                           nsAString& aScriptSample,
                           uint32_t aLineNum)
 {
+  /* Due to unclear vulnerabilities in bug 1542194 and others, just don't.
+     We probably don't do it right anymore anyway. -- Cameron */
+  if (!Preferences::GetBool("security.csp.sendreports", false))
+    return NS_OK;
+
   NS_ENSURE_ARG_MAX(aViolatedPolicyIndex, mPolicies.Length() - 1);
 
 #ifdef MOZ_B2G

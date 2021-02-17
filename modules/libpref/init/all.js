@@ -1978,6 +1978,8 @@ pref("security.notification_enable_delay", 500);
 pref("security.csp.enable", true);
 pref("security.csp.debug", false);
 pref("security.csp.experimentalEnabled", false);
+// see bug 1542194, etc.
+pref("security.csp.sendreports", false);
 
 // Default Content Security Policy to apply to privileged apps.
 pref("security.apps.privileged.CSP.default", "default-src * data: blob:; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'");
