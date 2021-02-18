@@ -699,17 +699,23 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             ToLowerCase(hostname);
 #define BLOC(q) hostname.EqualsLiteral(q)
 #define BLOCU(q) url.EqualsLiteral(q)
+#define BLOCE(q) (StringEndsWith(url, NS_LITERAL_CSTRING(q)))
+
             if (0 ||
 
 #ifdef __ppc__
                     // wallpapers for issue 621
                     BLOC("static-exp1.licdn.com") ||
-                    BLOCU("https://communities.apple.com/en202012231040/public/scripts/tldr/index.js") ||
+                    (
+                      BLOC("communities.apple.com") &&
+                      BLOCE("/public/scripts/tldr/index.js")
+                    ) ||
 #endif // __ppc__
 
                     0) {
 #undef BLOC
 #undef BLOCU
+#undef BLOCE
 
 #ifndef DEBUG
                 if (mIsTenFourFoxTroublesomeJsLoggingEnabled)
