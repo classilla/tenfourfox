@@ -885,6 +885,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("static.yieldmo.com") ||
                 
                 BLOK("ads.rubiconproject.com") ||
+                BLOK("eus.rubiconproject.com") ||
                 BLOK("fastlane.rubiconproject.com") ||
                 BLOK("optimized-by.rubiconproject.com") ||
                 
@@ -1261,6 +1262,10 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("ads.intentiq.com") ||
 
                 BLOK("tag.durationmedia.net") ||
+
+                BLOK("www.datadoghq-browser-agent.com") ||
+
+                BLOK("ext.chtbl.com") ||
 
 #include "shavar-blocklist.h"
 
