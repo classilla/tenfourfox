@@ -24,6 +24,9 @@
 
 </preferences>
 
+<stringbundle id="tenFourFoxBundle"
+              src="chrome://browser/locale/TenFourFox.properties"/>
+
 <hbox id="header-tenfourfox"
       class="header"
       hidden="true"
@@ -74,6 +77,8 @@
               <menuitem label="iOS Safari (iPad)" value="ipad"/>
           </menupopup>
       </menulist>
+      <spacer flex="1"/>
+      <button id="siteSpecificUAs" label="&TFFsiteSpecificUAs.label;"/>
   </hbox>
 </groupbox>
 

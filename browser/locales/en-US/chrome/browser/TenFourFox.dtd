@@ -11,3 +11,20 @@
 
 <!ENTITY TFFmseMode.title	"MediaSource">
 <!ENTITY TFFmseMode.prompt	"Enable MSE/media quality options (slower, if available)">
+
+<!ENTITY TFFsiteSpecificUAs.label	"Site Specific…">
+<!ENTITY TFFsiteSpecificUAs.title	"Site Specific User Agents">
+<!ENTITY TFFsiteSpecificUAs.add		"Add">
+<!ENTITY TFFsiteSpecificUAs.domain	"Domain">
+<!ENTITY TFFsiteSpecificUAs.domain.l	"Domain:">
+<!ENTITY TFFsiteSpecificUAs.ua		"User agent">
+<!ENTITY TFFsiteSpecificUAs.ua.l	"User agent string:">
+<!ENTITY TFFsiteSpecificUAs.preua	"Common user agents:">
+
+<!ENTITY TFFautoReaderView.label	"Auto Reader View…">
+<!ENTITY TFFautoReaderView.title	"Site Specific Auto Reader View">
+<!-- also uses domain and add from above -->
+<!ENTITY TFFautoReaderView.mode		"Mode">
+<!ENTITY TFFautoReaderView.mode.l	"Mode:">
+<!ENTITY TFFautoReaderView.mode.all	"All pages">
+<!ENTITY TFFautoReaderView.mode.sub	"Only subpages">

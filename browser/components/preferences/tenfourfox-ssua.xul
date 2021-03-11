@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?> 
+<?xml-stylesheet href="chrome://browser/skin/preferences/preferences.css" type="text/css"?> 
+
+<!DOCTYPE dialog [
+<!ENTITY % permissionsDTD SYSTEM "chrome://browser/locale/preferences/permissions.dtd" >
+<!ENTITY % tenFourFoxDTD SYSTEM "chrome://browser/locale/TenFourFox.dtd" >
+%permissionsDTD;
+%tenFourFoxDTD;
+]>
+
+<window id="TenFourFoxSSUADialog" class="windowDialog"
+        windowtype="Browser:TenFourFoxSSUA"
+        title="&TFFsiteSpecificUAs.title;"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:html="http://www.w3.org/1999/xhtml"
+        style="width: &window.width;;"
+        onload="gTenFourFoxSSUAManager.onLoad();"
+        onunload="gTenFourFoxSSUAManager.uninit();"
+        persist="screenX screenY width height"
+        onkeypress="gTenFourFoxSSUAManager.onWindowKeyPress(event);">
+
+  <script src="chrome://global/content/treeUtils.js"/>
+  <script src="chrome://browser/content/preferences/tenfourfox-ssua.js"/>
+  <script src="chrome://browser/content/preferences/in-content/tenfourfox.js"/>
+
+  <stringbundle id="bundlePreferences"
+                src="chrome://browser/locale/preferences/preferences.properties"/>
+  <stringbundle id="tenFourFoxPreferences"
+                src="chrome://browser/locale/TenFourFox.properties"/>
+  <keyset>
+    <key key="&windowClose.key;" modifiers="accel" oncommand="window.close();"/>
+  </keyset>
+
+  <vbox class="contentPane largeDialogContainer" flex="1">
+    <description id="ssuaText" control="domain"/>
+    <separator class="thin"/>
+    <grid>
+      <columns>
+        <column/>
+        <column flex="1"/>
+      </columns>
+      <rows>
+        <row align="baseline">
+          <hbox pack="end">
+            <label id="domainLabel" control="domain"
+                   value="&TFFsiteSpecificUAs.domain.l;" accesskey="&address.accesskey;"/>
+          </hbox>
+          <textbox id="domain" flex="1"
+                   oninput="gTenFourFoxSSUAManager.onHostInput();"
+                   onkeypress="gTenFourFoxSSUAManager.onHostKeyPress(event);"/>
+        </row>
+        <row align="baseline">
+          <hbox pack="end">
+            <label>&TFFsiteSpecificUAs.preua;</label>
+          </hbox>
+          <menulist id="uaBox" crop="end" flex="1"
+                    oncommand="gTenFourFoxSSUAManager.fillUA(event.target);">
+            <menupopup>
+              <menuitem label="" value=""/>
+              <menuitem label="Firefox 78ESR (Intel)" value="fx78"/>
+              <menuitem label="Firefox 68ESR (Intel)" value="fx68"/>
+              <menuitem label="Firefox 60ESR (Intel)" value="fx60"/>
+              <menuitem label="Firefox 52ESR (Intel)" value="fx"/>
+              <menuitem label="Classilla 9.3.x" value="classilla"/>
+              <menuitem label="Internet Explorer 8" value="ie8"/>
+              <menuitem label="Internet Explorer 11" value="ie11"/>
+              <menuitem label="Android Chrome" value="android"/>
+              <menuitem label="iOS Safari (iPad)" value="ipad"/>
+            </menupopup>
+          </menulist>
+        </row>
+        <row align="baseline">
+          <hbox pack="end">
+            <label id="uaLabel" control="ua" value="&TFFsiteSpecificUAs.ua.l;"/>
+          </hbox>
+          <textbox id="ua" flex="1"
+                   oninput="gTenFourFoxSSUAManager.onHostInput();"
+                   onkeypress="gTenFourFoxSSUAManager.onHostKeyPress(event);"/>
+        </row>
+      </rows>
+    </grid>
+    <hbox pack="end">
+      <button id="btnAdd" disabled="true" label="&TFFsiteSpecificUAs.add;" default="true" accesskey="&allow.accesskey;"
+              oncommand="gTenFourFoxSSUAManager.addSSUA();"/>
+    </hbox>
+
+    <separator class="thin"/>
+    <tree id="SSUAsTree" flex="1" style="height: 18em;"
+          hidecolumnpicker="true"
+          onkeypress="gTenFourFoxSSUAManager.onSSUAKeyPress(event)"
+          onselect="gTenFourFoxSSUAManager.onSSUAselected();">
+      <treecols>
+        <treecol id="domainCol" label="&TFFsiteSpecificUAs.domain;" flex="1"
+                 data-field-name="domain" persist="width"/>
+        <splitter class="tree-splitter"/>
+        <treecol id="uaCol" label="&TFFsiteSpecificUAs.ua;" flex="3"
+                 data-field-name="ua" persist="width"/>
+      </treecols>
+      <treechildren/>
+    </tree>
+
+    <hbox class="actionButtons" align="left" flex="1">
+      <button id="removeSSUA" disabled="true"
+              accesskey="&removepermission.accesskey;"
+              icon="remove" label="&removepermission.label;"
+              oncommand="gTenFourFoxSSUAManager.onSSUADeleted();"/>
+       <button id="removeAllSSUAs" disabled="true"
+              icon="clear" label="&removeallpermissions.label;"
+              accesskey="&removeallpermissions.accesskey;"
+              oncommand="gTenFourFoxSSUAManager.onAllSSUAsDeleted();"/>
+   </hbox>
+    <spacer flex="1"/>
+    <hbox class="actionButtons" align="right" flex="1">
+      <button oncommand="close();" icon="close"
+              label="&button.cancel.label;" accesskey="&button.cancel.accesskey;" />
+      <button id="btnApplyChanges" oncommand="gTenFourFoxSSUAManager.onApplyChanges();" icon="save"
+              label="&button.ok.label;" accesskey="&button.ok.accesskey;"/>
+    </hbox>
+  </vbox>
+</window>
