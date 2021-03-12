@@ -4098,6 +4098,7 @@ pref("signon.rememberSignons.visibilityToggle", false);
 #endif
 pref("signon.autofillForms",                true);
 pref("signon.autologin.proxy",              false);
+pref("signon.privateBrowsingCapture.enabled", false);
 pref("signon.storeWhenAutocompleteOff",     true);
 pref("signon.ui.experimental",              false);
 pref("signon.debug",                        false);

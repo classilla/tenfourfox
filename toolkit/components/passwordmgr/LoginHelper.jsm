@@ -37,6 +37,8 @@ this.LoginHelper = {
    * Warning: this only updates if a logger was created.
    */
   debug: Services.prefs.getBoolPref("signon.debug"),
+  privateBrowsingCaptureEnabled:
+    Services.prefs.getBoolPref("signon.privateBrowsingCapture.enabled"),
 
   createLogger(aLogPrefix) {
     let getMaxLogLevel = () => {
@@ -54,6 +56,8 @@ this.LoginHelper = {
     // Watch for pref changes and update this.debug and the maxLogLevel for created loggers
     Services.prefs.addObserver("signon.", () => {
       this.debug = Services.prefs.getBoolPref("signon.debug");
+      this.privateBrowsingCaptureEnabled =
+        Services.prefs.getBoolPref("signon.privateBrowsingCapture.enabled");
       logger.maxLogLevel = getMaxLogLevel();
     }, false);
 

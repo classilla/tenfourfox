@@ -21,6 +21,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "LoginDoorhangers",
                                   "resource://gre/modules/LoginDoorhangers.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper",
                                   "resource://gre/modules/LoginHelper.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "log", () => {
   let logger = LoginHelper.createLogger("LoginManagerParent");
@@ -435,6 +437,10 @@ var LoginManagerParent = {
     }
 
     function recordLoginUse(login) {
+      if (!target || PrivateBrowsingUtils.isBrowserPrivate(target)) {
+        // don't record non-interactive use in private browsing
+        return;
+      }
       // Update the lastUsed timestamp and increment the use count.
       let propBag = Cc["@mozilla.org/hash-property-bag;1"].
                     createInstance(Ci.nsIWritablePropertyBag);
