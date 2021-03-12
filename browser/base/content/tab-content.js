@@ -317,6 +317,7 @@ var AboutReaderListener = {
     if (this._currentURISpec == loc.href) return;
     this._currentURISpec = loc.href;
 
+    /* process into an nsIURI. this gives us a reliable host *and* spec w/o ref */
     let uri = Services.io.newURI(loc.href, null, null);
     if (uri && uri.host && uri.host.length && uri.host.length > 0) {
       let w = null;
@@ -325,7 +326,8 @@ var AboutReaderListener = {
       } catch(e) { }
       if (w && w.length && w.length > 0) {
         if (w == "y") {
-          loc.href = "about:reader?url="+encodeURIComponent(uri.spec);
+          this._currentURISpec = uri.specIgnoringRef; // might change
+          loc.replace("about:reader?url="+encodeURIComponent(uri.specIgnoringRef));
           return;
         }
         if (w == "s") {
@@ -333,7 +335,8 @@ var AboutReaderListener = {
               && !uri.path.startsWith("/?")
               && !uri.path.toLowerCase().startsWith("/index.")
              ) {
-            loc.href = "about:reader?url="+encodeURIComponent(uri.spec);
+            this._currentURISpec = uri.specIgnoringRef; // might change
+            loc.replace("about:reader?url="+encodeURIComponent(uri.specIgnoringRef));
             return;
           }
         }
