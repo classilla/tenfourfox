@@ -5385,10 +5385,18 @@ nsDocShell::Stop(uint32_t aStopFlags)
   }
 
   if (nsIWebNavigation::STOP_CONTENT & aStopFlags) {
-    // Stop the document loading
+    // Stop the document loading and animations
     if (mContentViewer) {
       nsCOMPtr<nsIContentViewer> cv = mContentViewer;
       cv->Stop();
+    }
+  } else if (nsIWebNavigation::STOP_NETWORK & aStopFlags) {
+    // Stop the document loading only
+    if (mContentViewer) {
+      nsCOMPtr<nsIDocument> doc = mContentViewer->GetDocument();
+      if (doc) {
+        doc->StopDocumentLoad();
+      }
     }
   }
 
