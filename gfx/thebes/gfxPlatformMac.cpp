@@ -329,8 +329,9 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 
                     HTTP_OR_HTTPS_SUBDIR("www.vetmed.fu-berlin.de", "/assets/default2/NexusSansWeb-P");
 
-                    HTTP_OR_HTTPS_SUBDIR("cdn.theatlantic.com", "/assets/static/a/frontend/dist/theatlantic/fonts/garamond/AGaramondPro");
-                    HTTP_OR_HTTPS_SUBDIR("cdn.theatlantic.com", "/assets/static/a/frontend/dist/theatlantic/fonts/atlantic-serif/Atlantic-Serif");
+                    HTTP_OR_HTTPS_SUBDIR("www.theatlantic.com", "/packages/fonts/garamond/AGaramondPro");
+                    HTTP_OR_HTTPS_SUBDIR("www.theatlantic.com", "/packages/fonts/goldwyn/goldwyn");
+                    HTTP_OR_HTTPS_SUBDIR("www.theatlantic.com", "/packages/fonts/atlantic/Atlantic-Serif");
 
                     HTTP_OR_HTTPS_SUBDIR("www.kulturstiftung-des-bundes.de", "/typo3conf/ext/base_ksb/Resources/Public/");
 
