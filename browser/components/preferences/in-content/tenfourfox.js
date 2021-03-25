@@ -18,6 +18,7 @@ var gTenFourFoxPane = {
     }
 
     setEventListener("siteSpecificUAs", "command", gTenFourFoxPane.showSSUAs);
+    setEventListener("autoReaderView", "command", gTenFourFoxPane.showAutoRV);
   },
 
   showSSUAs: function ()
@@ -31,6 +32,20 @@ var gTenFourFoxPane = {
                    windowTitle    : bundle.getString("TFFsiteSpecificUAs.title"),
                    introText      : bundle.getString("TFFsiteSpecificUAs.prompt") };
     gSubDialog.open("chrome://browser/content/preferences/tenfourfox-ssua.xul",
+                    null, params);
+  },
+
+  showAutoRV: function ()
+  {
+    let bundle = document.getElementById("tenFourFoxBundle");
+    let params = { blockVisible   : true,
+                   sessionVisible : true,
+                   allowVisible   : true,
+                   prefilledHost  : "",
+                   type           : "autorv",
+                   windowTitle    : bundle.getString("TFFautoReaderView.title"),
+                   introText      : bundle.getString("TFFautoReaderView.prompt") };
+    gSubDialog.open("chrome://browser/content/preferences/tenfourfox-autorv.xul",
                     null, params);
   },
 

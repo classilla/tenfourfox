@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?> 
+<?xml-stylesheet href="chrome://browser/skin/preferences/preferences.css" type="text/css"?> 
+
+<!DOCTYPE dialog [
+<!ENTITY % permissionsDTD SYSTEM "chrome://browser/locale/preferences/permissions.dtd" >
+<!ENTITY % tenFourFoxDTD SYSTEM "chrome://browser/locale/TenFourFox.dtd" >
+%permissionsDTD;
+%tenFourFoxDTD;
+]>
+
+<window id="TenFourFoxAutoRVDialog" class="windowDialog"
+        windowtype="Browser:TenFourFoxAutoRV"
+        title="&TFFautoReaderView.title;"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:html="http://www.w3.org/1999/xhtml"
+        style="width: &window.width;;"
+        onload="gTenFourFoxAutoRVManager.onLoad();"
+        onunload="gTenFourFoxAutoRVManager.uninit();"
+        persist="screenX screenY width height"
+        onkeypress="gTenFourFoxAutoRVManager.onWindowKeyPress(event);">
+
+  <script src="chrome://global/content/treeUtils.js"/>
+  <script src="chrome://browser/content/preferences/tenfourfox-autorv.js"/>
+  <script src="chrome://browser/content/preferences/in-content/tenfourfox.js"/>
+
+  <stringbundle id="bundlePreferences"
+                src="chrome://browser/locale/preferences/preferences.properties"/>
+  <stringbundle id="tenFourFoxPreferences"
+                src="chrome://browser/locale/TenFourFox.properties"/>
+  <keyset>
+    <key key="&windowClose.key;" modifiers="accel" oncommand="window.close();"/>
+  </keyset>
+
+  <vbox class="contentPane largeDialogContainer" flex="1">
+    <description id="autorvText" control="domain"/>
+    <separator class="thin"/>
+    <grid>
+      <columns>
+        <column/>
+        <column flex="1"/>
+      </columns>
+      <rows>
+        <row align="baseline">
+          <hbox pack="end">
+            <label id="domainLabel" control="domain"
+                   value="&TFFsiteSpecificUAs.domain.l;" accesskey="&address.accesskey;"/>
+          </hbox>
+          <textbox id="domain" flex="1"
+                   oninput="gTenFourFoxAutoRVManager.onHostInput();"
+                   onkeypress="gTenFourFoxAutoRVManager.onHostKeyPress(event);"/>
+        </row>
+        <row align="baseline">
+          <hbox pack="end">
+            <label>&TFFautoReaderView.mode.l;</label>
+          </hbox>
+          <menulist id="mode" crop="end" flex="1"
+                   oncommand="gTenFourFoxAutoRVManager.onHostInput();">
+            <menupopup>
+              <menuitem label="" value=""/>
+              <menuitem label="&TFFautoReaderView.mode.all;" value="y" id="rvmodey"/>
+              <menuitem label="&TFFautoReaderView.mode.sub;" value="s" id="rvmodes"/>
+            </menupopup>
+          </menulist>
+        </row>
+      </rows>
+    </grid>
+    <hbox pack="end">
+      <button id="btnAdd" disabled="true" label="&TFFsiteSpecificUAs.add;" default="true" accesskey="&allow.accesskey;"
+              oncommand="gTenFourFoxAutoRVManager.addAutoRV();"/>
+    </hbox>
+
+    <separator class="thin"/>
+    <tree id="AutoRVsTree" flex="1" style="height: 18em;"
+          hidecolumnpicker="true"
+          onkeypress="gTenFourFoxAutoRVManager.onAutoRVKeyPress(event)"
+          onselect="gTenFourFoxAutoRVManager.onAutoRVselected();">
+      <treecols>
+        <treecol id="domainCol" label="&TFFsiteSpecificUAs.domain;" flex="2"
+                 data-field-name="domain" persist="width"/>
+        <splitter class="tree-splitter"/>
+        <treecol id="modeCol" label="&TFFautoReaderView.mode;" flex="1"
+                 data-field-name="mode" persist="width"/>
+      </treecols>
+      <treechildren/>
+    </tree>
+
+    <hbox class="actionButtons" align="left" flex="1">
+      <button id="removeAutoRV" disabled="true"
+              accesskey="&removepermission.accesskey;"
+              icon="remove" label="&removepermission.label;"
+              oncommand="gTenFourFoxAutoRVManager.onAutoRVDeleted();"/>
+       <button id="removeAllAutoRVs" disabled="true"
+              icon="clear" label="&removeallpermissions.label;"
+              accesskey="&removeallpermissions.accesskey;"
+              oncommand="gTenFourFoxAutoRVManager.onAllAutoRVsDeleted();"/>
+   </hbox>
+    <spacer flex="1"/>
+    <hbox class="actionButtons" align="right" flex="1">
+      <button oncommand="close();" icon="close"
+              label="&button.cancel.label;" accesskey="&button.cancel.accesskey;" />
+      <button id="btnApplyChanges" oncommand="gTenFourFoxAutoRVManager.onApplyChanges();" icon="save"
+              label="&button.ok.label;" accesskey="&button.ok.accesskey;"/>
+    </hbox>
+  </vbox>
+</window>

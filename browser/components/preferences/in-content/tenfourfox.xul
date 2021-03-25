@@ -90,3 +90,10 @@
                 preference="tenfourfox.adblock.enabled"/>
   </vbox>
 </groupbox>
+
+<groupbox id="autoRVGroup" data-category="paneTenFourFox" hidden="true">
+  <caption><label>&TFFautoReaderView.title;</label></caption>
+  <hbox>
+      <button id="autoReaderView" label="&TFFautoReaderView.label;"/>
+  </hbox>
+</groupbox>

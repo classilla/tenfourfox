@@ -24,6 +24,8 @@ browser.jar:
     content/browser/preferences/sanitize.js
     content/browser/preferences/selectBookmark.xul
     content/browser/preferences/selectBookmark.js
+    content/browser/preferences/tenfourfox-autorv.xul
+*   content/browser/preferences/tenfourfox-autorv.js
     content/browser/preferences/tenfourfox-ssua.xul
 *   content/browser/preferences/tenfourfox-ssua.js
     content/browser/preferences/translation.xul
