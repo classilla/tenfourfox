@@ -113,6 +113,7 @@ int16_t gBadPortList[] = {
     42,    // name
     43,    // nicname
     53,    // domain
+    69,    // tftp
     77,    // priv-rjs
     79,    // finger
     87,    // ttylink
@@ -130,8 +131,10 @@ int16_t gBadPortList[] = {
     119,   // nntp
     123,   // ntp
     135,   // loc-srv / epmap
+    137,   // netbios
     139,   // netbios
     143,   // imap2
+    161,   // snmp
     179,   // bgp
     389,   // ldap
     427,   // afp (alternate)
@@ -154,6 +157,7 @@ int16_t gBadPortList[] = {
     636,   // ldap+ssl
     993,   // imap+ssl
     995,   // pop3+ssl
+    1719,  // h323gatestat
     1720,  // h323hostcall
     1723,  // pptp
     2049,  // nfs
@@ -162,12 +166,14 @@ int16_t gBadPortList[] = {
     5060,  // sip
     5061,  // sips
     6000,  // x11
+    6566,  // sane-port
     6665,  // irc (alternate)
     6666,  // irc (alternate)
     6667,  // irc (default)
     6668,  // irc (alternate)
     6669,  // irc (alternate)
     6697,  // irc+tls
+    10080, // amanda
     0,     // Sentinel value: This MUST be zero
 };
 
@@ -1182,7 +1188,7 @@ nsIOService::AllowPort(int32_t inPort, const char *scheme, bool *_retval)
         return NS_OK;
     }
 
-    if (port == 0) {
+    if (port <= 0 || port >= std::numeric_limits<uint16_t>::max()) {
         *_retval = false;
         return NS_OK;
     }

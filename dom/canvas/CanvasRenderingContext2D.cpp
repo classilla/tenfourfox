@@ -4030,29 +4030,41 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
 
 gfxFontGroup *CanvasRenderingContext2D::GetCurrentFontStyle()
 {
-  // use lazy initilization for the font group since it's rather expensive
-  if (!CurrentState().fontGroup) {
+  // Use lazy (re)initialization for the fontGroup since it's rather expensive.
+
+  nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+  gfxTextPerfMetrics* tp = nullptr;
+  if (presShell && !presShell->IsDestroying()) {
+    tp = presShell->GetPresContext()->GetTextPerfMetrics();
+  }
+
+  // If we have a cached fontGroup, check that it is valid for the current
+  // prescontext; if not, we need to discard and re-create it.
+  RefPtr<gfxFontGroup>& fontGroup = CurrentState().fontGroup;
+  if (fontGroup && fontGroup->GetTextPerfMetrics() != tp)
+    fontGroup = nullptr;
+
+  if (!fontGroup) {
     ErrorResult err;
     NS_NAMED_LITERAL_STRING(kDefaultFontStyle, "10px sans-serif");
     static float kDefaultFontSize = 10.0;
-    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-    bool fontUpdated = SetFontInternal(kDefaultFontStyle, err);
+    // If the font has already been set, we're re-creating the fontGroup
+    // and should re-use the existing font attribute; if not, we initialize
+    // it to the canvas default.
+    const nsString& currentFont = CurrentState().font;
+    bool fontUpdated = SetFontInternal(
+        currentFont.IsEmpty() ? kDefaultFontStyle : currentFont, err);
     if (err.Failed() || !fontUpdated) {
       err.SuppressException();
       gfxFontStyle style;
       style.size = kDefaultFontSize;
-      gfxTextPerfMetrics* tp = nullptr;
-      if (presShell && !presShell->IsDestroying()) {
-        tp = presShell->GetPresContext()->GetTextPerfMetrics();
-      }
       int32_t perDevPixel, perCSSPixel;
       GetAppUnitsValues(&perDevPixel, &perCSSPixel);
       gfxFloat devToCssSize = gfxFloat(perDevPixel) / gfxFloat(perCSSPixel);
-      CurrentState().fontGroup =
-        gfxPlatform::GetPlatform()->CreateFontGroup(FontFamilyList(eFamily_sans_serif),
+      fontGroup = gfxPlatform::GetPlatform()->CreateFontGroup(FontFamilyList(eFamily_sans_serif),
                                                     &style, tp,
                                                     nullptr, devToCssSize);
-      if (CurrentState().fontGroup) {
+      if (fontGroup) {
         CurrentState().font = kDefaultFontStyle;
       } else {
         NS_ERROR("Default canvas font is invalid");
@@ -4060,7 +4072,7 @@ gfxFontGroup *CanvasRenderingContext2D::GetCurrentFontStyle()
     }
   }
 
-  return CurrentState().fontGroup;
+  return fontGroup;
 }
 
 //
