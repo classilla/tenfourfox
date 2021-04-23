@@ -42,13 +42,13 @@ pref("xpinstall.customConfirmationUI", true);
 // Preferences for AMO integration
 pref("extensions.getAddons.cache.enabled", true);
 pref("extensions.getAddons.maxResults", 15);
-pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/guid:%IDS%?src=firefox&appOS=%OS%&appVersion=%VERSION%");
+pref("extensions.getAddons.get.url", "https://addons.basilisk-browser.org/extensions/");
 pref("extensions.getAddons.getWithPerformance.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/guid:%IDS%?src=firefox&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");
-pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/firefox/search?q=%TERMS%&platform=%OS%&appver=%VERSION%");
-pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%/%COMPATIBILITY_MODE%?src=firefox");
+pref("extensions.getAddons.search.browseURL", "https://addons.basilisk-browser.org/search-plugins/");
+pref("extensions.getAddons.search.url", "https://addons.basilisk-browser.org/search-plugins/");
 pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%LOCALE%/firefox/discovery/pane/%VERSION%/%OS%/%COMPATIBILITY_MODE%");
 pref("extensions.getAddons.recommended.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/list/recommended/all/%MAX_RESULTS%/%OS%/%VERSION%?src=firefox");
-pref("extensions.getAddons.link.url", "https://addons.mozilla.org/%LOCALE%/firefox/");
+pref("extensions.getAddons.link.url", "https://addons.basilisk-browser.org/extensions/");
 
 // Blocklist preferences
 pref("extensions.blocklist.enabled", true);
@@ -82,7 +82,7 @@ pref("xpinstall.signatures.required", false);
 pref("xpinstall.signatures.devInfoURL", "https://wiki.mozilla.org/Addons/Extension_Signing");
 
 // Dictionary download preference
-pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/firefox/dictionaries/");
+pref("browser.dictionaries.download.url", "https://repository.binaryoutcast.com/dicts//");
 
 // At startup, should we check to see if the installation
 // date is older than some threshold
@@ -355,7 +355,7 @@ pref("browser.helperApps.deleteTempFileOnExit", true);
 #endif
 
 // search engines URL
-pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/firefox/search-engines/");
+pref("browser.search.searchEnginesURL",      "https://addons.basilisk-browser.org/search-plugins/");
 
 // pointer to the default engine name
 pref("browser.search.defaultenginename",      "chrome://browser-region/locale/region.properties");
@@ -639,7 +639,7 @@ pref("accessibility.typeaheadfind.flashBar", 1);
 // Tracks when accessibility is loaded into the previous session.
 pref("accessibility.loadedInLastSession", false);
 
-pref("plugins.update.url", "https://www.mozilla.org/%LOCALE%/plugincheck/?utm_source=firefox-browser&utm_medium=firefox-browser&utm_campaign=plugincheck-update");
+pref("plugins.update.url", "");
 pref("plugins.update.notifyUser", false);
 
 pref("plugins.click_to_play", true);
@@ -949,10 +949,10 @@ pref("gecko.handlerService.schemes.ircs.3.uriTemplate", "chrome://browser-region
 pref("gecko.handlerService.allowRegisterFromDifferentHost", false);
 
 #ifdef MOZ_SAFE_BROWSING
-pref("browser.safebrowsing.enabled", true);
-pref("browser.safebrowsing.malware.enabled", true);
-pref("browser.safebrowsing.downloads.enabled", true);
-pref("browser.safebrowsing.downloads.remote.enabled", true);
+pref("browser.safebrowsing.enabled", false);
+pref("browser.safebrowsing.malware.enabled", false);
+pref("browser.safebrowsing.downloads.enabled", false);
+pref("browser.safebrowsing.downloads.remote.enabled", false);
 pref("browser.safebrowsing.downloads.remote.timeout_ms", 10000);
 pref("browser.safebrowsing.debug", false);
 
@@ -1119,13 +1119,13 @@ pref("toolkit.crashreporter.infoURL",
      "https://www.mozilla.org/legal/privacy/firefox.html#crash-reporter");
 
 // base URL for web-based support pages
-pref("app.support.baseURL", "http://www.tenfourfox.com/helpr/%VERSION%/%LOCALE%/");
+pref("app.support.baseURL", "http://www.duckduckgo.com");
 
 // base url for web-based feedback pages
 #ifdef MOZ_DEV_EDITION
 pref("app.feedback.baseURL", "https://input.mozilla.org/%LOCALE%/feedback/firefoxdev/%VERSION%/");
 #else
-pref("app.feedback.baseURL", "http://www.tenfourfox.com/feedback");
+pref("app.feedback.baseURL", "http://www.duckduckgo.com");
 #endif
 
 
