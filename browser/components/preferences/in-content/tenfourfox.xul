@@ -31,7 +31,7 @@
       class="header"
       hidden="true"
       data-category="paneTenFourFox">
-  <label class="header-name" flex="1">TenFourFox</label>
+  <label class="header-name" flex="1">InterWeb</label>
   <button class="help-button"
           aria-label="&helpButton.label;"/>
 </hbox>
