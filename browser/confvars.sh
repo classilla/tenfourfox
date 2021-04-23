@@ -3,9 +3,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-MOZ_APP_BASENAME=Firefox
-MOZ_APP_VENDOR=Mozilla
-MOZ_UPDATER=1
+MOZ_APP_BASENAME=InterWebPPC
+MOZ_APP_VENDOR=wicknix
+MOZ_UPDATER=
 MOZ_PHOENIX=1
 
 if test "$OS_ARCH" = "WINNT"; then
@@ -29,7 +29,7 @@ MOZ_ENABLE_SIGNMAR=
 
 MOZ_CHROME_FILE_FORMAT=jar
 MOZ_DISABLE_EXPORT_JS=1
-MOZ_SAFE_BROWSING=1
+MOZ_SAFE_BROWSING=
 MOZ_SERVICES_COMMON=1
 MOZ_SERVICES_CRYPTO=1
 MOZ_SERVICES_HEALTHREPORT=
@@ -46,7 +46,7 @@ MOZ_EXTENSIONS_DEFAULT=" gio"
 # "unofficial" branding.
 # For the mozilla-aurora repository, use "aurora".
 MOZ_BRANDING_DIRECTORY=browser/branding/unofficial
-MOZ_OFFICIAL_BRANDING_DIRECTORY=browser/branding/official
+MOZ_OFFICIAL_BRANDING_DIRECTORY=browser/branding/unofficial
 MOZ_APP_ID={ec8030f7-c20a-464f-9b0e-13a3a9e97384}
 # This should usually be the same as the value MAR_CHANNEL_ID.
 # If more than one ID is needed, then you should use a comma separated list
@@ -56,7 +56,7 @@ ACCEPTED_MAR_CHANNEL_IDS=firefox-mozilla-esr
 MAR_CHANNEL_ID=firefox-mozilla-esr
 MOZ_PROFILE_MIGRATOR=1
 MOZ_APP_STATIC_INI=1
-MOZ_WEBAPP_RUNTIME=1
+MOZ_WEBAPP_RUNTIME=
 MOZ_MEDIA_NAVIGATOR=1
 MOZ_WEBGL_CONFORMANT=1
 # Enable navigator.mozPay
