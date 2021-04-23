@@ -130,7 +130,7 @@
             </description>
           </vbox>
           <description class="text-blurb" id="communityDesc">
-            <label class="text-link" href="http://www.tenfourfox.com/">&brandShortName;</label>&community.start2;<label class="text-link" href="http://www.floodgap.com/">&community.mozillaLink;</label>&community.middle2;
+            <label class="text-link" href="http://www.duckduckgo.com/">&brandShortName;</label>&community.start2;<label class="text-link" href="http://www.bing.com/">&community.mozillaLink;</label>&community.middle2;
           </description>
           <description class="text-blurb" id="contributeDesc">
             &contribute.start;<label class="text-link" href="about:credits">&community.creditsLink;</label>
