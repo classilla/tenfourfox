@@ -2,8 +2,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY  brandShorterName      "TenFourFox">
-<!ENTITY  brandShortName        "TenFourFox">
-<!ENTITY  brandFullName         "TenFourFox">
-<!ENTITY  vendorShortName       "Floodgap">
-<!ENTITY  trademarkInfo.part1   " ">
+<!ENTITY  brandShorterName      "InterWebPPC">
+<!ENTITY  brandShortName        "InterWebPPC">
+<!ENTITY  brandFullName         "InterWebPPC">
+<!ENTITY  vendorShortName       "wicknix">
+<!ENTITY  trademarkInfo.part1   "A browser for your crusty old Mac">
