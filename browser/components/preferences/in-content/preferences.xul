@@ -176,10 +176,10 @@
                     class="category"
                     value="paneTenFourFox"
                     helpTopic="prefs-tenfourfox-general"
-                    tooltiptext="TenFourFox"
+                    tooltiptext="InterWebPPC"
                     align="center">
         <image class="category-icon"/>
-        <label class="category-name" flex="1">TenFourFox</label>
+        <label class="category-name" flex="1">InterWebPPC</label>
       </richlistitem>
     </richlistbox>
 
