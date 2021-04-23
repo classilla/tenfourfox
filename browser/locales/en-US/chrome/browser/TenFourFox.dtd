@@ -1,7 +1,7 @@
 <!ENTITY TFFuserAgent.title	"User Agent">
 <!ENTITY TFFuserAgent.prompt	"Set user agent to current version of Firefox">
 <!ENTITY TFFuserAgent.prompt2	"Select user agent string to use:">
-<!ENTITY TFFuserAgent.default	"TenFourFox (default)">
+<!ENTITY TFFuserAgent.default	"InterWebPPC (default)">
 
 <!ENTITY TFFadBlock.title	"Adblock">
 <!ENTITY TFFadBlock.prompt	"Enable basic adblock">
