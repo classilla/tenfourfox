@@ -929,7 +929,7 @@ var gUnsupportedPage = {
  */
 var gManualUpdate2Page = {
   onPageShow: function() {
-    var manualURL = "http://www.tenfourfox.com/";
+    var manualURL = "http://www.duckduckgo.com/";
     var manualUpdate2LinkLabel = document.getElementById("manualUpdate2LinkLabel");
     manualUpdate2LinkLabel.value = manualURL;
     manualUpdate2LinkLabel.setAttribute("url", manualURL);
@@ -946,7 +946,7 @@ var gManualUpdate2Page = {
 };
 var gManualUpdate3Page = {
   onPageShow: function() {
-    var manualURL = "http://www.tenfourfox.com/";
+    var manualURL = "http://www.duckduckgo.com/";
     var manualUpdate3LinkLabel = document.getElementById("manualUpdate3LinkLabel");
     manualUpdate3LinkLabel.value = manualURL;
     manualUpdate3LinkLabel.setAttribute("url", manualURL);
