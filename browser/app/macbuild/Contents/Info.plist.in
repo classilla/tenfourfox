@@ -159,7 +159,7 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>firefox</string>
+	<string>interwebppc</string>
 	<key>CFBundleGetInfoString</key>
 	<string>%MAC_APP_NAME% %APP_VERSION_DISPLAY%</string>
 	<key>CFBundleIconFile</key>
