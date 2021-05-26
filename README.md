@@ -9,6 +9,6 @@ Current build machine is a 1.6ghz PowerMac G5 w/4gb ram.
 https://macintoshgarden.org/apps/the-unofficial-tenfourfox-toolkit
 
 Then grab this script to build InterWebPPC
-https://forums.macrumors.com/threads/interwebppc-browser-a-rebrand-of-tenfourfox-for-the-future.2292691/page-3?post=29936410#post-29936410
+https://forums.macrumors.com/attachments/build_interweb-zip.1781777/
 
 ![interwebppc](https://forums.macrumors.com/attachments/interwebppc-png.1761842/)
