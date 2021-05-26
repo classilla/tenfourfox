@@ -32,8 +32,8 @@
 
 <!ENTITY community.start2           " is free software ">
 <!-- LOCALIZATION NOTE (community.mozillaLink): This is a link title that links to http://www.mozilla.org/. -->
-<!ENTITY community.mozillaLink      ".">
-<!ENTITY community.middle2          ".">
+<!ENTITY community.mozillaLink      " ">
+<!ENTITY community.middle2          " ">
 <!-- LOCALIZATION NOTE (community.creditsLink): This is a link title that links to about:credits. -->
 <!ENTITY community.creditsLink      "Mozilla Community Credits">
 <!ENTITY community.end3             " working together to keep the Web open, public and accessible to all.">
@@ -49,7 +49,7 @@
 <!ENTITY helpus.getInvolvedLink     "get involved!">
 <!ENTITY helpus.end                 "">
 
-<!ENTITY copyright.blurb            "Copyright © 2010-2021 Contributors to TenFourFox 2021 wicknix. All rights reserved.">
+<!ENTITY copyright.blurb            "Copyright © 2010-2021 Contributors to TenFourFox and 2021 wicknix. All rights reserved.">
 
 <!-- LOCALIZATION NOTE (bottomLinks.license): This is a link title that links to about:license. -->
 <!ENTITY bottomLinks.license        "Licensing Information">
