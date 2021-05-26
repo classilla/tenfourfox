@@ -310,9 +310,9 @@ pref("browser.urlbar.match.url", "@");
 
 // The default behavior for the urlbar can be configured to use any combination
 // of the match filters with each additional filter adding more results (union).
-pref("browser.urlbar.suggest.history",              true);
+pref("browser.urlbar.suggest.history",              false);
 pref("browser.urlbar.suggest.bookmark",             true);
-pref("browser.urlbar.suggest.openpage",             true);
+pref("browser.urlbar.suggest.openpage",             false);
 pref("browser.urlbar.suggest.searches",             false);
 pref("browser.urlbar.userMadeSearchSuggestionsChoice", false);
 
@@ -325,7 +325,7 @@ pref("browser.urlbar.maxCharsForSearchSuggestions", 20);
 pref("browser.urlbar.suggest.history.onlyTyped",    false);
 
 pref("browser.urlbar.formatting.enabled", true);
-pref("browser.urlbar.trimURLs", true);
+pref("browser.urlbar.trimURLs", false);
 
 pref("browser.altClickSave", false);
 
