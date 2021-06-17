@@ -30,7 +30,7 @@
 <!ENTITY community.exp.creditsLink  "global community">
 <!ENTITY community.exp.end          " working together to keep the Web open, public and accessible to all.">
 
-<!ENTITY community.start2           " is free software ">
+<!ENTITY community.start2           " is free software based on TenFourFox ">
 <!-- LOCALIZATION NOTE (community.mozillaLink): This is a link title that links to http://www.mozilla.org/. -->
 <!ENTITY community.mozillaLink      " ">
 <!ENTITY community.middle2          " ">
