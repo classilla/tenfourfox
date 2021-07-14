@@ -3075,6 +3075,44 @@ nsStandardURL::Read(nsIObjectInputStream *stream)
         mExtension.Merge(mSpec, ';', old_param);
     }
     
+    // "bool nsStandardURL::IsValid()" from bug 1700895
+    auto checkSegment = [&](const nsStandardURL::URLSegment& aSeg) {
+      // Bad value
+      if (NS_WARN_IF(aSeg.mLen < -1)) {
+        return false;
+      }
+      if (aSeg.mLen == -1) {
+        return true;
+      }
+
+      // Points out of string
+      if (NS_WARN_IF(aSeg.mPos + aSeg.mLen > mSpec.Length())) {
+        return false;
+      }
+
+      // Overflow
+      if (NS_WARN_IF(aSeg.mPos + aSeg.mLen < aSeg.mPos)) {
+        return false;
+      }
+
+      return true;
+    };
+
+    bool allSegmentsValid = checkSegment(mScheme) && checkSegment(mAuthority) &&
+                            checkSegment(mUsername) && checkSegment(mPassword) &&
+                            checkSegment(mHost) && checkSegment(mPath) &&
+                            checkSegment(mFilepath) && checkSegment(mDirectory) &&
+                            checkSegment(mBasename) && checkSegment(mExtension) &&
+                            checkSegment(mQuery) && checkSegment(mRef);
+    if (!allSegmentsValid) {
+      NS_WARNING("bogus URL");
+      return NS_ERROR_MALFORMED_URI;
+    }
+
+    if (mScheme.mPos != 0) {
+      return NS_ERROR_MALFORMED_URI;
+    }
+
     return NS_OK;
 }
 
@@ -3260,6 +3298,44 @@ nsStandardURL::Deserialize(const URIParams& aParams)
     mMutable = params.isMutable();
     mSupportsFileURL = params.supportsFileURL();
     mHostEncoding = params.hostEncoding();
+
+    // "bool nsStandardURL::IsValid()" from bug 1700895
+    auto checkSegment = [&](const nsStandardURL::URLSegment& aSeg) {
+      // Bad value
+      if (NS_WARN_IF(aSeg.mLen < -1)) {
+        return false;
+      }
+      if (aSeg.mLen == -1) {
+        return true;
+      }
+
+      // Points out of string
+      if (NS_WARN_IF(aSeg.mPos + aSeg.mLen > mSpec.Length())) {
+        return false;
+      }
+
+      // Overflow
+      if (NS_WARN_IF(aSeg.mPos + aSeg.mLen < aSeg.mPos)) {
+        return false;
+      }
+
+      return true;
+    };
+
+    bool allSegmentsValid = checkSegment(mScheme) && checkSegment(mAuthority) &&
+                            checkSegment(mUsername) && checkSegment(mPassword) &&
+                            checkSegment(mHost) && checkSegment(mPath) &&
+                            checkSegment(mFilepath) && checkSegment(mDirectory) &&
+                            checkSegment(mBasename) && checkSegment(mExtension) &&
+                            checkSegment(mQuery) && checkSegment(mRef);
+    if (!allSegmentsValid) {
+      NS_WARNING("bogus URL");
+      return false;
+    }
+
+    if (mScheme.mPos != 0) {
+      return false;
+    }
 
     // mSpecEncoding and mHostA are just caches that can be recovered as needed.
     return true;
