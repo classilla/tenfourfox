@@ -130,6 +130,8 @@ jit::ReorderInstructions(MIRGenerator* mir, MIRGraph& graph)
                 MInstruction* prev = *riter;
                 if (prev->isInterruptCheck())
                     break;
+                if (prev->isSetInitializedLength())
+                    break;
 
                 // The instruction can't be moved before any of its uses.
                 bool isUse = false;
