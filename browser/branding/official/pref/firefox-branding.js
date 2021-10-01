@@ -6,7 +6,7 @@ pref("startup.homepage_override_url","http://www.tenfourfox.com/start/%LOCALE%/%
 pref("startup.homepage_welcome_url","http://www.tenfourfox.com/start/%LOCALE%/%APP%/%VERSION%/firstrun/");
 pref("startup.homepage_welcome_url.additional", "https://www.mozilla.org/%LOCALE%/firefox/%VERSION%/firstrun/learnmore/");
 // Interval: Time between checks for a new version (in seconds)
-pref("app.update.interval", 43200); // 12 hours
+pref("app.update.interval", 0);
 // The time interval between the downloading of mar file chunks in the
 // background (in seconds)
 pref("app.update.download.backgroundInterval", 60);

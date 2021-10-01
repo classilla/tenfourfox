@@ -670,7 +670,8 @@ function setupCheckForUpdates(checkForUpdates, aStringBundle)
   // Disable the UI if the update enabled pref has been locked by the 
   // administrator or if we cannot update for some other reason
   var canCheckForUpdates = updates.canCheckForUpdates;
-  checkForUpdates.setAttribute("disabled", !canCheckForUpdates);
+  try { checkForUpdates.setAttribute("disabled", !canCheckForUpdates); }
+      catch(e) { return; }
   if (!canCheckForUpdates)
     return; 
 

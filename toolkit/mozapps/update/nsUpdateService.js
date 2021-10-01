@@ -3318,20 +3318,16 @@ Checker.prototype = {
     // Use the override URL if specified.
     let url = getPref("getCharPref", PREF_APP_UPDATE_URL_OVERRIDE, null);
 
+/*
     // Otherwise, construct the update URL from component parts.
     if (!url) {
       try {
-/*
         url = Services.prefs.getDefaultBranch(null).
               getCharPref(PREF_APP_UPDATE_URL);
-*/
-// We do not want to corrupt Firefox 3.6's prefs, so this is hard-coded.
-       url = "https://www.floodgap.com/software/tenfourfox/updatefpr.xml?ver="
-        + Services.appinfo.version+"_"+Services.appinfo.buildInfoTenFourFox;
-
       } catch (e) {
       }
     }
+*/
 
     if (!url || url == "") {
       LOG("Checker:getUpdateURL - update URL not defined");
