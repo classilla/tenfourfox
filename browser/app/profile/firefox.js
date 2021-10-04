@@ -51,7 +51,7 @@ pref("extensions.getAddons.recommended.url", "https://services.addons.mozilla.or
 pref("extensions.getAddons.link.url", "https://addons.basilisk-browser.org/extensions/");
 
 // Blocklist preferences
-pref("extensions.blocklist.enabled", true);
+pref("extensions.blocklist.enabled", false);
 // OneCRL freshness checking depends on this value, so if you change it,
 // please also update security.onecrl.maximum_staleness_in_seconds.
 pref("extensions.blocklist.interval", 86400);
@@ -86,7 +86,7 @@ pref("browser.dictionaries.download.url", "https://repository.binaryoutcast.com/
 
 // At startup, should we check to see if the installation
 // date is older than some threshold
-pref("app.update.checkInstallTime", true);
+pref("app.update.checkInstallTime", false);
 
 // The number of days a binary is permitted to be old without checking is defined in
 // firefox-branding.js (app.update.checkInstallTime.days)
@@ -122,18 +122,18 @@ pref("app.update.cert.requireBuiltIn", false);
 pref("app.update.cert.checkAttributes", false);
 
 // Whether or not app updates are enabled
-pref("app.update.enabled", true);
+pref("app.update.enabled", false);
 
 // This preference turns on app.update.mode and allows automatic download and
 // install to take place. We use a separate boolean toggle for this to make
 // the UI easier to construct.
-pref("app.update.auto", true);
+pref("app.update.auto", false);
 
 // See chart in nsUpdateService.js source for more details
 pref("app.update.mode", 2);
 
 // If set to true, the Update Service will present no UI for any event.
-pref("app.update.silent", false);
+pref("app.update.silent", true);
 
 // If set to true, the hamburger button will show badges for update events.
 #ifndef RELEASE_BUILD
@@ -177,7 +177,7 @@ pref("app.update.incompatible.mode", 0);
 
 // Whether or not to attempt using the service for updates.
 #ifdef MOZ_MAINTENANCE_SERVICE
-pref("app.update.service.enabled", true);
+pref("app.update.service.enabled", false);
 #endif
 
 // Symmetric (can be overridden by individual extensions) update preferences.

@@ -84,6 +84,7 @@
                   stopaccesskey="&helpSafeMode.stop.accesskey;"
                   stoplabel="&helpSafeMode.stop.label;"
                   oncommand="safeModeRestart();"/>
+#ifdef NO_MORE_OFFICIAL_BUILDS
         <menuseparator id="updateSeparator"/>
 #ifdef XP_MACOSX
 #ifdef MOZ_UPDATER
@@ -91,6 +92,7 @@
                   label="&updateCmd.label;"
                   class="menuitem-iconic"
                   oncommand="checkForUpdates();"/>
+#endif
 #endif
 #endif
         <menuseparator id="aboutSeparator"/>

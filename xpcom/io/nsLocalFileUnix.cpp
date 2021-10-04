@@ -1574,7 +1574,9 @@ nsLocalFile::IsExecutable(bool* aResult)
     static const char* const executableExts[] = {
       "air",  // Adobe AIR installer
 #ifdef MOZ_WIDGET_COCOA
+      "inetloc",  // https://ssd-disclosure.com/ssd-advisory-macos-finder-rce/
       "fileloc",  // File location files can be used to point to other files.
+      "webloc",   // same URL
 #endif
       "jar"   // java application bundle
     };
