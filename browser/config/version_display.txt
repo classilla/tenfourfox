@@ -1,1 +1,1 @@
-FPR 32 (SPR 5)
+Rolling Release

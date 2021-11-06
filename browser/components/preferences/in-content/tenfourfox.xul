@@ -66,6 +66,7 @@
                 preference="tenfourfox.ua.template">
           <menupopup>
               <menuitem label="&TFFuserAgent.default;" value=""/>
+              <menuitem label="Firefox 91ESR (Intel)" value="fx91"/>
               <menuitem label="Firefox 78ESR (Intel)" value="fx78"/>
               <menuitem label="Firefox 68ESR (Intel)" value="fx68"/>
               <menuitem label="Firefox 60ESR (Intel)" value="fx60"/>
