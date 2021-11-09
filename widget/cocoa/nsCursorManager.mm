@@ -195,10 +195,13 @@ static const nsCursor sCustomCursor = eCursorCount;
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
+  // No more plugins, so we can implement M1736049.
+#if(0)
   // Some plugins mess with our cursors and set a cursor that even
   // [NSCursor currentCursor] doesn't know about. In case that happens, just
   // reset the state.
   [[NSCursor currentCursor] set];
+#endif
 
   nsCursor oldType = [mCurrentMacCursor type];
   if (oldType != aCursor) {
@@ -242,7 +245,7 @@ static const nsCursor sCustomCursor = eCursorCount;
   // As the user moves the mouse, this gets called repeatedly with the same aCursorImage
   //if (sCursorImgContainer == aCursorImage && sCursorScaleFactor == scaleFactor && mCurrentMacCursor) {
   if (sCursorImgContainer == aCursorImage && mCurrentMacCursor) {
-    [self setMacCursor:mCurrentMacCursor];
+    // [self setMacCursor:mCurrentMacCursor]; // bug 1736049
     return NS_OK;
   }
   
