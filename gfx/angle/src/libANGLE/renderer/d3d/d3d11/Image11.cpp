@@ -204,6 +204,7 @@ bool Image11::redefine(GLenum target, GLenum internalformat, const gl::Extents &
 {
     if (mWidth != size.width ||
         mHeight != size.height ||
+        mDepth != size.depth ||
         mInternalFormat != internalformat ||
         forceRelease)
     {
