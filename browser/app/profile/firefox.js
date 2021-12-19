@@ -82,7 +82,7 @@ pref("xpinstall.signatures.required", false);
 pref("xpinstall.signatures.devInfoURL", "https://wiki.mozilla.org/Addons/Extension_Signing");
 
 // Dictionary download preference
-pref("browser.dictionaries.download.url", "https://repository.binaryoutcast.com/dicts//");
+pref("browser.dictionaries.download.url", "https://repository.binaryoutcast.com/dicts/");
 
 // At startup, should we check to see if the installation
 // date is older than some threshold
@@ -1119,13 +1119,13 @@ pref("toolkit.crashreporter.infoURL",
      "https://www.mozilla.org/legal/privacy/firefox.html#crash-reporter");
 
 // base URL for web-based support pages
-pref("app.support.baseURL", "http://www.duckduckgo.com");
+pref("app.support.baseURL", "https://github.com/wicknix/InterWebPPC/);
 
 // base url for web-based feedback pages
 #ifdef MOZ_DEV_EDITION
-pref("app.feedback.baseURL", "https://input.mozilla.org/%LOCALE%/feedback/firefoxdev/%VERSION%/");
+pref("app.feedback.baseURL", "https://github.com/wicknix/InterWebPPC/);
 #else
-pref("app.feedback.baseURL", "http://www.duckduckgo.com");
+pref("app.feedback.baseURL", "https://github.com/wicknix/InterWebPPC/);
 #endif
 
 
