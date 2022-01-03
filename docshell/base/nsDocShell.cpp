@@ -9219,7 +9219,11 @@ nsDocShell::SetupNewViewer(nsIContentViewer* aNewViewer)
   mContentViewer->SetNavigationTiming(mTiming);
 
   if (NS_FAILED(mContentViewer->Init(widget, bounds))) {
+    nsCOMPtr<nsIContentViewer> viewer = mContentViewer;
+    viewer->Close(nullptr);
+    viewer->Destroy();
     mContentViewer = nullptr;
+    mCurrentURI = nullptr;
     NS_WARNING("ContentViewer Initialization failed");
     return NS_ERROR_FAILURE;
   }
