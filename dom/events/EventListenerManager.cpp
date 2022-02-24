@@ -24,6 +24,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/EventTargetBinding.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/TimelineConsumers.h"
 #include "mozilla/EventTimelineMarker.h"
 
@@ -712,6 +713,8 @@ EventListenerManager::SetEventHandler(nsIAtom* aName,
                                       bool aPermitUntrustedEvents,
                                       Element* aElement)
 {
+  auto removeEventHandler = MakeScopeExit([&] { RemoveEventHandler(aName, EmptyString()); });
+
   nsCOMPtr<nsIDocument> doc;
   nsCOMPtr<nsIScriptGlobalObject> global =
     GetScriptGlobalAndDocument(getter_AddRefs(doc));
@@ -785,6 +788,8 @@ EventListenerManager::SetEventHandler(nsIAtom* aName,
   nsIScriptContext* context = global->GetScriptContext();
   NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
   NS_ENSURE_STATE(global->GetGlobalJSObject());
+
+  removeEventHandler.release();
 
   Listener* listener = SetEventHandlerInternal(aName,
                                                EmptyString(),

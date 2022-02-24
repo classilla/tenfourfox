@@ -236,19 +236,6 @@ txMozillaXMLOutput::endDocument(nsresult aResult)
         }
     }
 
-    if (!mRefreshString.IsEmpty()) {
-        nsPIDOMWindow *win = mDocument->GetWindow();
-        if (win) {
-            nsCOMPtr<nsIRefreshURI> refURI =
-                do_QueryInterface(win->GetDocShell());
-            if (refURI) {
-                refURI->SetupRefreshURIFromHeader(mDocument->GetDocBaseURI(),
-                                                  mDocument->NodePrincipal(),
-                                                  mRefreshString);
-            }
-        }
-    }
-
     if (mNotifier) {
         mNotifier->OnTransformEnd();
     }
@@ -747,30 +734,13 @@ txMozillaXMLOutput::endHTMLElement(nsIContent* aElement)
 
         return NS_OK;
     }
-    else if (mCreatingNewDocument && aElement->IsHTMLElement(nsGkAtoms::meta)) {
-        // handle HTTP-EQUIV data
-        nsAutoString httpEquiv;
-        aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::httpEquiv, httpEquiv);
-        if (!httpEquiv.IsEmpty()) {
-            nsAutoString value;
-            aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::content, value);
-            if (!value.IsEmpty()) {
-                nsContentUtils::ASCIIToLower(httpEquiv);
-                nsCOMPtr<nsIAtom> header = do_GetAtom(httpEquiv);
-                processHTTPEquiv(header, value);
-            }
-        }
-    }
-    
+
     return NS_OK;
 }
 
 void txMozillaXMLOutput::processHTTPEquiv(nsIAtom* aHeader, const nsString& aValue)
 {
-    // For now we only handle "refresh". There's a longer list in
-    // HTMLContentSink::ProcessHeaderData
-    if (aHeader == nsGkAtoms::refresh)
-        LossyCopyUTF16toASCII(aValue, mRefreshString);
+    MOZ_CRASH("Don't call processHTTPEquiv, see bug 1746720");
 }
 
 nsresult
