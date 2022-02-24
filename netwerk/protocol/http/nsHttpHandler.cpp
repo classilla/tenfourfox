@@ -438,6 +438,8 @@ nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request,
             !hostLine.EqualsLiteral("imgur.com") &&
             !hostLine.EqualsLiteral("github.com") &&
             !hostLine.EqualsLiteral("gist.github.com") &&
+            !hostLine.EqualsLiteral("youtube.com") &&
+            !hostLine.EqualsLiteral("www.youtube.com") &&
     1)) {
         rv = request->SetHeader(nsHttp::User_Agent, UserAgent(),
                                 false, nsHttpHeaderArray::eVarietyDefault);
