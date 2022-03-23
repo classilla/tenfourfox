@@ -1993,12 +1993,14 @@ void ReportLoadError(JSContext* aCx, nsresult aLoadResult)
 
     case NS_ERROR_FILE_NOT_FOUND:
     case NS_ERROR_NOT_AVAILABLE:
+    case NS_ERROR_CORRUPTED_CONTENT:
       Throw(aCx, NS_ERROR_DOM_NETWORK_ERR);
       break;
 
     case NS_ERROR_MALFORMED_URI:
       aLoadResult = NS_ERROR_DOM_SYNTAX_ERR;
       // fall through
+    case NS_ERROR_DOM_BAD_URI:
     case NS_ERROR_DOM_SECURITY_ERR:
     case NS_ERROR_DOM_SYNTAX_ERR:
       Throw(aCx, aLoadResult);
