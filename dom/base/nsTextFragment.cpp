@@ -209,11 +209,6 @@ FirstNon8Bit(const char16_t *str, const char16_t *end)
 bool
 nsTextFragment::SetTo(const char16_t* aBuffer, int32_t aLength, bool aUpdateBidi)
 {
-  if (MOZ_UNLIKELY(aLength < 0 || static_cast<uint32_t>(aLength) >
-                                      NS_MAX_TEXT_FRAGMENT_LENGTH)) {
-    return false;
-  }
-
   ReleaseText();
 
   if (aLength == 0) {
@@ -342,16 +337,9 @@ nsTextFragment::CopyTo(char16_t *aDest, int32_t aOffset, int32_t aCount)
 bool
 nsTextFragment::Append(const char16_t* aBuffer, uint32_t aLength, bool aUpdateBidi)
 {
-  if (!aLength) {
-    return true;
-  }
-
   // This is a common case because some callsites create a textnode
   // with a value by creating the node and then calling AppendData.
   if (mState.mLength == 0) {
-    if (MOZ_UNLIKELY(aLength > INT32_MAX)) {
-      return false;
-    }
     return SetTo(aBuffer, aLength, aUpdateBidi);
   }
 

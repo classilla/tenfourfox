@@ -133,10 +133,6 @@ nsStructuredCloneContainer::GetDataAsBase64(nsAString &aOut)
   if (!DataLength()) {
     return NS_ERROR_FAILURE;
   }
-  CheckedInt<nsAutoCString::size_type> sizeCheck(DataLength());
-  if (MOZ_UNLIKELY(!sizeCheck.isValid())) {
-    return NS_ERROR_FAILURE;
-  }
 
   if (HasClonedDOMObjects()) {
     return NS_ERROR_FAILURE;

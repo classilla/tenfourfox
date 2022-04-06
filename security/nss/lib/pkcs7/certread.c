@@ -139,11 +139,6 @@ SEC_ReadPKCS7Certs(SECItem *pkcs7Item, CERTImportCertificateFunc f, void *arg)
         goto done;
     }
 
-    if (contentInfo.content.signedData == NULL) {
-        PORT_SetError(SEC_ERROR_BAD_DER);
-        goto done;
-    }
-
     rv = SECSuccess;
 
     certs = contentInfo.content.signedData->certificates;

@@ -852,9 +852,8 @@ ADTSTrackDemuxer::Read(uint8_t* aBuffer, int64_t aOffset, int32_t aSize)
 
   const int64_t streamLen = StreamLength();
   if (mInfo && streamLen > 0) {
-    int64_t max = streamLen > aOffset ? streamLen - aOffset : 0;
     // Prevent blocking reads after successful initialization.
-    aSize = std::min<int64_t>(aSize, max);
+    aSize = std::min<int64_t>(aSize, streamLen - aOffset);
   }
 
   uint32_t read = 0;
