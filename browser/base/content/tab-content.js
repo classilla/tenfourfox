@@ -399,16 +399,16 @@ var AboutReaderListener = {
 	// Post-load fixups can go here.
 
 	// TenFourFox issue 654: defeat lozad.js lazy image loading.
-	Array.forEach(content.document.getElementsByTagName('img'),
-	function(i) {
-		try {
-			// Convert data-src to src.
-			if (i.getAttribute("data-src")) {
-				i.src = i.getAttribute("data-src");
-				i.setAttribute("data-loaded") = "true";
-			}
-		} catch(e) { }
-	});
+//	Array.forEach(content.document.getElementsByTagName('img'),
+//	function(i) {
+//		try {
+//			// Convert data-src to src.
+//			if (i.getAttribute("data-src")) {
+//				i.src = i.getAttribute("data-src");
+//				i.setAttribute("data-loaded") = "true";
+//			}
+//		} catch(e) { }
+//	});
 
 	// Do this last.
         this.updateReaderButton();
