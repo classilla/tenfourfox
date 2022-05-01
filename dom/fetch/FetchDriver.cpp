@@ -617,9 +617,12 @@ FetchDriver::OnDataAvailable(nsIRequest* aRequest,
   // NB: This can be called on any thread!  But we're guaranteed that it is
   // called between OnStartRequest and OnStopRequest, so we don't need to worry
   // about races.
+  if (!mResponse) {
+    MOZ_ASSERT(false);
+    return NS_ERROR_UNEXPECTED;
+  }
 
-  uint32_t aRead;
-  MOZ_ASSERT(mResponse);
+  uint32_t aRead = 0;
   MOZ_ASSERT(mPipeOutputStream);
 
   nsresult rv = aInputStream->ReadSegments(NS_CopySegmentToStream,
