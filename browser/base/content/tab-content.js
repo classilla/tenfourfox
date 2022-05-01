@@ -401,10 +401,13 @@ var AboutReaderListener = {
 	// TenFourFox issue 654: defeat lozad.js lazy image loading.
 	Array.forEach(content.document.getElementsByTagName('img'),
 	function(i) {
+		let j;
+
 		try {
 			// Convert data-src to src.
-			if (i.getAttribute("data-src")) {
-				i.src = i.getAttribute("data-src");
+			j = i.getAttribute("data-src");
+			if (j) {
+				i.src = j;
 				i.setAttribute("data-loaded") = "true";
 			}
 		} catch(e) { }
