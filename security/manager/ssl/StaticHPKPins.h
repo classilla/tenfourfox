@@ -43,14 +43,6 @@ static const char kCOMODO_RSA_Certification_AuthorityFingerprint[] =
 static const char kComodo_AAA_Services_rootFingerprint[] =
   "vRU+17BDT2iGsXvOi76E7TQMcTLXAqj0+jGPdW7L1vM=";
 
-/* Cybertrust Global Root */
-static const char kCybertrust_Global_RootFingerprint[] =
-  "foeCwVDOOVL4AuY2AjpdPpW7XWjjPoWtsroXgSXOvxU=";
-
-/* DST Root CA X3 */
-static const char kDST_Root_CA_X3Fingerprint[] =
-  "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=";
-
 /* DigiCert Assured ID Root CA */
 static const char kDigiCert_Assured_ID_Root_CAFingerprint[] =
   "I/Lt/z7ekCWanjD0Cvj5EqXls2lOaThEA0H2Bg4BT/o=";
@@ -127,6 +119,10 @@ static const char kGOOGLE_PIN_AddTrustQualifiedCARootFingerprint[] =
 static const char kGOOGLE_PIN_COMODORSADomainValidationSecureServerCAFingerprint[] =
   "klO23nT2ehFDXCfx3eHTDRESMz3asj1muO+4aIdjiuY=";
 
+/* GOOGLE_PIN_DSTRootCAX3 */
+static const char kGOOGLE_PIN_DSTRootCAX3Fingerprint[] =
+  "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=";
+
 /* GOOGLE_PIN_DigiCertECCSecureServerCA */
 static const char kGOOGLE_PIN_DigiCertECCSecureServerCAFingerprint[] =
   "PZXN3lRAy+8tBKk2Ox6F7jIlnzr2Yzmwqc3JnyfXoCw=";
@@ -170,6 +166,10 @@ static const char kGOOGLE_PIN_GeoTrustUniversalFingerprint[] =
 /* GOOGLE_PIN_GeoTrustUniversal2 */
 static const char kGOOGLE_PIN_GeoTrustUniversal2Fingerprint[] =
   "fKoDRlEkWQxgHlZ+UhSOlSwM/+iQAFMP4NlbbVDqrkE=";
+
+/* GOOGLE_PIN_GlobalSignRootCA_R2 */
+static const char kGOOGLE_PIN_GlobalSignRootCA_R2Fingerprint[] =
+  "iie1VXtL7HzAMF+/PVPR9xzT80kQxdZeJ+zduCB3uj0=";
 
 /* GOOGLE_PIN_GoDaddySecure */
 static const char kGOOGLE_PIN_GoDaddySecureFingerprint[] =
@@ -263,10 +263,6 @@ static const char kGTS_Root_R3Fingerprint[] =
 static const char kGTS_Root_R4Fingerprint[] =
   "mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=";
 
-/* GlobalSign ECC Root CA - R4 */
-static const char kGlobalSign_ECC_Root_CA___R4Fingerprint[] =
-  "CLOmM1/OXvSPjw5UOYbAf9GKOxImEp9hhku9W90fHMk=";
-
 /* GlobalSign ECC Root CA - R5 */
 static const char kGlobalSign_ECC_Root_CA___R5Fingerprint[] =
   "fg6tdrtoGdwvVFEahDVPboswe53YIFjqbABPAdndpd8=";
@@ -274,10 +270,6 @@ static const char kGlobalSign_ECC_Root_CA___R5Fingerprint[] =
 /* GlobalSign Root CA */
 static const char kGlobalSign_Root_CAFingerprint[] =
   "K87oWBWM9UZfyddvDfoxL+8lpNyoUB2ptGtn0fv6G2Q=";
-
-/* GlobalSign Root CA - R2 */
-static const char kGlobalSign_Root_CA___R2Fingerprint[] =
-  "iie1VXtL7HzAMF+/PVPR9xzT80kQxdZeJ+zduCB3uj0=";
 
 /* GlobalSign Root CA - R3 */
 static const char kGlobalSign_Root_CA___R3Fingerprint[] =
@@ -371,14 +363,6 @@ static const char kVerisign_Class_1_Public_Primary_Certification_Authority___G3F
 static const char kVerisign_Class_2_Public_Primary_Certification_Authority___G3Fingerprint[] =
   "cAajgxHlj7GTSEIzIYIQxmEloOSoJq7VOaxWHfv72QM=";
 
-/* YahooBackup1 */
-static const char kYahooBackup1Fingerprint[] =
-  "2fRAUXyxl4A1/XHrKNBmc8bTkzA7y4FB/GLJuNAzCqY=";
-
-/* YahooBackup2 */
-static const char kYahooBackup2Fingerprint[] =
-  "dolnbtzEBnELx/9lOEQ22e6OZO/QNb6VSSX2XHA3E7A=";
-
 /* Pinsets are each an ordered list by the actual value of the fingerprint */
 struct StaticFingerprints {
   // See bug 1338873 about making these fields const.
@@ -392,7 +376,6 @@ static const char* const kPinset_google_root_pems_Data[] = {
   kCOMODO_ECC_Certification_AuthorityFingerprint,
   kDigiCert_Assured_ID_Root_G2Fingerprint,
   kCOMODO_Certification_AuthorityFingerprint,
-  kGlobalSign_ECC_Root_CA___R4Fingerprint,
   kDigiCert_Assured_ID_Root_G3Fingerprint,
   kStarfield_Class_2_CAFingerprint,
   kEntrust_net_Premium_2048_Secure_Server_CAFingerprint,
@@ -401,8 +384,6 @@ static const char* const kPinset_google_root_pems_Data[] = {
   kGlobalSign_Root_CAFingerprint,
   kGo_Daddy_Root_Certificate_Authority___G2Fingerprint,
   kAffirmTrust_Premium_ECCFingerprint,
-  kGTS_Root_R3Fingerprint,
-  kGTS_Root_R2Fingerprint,
   kGo_Daddy_Class_2_CAFingerprint,
   kDigiCert_Trusted_Root_G4Fingerprint,
   kDigiCert_High_Assurance_EV_Root_CAFingerprint,
@@ -413,14 +394,10 @@ static const char* const kPinset_google_root_pems_Data[] = {
   kGlobalSign_Root_CA___R3Fingerprint,
   kEntrust_Root_Certification_Authority___G2Fingerprint,
   kGlobalSign_ECC_Root_CA___R5Fingerprint,
-  kCybertrust_Global_RootFingerprint,
   kStarfield_Root_Certificate_Authority___G2Fingerprint,
   kCOMODO_RSA_Certification_AuthorityFingerprint,
-  kGTS_Root_R1Fingerprint,
   kDigiCert_Global_Root_G2Fingerprint,
-  kGlobalSign_Root_CA___R2Fingerprint,
   kAffirmTrust_NetworkingFingerprint,
-  kGTS_Root_R4Fingerprint,
   kDigiCert_Global_Root_CAFingerprint,
   kDigiCert_Global_Root_G3Fingerprint,
   kComodo_AAA_Services_rootFingerprint,
@@ -465,7 +442,7 @@ static const char* const kPinset_google_Data[] = {
   kGTS_Root_R2Fingerprint,
   kGOOGLE_PIN_GTSCA1O1Fingerprint,
   kGTS_Root_R1Fingerprint,
-  kGlobalSign_Root_CA___R2Fingerprint,
+  kGOOGLE_PIN_GlobalSignRootCA_R2Fingerprint,
   kGTS_Root_R4Fingerprint,
 };
 static const StaticFingerprints kPinset_google = {
@@ -549,7 +526,7 @@ static const char* const kPinset_twitterCDN_Data[] = {
   kEntrust_Root_Certification_Authority___G2Fingerprint,
   kGOOGLE_PIN_GeoTrustUniversal2Fingerprint,
   kGOOGLE_PIN_GeoTrustGlobalFingerprint,
-  kGlobalSign_Root_CA___R2Fingerprint,
+  kGOOGLE_PIN_GlobalSignRootCA_R2Fingerprint,
   kGOOGLE_PIN_AddTrustExternalCARootFingerprint,
   kGOOGLE_PIN_VeriSignUniversalFingerprint,
   kGOOGLE_PIN_GeoTrustUniversalFingerprint,
@@ -606,13 +583,11 @@ static const StaticFingerprints kPinset_spideroak = {
 };
 
 static const char* const kPinset_yahoo_Data[] = {
-  kYahooBackup1Fingerprint,
   kDigiCert_Assured_ID_Root_CAFingerprint,
   kGlobalSign_Root_CAFingerprint,
   kDigiCert_Trusted_Root_G4Fingerprint,
   kDigiCert_High_Assurance_EV_Root_CAFingerprint,
   kGlobalSign_Root_CA___R3Fingerprint,
-  kYahooBackup2Fingerprint,
   kDigiCert_Global_Root_G2Fingerprint,
   kDigiCert_Global_Root_CAFingerprint,
   kDigiCert_Global_Root_G3Fingerprint,
@@ -624,7 +599,7 @@ static const StaticFingerprints kPinset_yahoo = {
 
 static const char* const kPinset_swehackCom_Data[] = {
   kSwehackFingerprint,
-  kDST_Root_CA_X3Fingerprint,
+  kGOOGLE_PIN_DSTRootCAX3Fingerprint,
   kLet_s_Encrypt_Authority_X3Fingerprint,
   kGOOGLE_PIN_COMODORSADomainValidationSecureServerCAFingerprint,
   kLet_s_Encrypt_Authority_X4Fingerprint,
@@ -967,6 +942,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "google.tn", true, false, false, -1, &kPinset_google_root_pems },
   { "google.to", true, false, false, -1, &kPinset_google_root_pems },
   { "google.tt", true, false, false, -1, &kPinset_google_root_pems },
+  { "google.ua", true, false, false, -1, &kPinset_google_root_pems },
   { "google.us", true, false, false, -1, &kPinset_google_root_pems },
   { "google.uz", true, false, false, -1, &kPinset_google_root_pems },
   { "google.vg", true, false, false, -1, &kPinset_google_root_pems },
@@ -1145,8 +1121,8 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "zh.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
 };
 
-// Pinning Preload List Length = 495;
+// Pinning Preload List Length = 496;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1659351116755000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1669892929282000);
