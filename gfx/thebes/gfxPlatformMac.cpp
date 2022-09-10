@@ -310,6 +310,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("typeface.nyt.com", "/fonts/nyt-cheltenham-");
                     HTTP_OR_HTTPS_SUBDIR("typeface.nytimes.com", "/fonts/nyt-cheltenham-");
 
+                    HTTP_OR_HTTPS_SUBDIR("www.washingtonpost.com", "/wp-stat/assets/fonts/PostoniWide-");
+
                     // Don't cut to SF-Pro-; there are some dingbat fonts that DO work.
                     HTTP_OR_HTTPS_SUBDIR("www.apple.com", "/wss/fonts/SF-Pro-JP/v1/");
                     HTTP_OR_HTTPS_SUBDIR("www.apple.com", "/wss/fonts/SF-Pro-Text/v1/");
