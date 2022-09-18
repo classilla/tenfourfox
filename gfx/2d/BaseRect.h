@@ -118,12 +118,36 @@ struct BaseRect {
     }
     return result;
   }
+  // Gives the same results as Intersect() but handles integer overflow
+  // better. This comes at a tiny cost in performance.
+  // e.g. {INT_MIN, 0, 0, 20} Intersect { 5000, 0, 500, 20 } gives:
+  // {5000, 0, 0, 0}
+  MOZ_WARN_UNUSED_RESULT Sub SafeIntersect(const Sub& aRect) const {
+    Sub result;
+    result.x = std::max<T>(x, aRect.x);
+    result.y = std::max<T>(y, aRect.y);
+    T right = std::min<T>(x + width, aRect.x + aRect.width);
+    T bottom = std::min<T>(y + height, aRect.y + aRect.height);
+    // See bug 1457110, this function expects to -only- size to 0,0 if the
+    // width/height is explicitly negative.
+    if (right < result.x || bottom < result.y) {
+      result.width = 0;
+      result.height = 0;
+    } else {
+      result.width = right - result.x;
+      result.height = bottom - result.y;
+    }
+    return result;
+  }
   // Sets *this to be the rectangle containing the intersection of the points
   // (including edges) of *this and aRect. If there are no points in that
   // intersection, sets *this to be an empty rectangle with x/y set to the std::max
   // of the x/y of *this and aRect.
   //
   // 'this' can be the same object as either aRect1 or aRect2
+  // Note: bug 1457110 changed this due to a regression from bug 1387399,
+  // but we never used that code, and it was subsequently backed out. We have
+  // SafeIntersect only so we can implement bug 1767365.
   bool IntersectRect(const Sub& aRect1, const Sub& aRect2)
   {
     *static_cast<Sub*>(this) = aRect1.Intersect(aRect2);
@@ -208,6 +232,39 @@ struct BaseRect {
   void MoveBy(const Point& aPoint) { x += aPoint.x; y += aPoint.y; }
   void SizeTo(T aWidth, T aHeight) { width = aWidth; height = aHeight; }
   void SizeTo(const SizeT& aSize) { width = aSize.width; height = aSize.height; }
+
+  // Variant of MoveBy that ensures that even after translation by a point that
+  // the rectangle coordinates will still fit within numeric limits. The origin
+  // and size will be clipped within numeric limits to ensure this.
+  void SafeMoveByX(T aDx) {
+    T x2 = XMost();
+    if (aDx >= T(0)) {
+      T limit = std::numeric_limits<T>::max();
+      x = limit - aDx < x ? limit : x + aDx;
+      width = (limit - aDx < x2 ? limit : x2 + aDx) - x;
+    } else {
+      T limit = std::numeric_limits<T>::min();
+      x = limit - aDx > x ? limit : x + aDx;
+      width = (limit - aDx > x2 ? limit : x2 + aDx) - x;
+    }
+  }
+  void SafeMoveByY(T aDy) {
+    T y2 = YMost();
+    if (aDy >= T(0)) {
+      T limit = std::numeric_limits<T>::max();
+      y = limit - aDy < y ? limit : y + aDy;
+      height = (limit - aDy < y2 ? limit : y2 + aDy) - y;
+    } else {
+      T limit = std::numeric_limits<T>::min();
+      y = limit - aDy > y ? limit : y + aDy;
+      height = (limit - aDy > y2 ? limit : y2 + aDy) - y;
+    }
+  }
+  void SafeMoveBy(T aDx, T aDy) {
+    SafeMoveByX(aDx);
+    SafeMoveByY(aDy);
+  }
+  void SafeMoveBy(const Point& aPoint) { SafeMoveBy(aPoint.x, aPoint.y); }
 
   void Inflate(T aD) { Inflate(aD, aD); }
   void Inflate(T aDx, T aDy)

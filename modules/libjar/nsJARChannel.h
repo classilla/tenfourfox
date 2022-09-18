@@ -82,6 +82,9 @@ private:
 
     bool BypassServiceWorker() const;
 
+    nsresult SetContentTypeGuess();
+    void SetOpened();
+
     // Returns true if this channel should intercept the network request and
     // prepare for a possible synthesized response instead.
     bool ShouldIntercept();
