@@ -714,7 +714,7 @@ nsJARChannel::GetSecurityInfo(nsISupports **aSecurityInfo)
     return NS_OK;
 }
 
-NS_IMETHODIMP
+nsresult
 nsJARChannel::SetContentTypeGuess() {
     //
     // generate content type and set it
@@ -752,7 +752,7 @@ nsJARChannel::GetContentType(nsACString &aResult)
 {
     // If the Jar file has not been open yet,
     // We return application/x-unknown-content-type
-    if (!mOpened || mContentType.IsEmpty()) {
+    if (!mOpened && mContentType.IsEmpty()) {
       aResult.Assign(UNKNOWN_CONTENT_TYPE);
       return NS_OK;
     }
