@@ -17,7 +17,7 @@ https://forums.macrumors.com/attachments/build_interweb-zip.1781777/
 * uBlock Origin can be found here (recommended to block ads and scripts to speed up browsing)
 * https://github.com/gorhill/uBlock-for-firefox-legacy/releases
 * For those that prefer noscript and a hosts file instead, grab them from here: 
-* https://noscript.net/releases/noscript-5.1.9.xpi
+* https://noscript.net/download/releases/noscript-5.1.9.xpi
 * https://winhelp2002.mvps.org/hosts.htm
 
 ![interwebppc](https://forums.macrumors.com/attachments/interwebppc-png.1761842/)
