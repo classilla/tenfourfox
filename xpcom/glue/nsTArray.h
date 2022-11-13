@@ -1278,6 +1278,8 @@ protected:
   elem_type* ReplaceElementsAt(index_type aStart, size_type aCount,
                                const Item* aArray, size_type aArrayLen)
   {
+    MOZ_RELEASE_ASSERT(!(aStart > Length()));
+    MOZ_RELEASE_ASSERT(!(aCount > (Length() - aStart)));
     // Adjust memory allocation up-front to catch errors.
     if (!ActualAlloc::Successful(this->template EnsureCapacity<ActualAlloc>(
           Length() + aArrayLen - aCount, sizeof(elem_type)))) {

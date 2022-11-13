@@ -44,7 +44,10 @@
 #define gzputs MOZ_Z_gzputs
 #define gzgets MOZ_Z_gzgets
 #define gzputc MOZ_Z_gzputc
+/*
+This is now a macro
 #define gzgetc MOZ_Z_gzgetc
+*/
 #define gzungetc MOZ_Z_gzungetc
 #define gzflush MOZ_Z_gzflush
 #define gzseek MOZ_Z_gzseek

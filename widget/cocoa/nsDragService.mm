@@ -43,7 +43,7 @@ extern bool gUserCancelledDrag;
 
 // This global makes the transferable array available to Cocoa's promised
 // file destination callback.
-nsISupportsArray *gDraggedTransferables = nullptr;
+mozilla::StaticRefPtr<nsISupportsArray> gDraggedTransferables;
 
 NSString* const kWildcardPboardType = @"MozillaWildcard";
 NSString* const kCorePboardType_url  = @"CorePasteboardFlavorType 0x75726C20"; // 'url '  url

@@ -310,6 +310,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("typeface.nyt.com", "/fonts/nyt-cheltenham-");
                     HTTP_OR_HTTPS_SUBDIR("typeface.nytimes.com", "/fonts/nyt-cheltenham-");
 
+                    HTTP_OR_HTTPS_SUBDIR("www.washingtonpost.com", "/wp-stat/assets/fonts/PostoniWide-");
+
                     // Don't cut to SF-Pro-; there are some dingbat fonts that DO work.
                     HTTP_OR_HTTPS_SUBDIR("www.apple.com", "/wss/fonts/SF-Pro-JP/v1/");
                     HTTP_OR_HTTPS_SUBDIR("www.apple.com", "/wss/fonts/SF-Pro-Text/v1/");
@@ -344,6 +346,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("www.swr3.de", "/static/dist/fonts/TheSans/");
 
                     HTTP_OR_HTTPS_SUBDIR("hartzfacts.de", "/google-fonts/s/notoseriftc/v7/");
+
+                    HTTP_OR_HTTPS_SUBDIR("som.yale.edu","/themes/custom/som/fonts/neuehaasunica/NeueHaasUnicaBlack");
 
                     // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");

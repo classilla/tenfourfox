@@ -117,7 +117,7 @@ ToJSValue(JSContext* aCx,
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
 
-  aValue.setNumber(aArgument);
+  aValue.set(JS_NumberValue(aArgument));
   return true;
 }
 
