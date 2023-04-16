@@ -3224,11 +3224,13 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
   // 3 = secure and "https:"
   bool isHTTPS;
   nsresult rv = aHostURI->SchemeIs("https", &isHTTPS);
+/*
   if (NS_SUCCEEDED(rv)) {
     Telemetry::Accumulate(Telemetry::COOKIE_SCHEME_SECURITY,
                           ((cookieAttributes.isSecure)? 0x02 : 0x00) |
                           ((isHTTPS)? 0x01 : 0x00));
   }
+*/
 
   int64_t currentTimeInUsec = PR_Now();
 
@@ -3282,6 +3284,15 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
                                      0x1E, 0x1F, 0x3B, 0x00 };
   if (aFromHttp && (cookieAttributes.value.FindCharInSet(illegalCharacters, 0) != -1)) {
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader, "invalid value character");
+    return newCookie;
+  }
+
+  if (!CheckHiddenPrefix(cookieAttributes)) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader, "failed the CheckHiddenPrefix tests");
+    return newCookie;
+  }
+  if (!CheckPrefixes(cookieAttributes, isHTTPS)) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader, "failed the prefix tests");
     return newCookie;
   }
 
@@ -4103,6 +4114,56 @@ nsCookieService::CheckPath(nsCookieAttributes &aCookieAttributes,
 
   if (aCookieAttributes.path.Length() > kMaxBytesPerPath ||
       aCookieAttributes.path.Contains('\t'))
+    return false;
+
+  return true;
+}
+
+bool
+nsCookieService::CheckPrefixes(nsCookieAttributes &aCookieAttributes,
+                               bool                aSecureRequest)
+{
+  if (aCookieAttributes.name.IsEmpty() || aCookieAttributes.name.Length() == 0)
+    return true;
+
+  bool isSecure = StringBeginsWith(aCookieAttributes.name, NS_LITERAL_CSTRING("__Secure-"));
+  bool isHost = StringBeginsWith(aCookieAttributes.name, NS_LITERAL_CSTRING("__Host-"));
+
+  if (!isSecure && !isHost) {
+    // not one of the magic prefixes: carry on
+    return true;
+  }
+
+  if (!aSecureRequest || !aCookieAttributes.isSecure) {
+    // the magic prefixes may only be used from a secure request and
+    // the secure attribute must be set on the cookie
+    return false;
+  }
+
+  if (isHost) {
+    // The host prefix requires that the path is "/" and that the cookie
+    // had no domain attribute. CheckDomain() and CheckPath() MUST be run
+    // first to make sure invalid attributes are rejected and to regularlize
+    // them. In particular all explicit domain attributes result in a host
+    // that starts with a dot, and if the host doesn't start with a dot it
+    // correctly matches the true host.
+    if (aCookieAttributes.host[0] == '.' ||
+        !aCookieAttributes.path.EqualsLiteral("/")) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool
+nsCookieService::CheckHiddenPrefix(nsCookieAttributes &aCookieAttributes)
+{
+  if (aCookieAttributes.name.IsEmpty() || aCookieAttributes.name.Length() == 0)
+    return true;
+  if (StringBeginsWith(aCookieAttributes.value, NS_LITERAL_CSTRING("__Host-")))
+    return false;
+  if (StringBeginsWith(aCookieAttributes.value, NS_LITERAL_CSTRING("__Secure-")))
     return false;
 
   return true;
