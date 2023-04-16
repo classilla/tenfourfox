@@ -826,6 +826,11 @@ MOZ_WIN_MEM_TRY_BEGIN
   uint32_t offset = aItem->LocalOffset();
   if (len < ZIPLOCAL_SIZE || offset > len - ZIPLOCAL_SIZE)
     return 0;
+  // Check there's enough space for the signature
+  if (offset > mFd->mLen) {
+    NS_WARNING("Corrupt local offset in JAR file");
+    return 0;
+  }
 
   // -- check signature before using the structure, in case the zip file is corrupt
   ZipLocal* Local = (ZipLocal*)(data + offset);
@@ -838,6 +843,11 @@ MOZ_WIN_MEM_TRY_BEGIN
   offset += ZIPLOCAL_SIZE +
             xtoint(Local->filename_len) +
             xtoint(Local->extrafield_len);
+  // Check data points inside the file.
+  if (offset > mFd->mLen) {
+    NS_WARNING("Corrupt local offset in JAR file");
+    return 0;
+  }
 
   return offset;
 MOZ_WIN_MEM_TRY_CATCH(return 0)
