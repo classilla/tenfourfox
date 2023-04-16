@@ -711,6 +711,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                       BLOCE("/public/scripts/tldr/index.js")
                     ) ||
 #endif // __ppc__
+                    BLOCU("https://developer.mozilla.org/static/js/main.7780a43b.js") ||
 
                     0) {
 #undef BLOC
