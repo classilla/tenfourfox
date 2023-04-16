@@ -297,6 +297,9 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 
                     // Start with leftmost, using hostname as a screen (TenFourFox issue 492).
 
+                    HTTP_OR_HTTPS_SUBDIR("assets.tagesspiegel.de", "/fonts/Abril_Text_");
+                    HTTP_OR_HTTPS_SUBDIR("assets.tagesspiegel.de", "/fonts/franklingothic-");
+
                     HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/ea/notosansjapanese/v6/NotoSansJP-");
                     HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/s/notosansjp/v14/");
                     HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/s/pressstart2p/v9/");
