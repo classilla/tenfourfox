@@ -1572,13 +1572,22 @@ nsLocalFile::IsExecutable(bool* aResult)
 
     // Search for any of the set of executable extensions.
     static const char* const executableExts[] = {
+#ifdef MOZ_WIDGET_COCOA
+      "afploc", // Can point to other files.
+#endif
       "air",  // Adobe AIR installer
 #ifdef MOZ_WIDGET_COCOA
-      "inetloc",  // https://ssd-disclosure.com/ssd-advisory-macos-finder-rce/
+      "atloc",    // Can point to other files.
       "fileloc",  // File location files can be used to point to other files.
-      "webloc",   // same URL
+      "ftploc",   // Can point to other files.
+      "inetloc",  // https://ssd-disclosure.com/ssd-advisory-macos-finder-rce/
+                  // Shouldn't be able to do the same, but can, due to
+                  // macOS vulnerabilities.
 #endif
       "jar"   // java application bundle
+#ifdef MOZ_WIDGET_COCOA
+      ,"webloc"   // same URL
+#endif
     };
     nsDependentSubstring ext = Substring(path, dotIdx + 1);
     for (size_t i = 0; i < ArrayLength(executableExts); i++) {
@@ -1781,11 +1790,14 @@ nsLocalFile::GetNativeTarget(nsACString& aResult)
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  if (readlink(mPath.get(), target, (size_t)size) < 0) {
+  ssize_t written = readlink(mPath.get(), target, (size_t)size);
+  if (written < 0) {
     free(target);
     return NSRESULT_FOR_ERRNO();
   }
-  target[size] = '\0';
+  // Target might have changed since the lstat call, or lstat might lie, see bug
+  // 1791029.
+  target[written] = '\0';
 
   nsresult rv = NS_OK;
   nsCOMPtr<nsIFile> self(this);
