@@ -1592,22 +1592,29 @@ CSSParserImpl::InitScanner(nsCSSScanner& aScanner,
   mSheetPrincipal = aSheetPrincipal;
   mHavePushBack = false;
 
+  // TenFourFox issue 659
   mHostCSSGridOK = false;
   if (MOZ_LIKELY(mBaseURI)) {
     nsCString host;
+    bool isChrome;
 
-    nsresult rv = mBaseURI->GetHost(host);
-    if (NS_SUCCEEDED(rv)) {
-      nsCString pref;
+    // Never turn on grid for browser chrome.
+    nsresult rv = mBaseURI->SchemeIs("chrome", &isChrome);
+    if (NS_SUCCEEDED(rv) && !isChrome) {
+      // Get host and check pref.
+      rv = mBaseURI->GetHost(host);
+      if (NS_SUCCEEDED(rv) && !host.IsEmpty()) {
+        nsCString pref;
 
-      pref.AssignLiteral("layout.css.grid.host.");
-      pref.SetCapacity(pref.Length() + host.Length());
-      pref += host;
-      mHostCSSGridOK = Preferences::GetBool(pref.get(), false);
+        pref.AssignLiteral("layout.css.grid.host.");
+        pref.SetCapacity(pref.Length() + host.Length());
+        pref += host;
+        mHostCSSGridOK = Preferences::GetBool(pref.get(), false);
 #if DEBUG
-      if (mHostCSSGridOK)
-        fprintf(stderr, "CSS grid enabled for %s\n", pref.get());
+        if (mHostCSSGridOK)
+          fprintf(stderr, "CSS grid enabled for %s\n", pref.get());
 #endif
+      }
     }
   }
 }
