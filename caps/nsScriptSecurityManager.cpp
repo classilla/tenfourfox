@@ -699,6 +699,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             ToLowerCase(hostname);
 #define BLOC(q) hostname.EqualsLiteral(q)
 #define BLOCU(q) url.EqualsLiteral(q)
+#define BLOCS(q) (StringBeginsWith(url, NS_LITERAL_CSTRING(q)))
 #define BLOCE(q) (StringEndsWith(url, NS_LITERAL_CSTRING(q)))
 
             if (0 ||
@@ -711,11 +712,12 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                       BLOCE("/public/scripts/tldr/index.js")
                     ) ||
 #endif // __ppc__
-                    BLOCU("https://developer.mozilla.org/static/js/main.7780a43b.js") ||
+                    BLOCS("https://developer.mozilla.org/static/js/main.") ||
 
                     0) {
 #undef BLOC
 #undef BLOCU
+#undef BLOCS
 #undef BLOCE
 
 #ifndef DEBUG
