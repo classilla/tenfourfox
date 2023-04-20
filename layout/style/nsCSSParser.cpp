@@ -1439,6 +1439,10 @@ protected:
   // Value to make sure our resolved variable results stay within sane limits.
   const uint32_t MAX_CSS_VAR_LENGTH = 10240;
 
+  // TenFourFox issue 659
+  // If this host is whitelisted, turn on CSS grid and inline grid.
+  bool mHostCSSGridOK : 1;
+
 public:
   // Used from nsCSSParser constructors and destructors
   CSSParserImpl* mNextFree;
@@ -1587,6 +1591,25 @@ CSSParserImpl::InitScanner(nsCSSScanner& aScanner,
   mSheetURI = aSheetURI;
   mSheetPrincipal = aSheetPrincipal;
   mHavePushBack = false;
+
+  mHostCSSGridOK = false;
+  if (MOZ_LIKELY(mBaseURI)) {
+    nsCString host;
+
+    nsresult rv = mBaseURI->GetHost(host);
+    if (NS_SUCCEEDED(rv)) {
+      nsCString pref;
+
+      pref.AssignLiteral("layout.css.grid.host.");
+      pref.SetCapacity(pref.Length() + host.Length());
+      pref += host;
+      mHostCSSGridOK = Preferences::GetBool(pref.get(), false);
+#if DEBUG
+      if (mHostCSSGridOK)
+        fprintf(stderr, "CSS grid enabled for %s\n", pref.get());
+#endif
+    }
+  }
 }
 
 void
@@ -7586,6 +7609,14 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
       }
       if ((aVariantMask & VARIANT_KEYWORD) != 0) {
         int32_t value;
+
+        // TenFourFox issue 659
+        if (MOZ_UNLIKELY(!mHostCSSGridOK &&
+             aKeywordTable == nsCSSProps::kDisplayKTable &&
+             (keyword == eCSSKeyword_grid ||
+              keyword == eCSSKeyword_inline_grid))) {
+          // pretend the keyword wasn't found
+        } else
         if (nsCSSProps::FindKeyword(keyword, aKeywordTable, value)) {
           aValue.SetIntValue(value, eCSSUnit_Enumerated);
           return CSSParseResult::Ok;

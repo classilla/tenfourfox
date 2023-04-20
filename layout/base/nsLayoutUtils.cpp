@@ -174,6 +174,9 @@ static ContentMap& GetContentMap() {
 // When the pref "layout.css.grid.enabled" changes, this function is invoked
 // to let us update kDisplayKTable, to selectively disable or restore the
 // entries for "grid" and "inline-grid" in that table.
+//
+// NB: as of TenFourFox issue 659, a whitelist entry per host is also required
+// to enable (but turning it off turns it off globally).
 static void
 GridEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
 {

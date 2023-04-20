@@ -2395,11 +2395,10 @@ pref("layout.css.variables.enabled", true);
 pref("layout.css.overflow-clip-box.enabled", false);
 
 // Is support for CSS grid enabled?
-#ifdef RELEASE_BUILD
-pref("layout.css.grid.enabled", false);
-#else
+// TenFourFox issue 659 makes this into a per-host whitelist.
 pref("layout.css.grid.enabled", true);
-#endif
+// Whitelist by default:
+pref("layout.css.grid.host.developer.mozilla.org", true);
 
 // Is support for CSS "grid-template-{columns,rows}: subgrid X" enabled?
 pref("layout.css.grid-template-subgrid-value.enabled", false);
