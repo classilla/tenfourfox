@@ -390,7 +390,14 @@ if (!defined($json_ref->{'license'}) ||
 
 select(STDOUT); $|++;
 %dupedupe = ();
-foreach $a (@{ $json_ref->{'categories'}->{'Cryptomining'} }) {
+&emit('Cryptomining');
+&emit('FingerprintingInvasive');
+# considering
+#&emit('Analytics');
+
+sub emit {
+my $cat = shift(@_);
+foreach $a (@{ $json_ref->{'categories'}->{$cat} }) {
 	foreach $b (keys(%{ $a })) {
 		die("illegal newline: $b\n") if ($b =~ /[\r\n]/s);
 		print "// $b\n";
@@ -404,8 +411,15 @@ foreach $a (@{ $json_ref->{'categories'}->{'Cryptomining'} }) {
 				die("illegal quote: $d\n") if ($d =~ /"/);
 				next if ($dupedupe{$d}++);
 
+				# whitelist (with regrets)
+				next if (0 ||
+					$d eq 'ibm.com' ||
+					$d eq 'godaddy.com' ||
+				0);
 				print "        BLOK(\"$d\") ||\n";
+				print "        BLOKD(\".$d\") ||\n";
 			}
 		}
 	}
+}
 }

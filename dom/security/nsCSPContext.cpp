@@ -673,30 +673,50 @@ nsCSPContext::logToConsole(const char16_t* aName,
  * Strip URI for reporting according to:
  * http://www.w3.org/TR/CSP/#violation-reports
  *
+ * @param aSelfURI
+ *        The URI of the CSP policy. Used for cross-origin checks.
  * @param aURI
  *        The uri to be stripped for reporting
  * @param aProtectedResourcePrincipal
  *        The loadingPrincipal of the protected resource
  *        which is needed to enforce the SOP.
+ * @param aEffectiveDirective
+ *        The effective directive that triggered this report
  * @return ASCII serialization of the uri to be reported.
  */
 void
-StripURIForReporting(nsIURI* aURI,
+StripURIForReporting(nsIURI* aSelfURI, nsIURI* aURI,
                      nsIPrincipal* aProtectedResourcePrincipal,
+                     const nsAString& aEffectiveDirective,
                      nsACString& outStrippedURI)
 {
   // 1) If the origin of uri is a globally unique identifier (for example,
   // aURI has a scheme of data, blob, or filesystem), then return the
   // ASCII serialization of uri’s scheme.
-  bool isHttp =
-    (NS_SUCCEEDED(aURI->SchemeIs("http", &isHttp)) && isHttp) ||
-    (NS_SUCCEEDED(aURI->SchemeIs("https", &isHttp)) && isHttp);
-  if (!isHttp) {
+  bool isHttpFtpOrWs =
+    (NS_SUCCEEDED(aURI->SchemeIs("https", &isHttpFtpOrWs)) && isHttpFtpOrWs) ||
+    (NS_SUCCEEDED(aURI->SchemeIs("http", &isHttpFtpOrWs)) && isHttpFtpOrWs) ||
+    (NS_SUCCEEDED(aURI->SchemeIs("wss", &isHttpFtpOrWs)) && isHttpFtpOrWs) ||
+    (NS_SUCCEEDED(aURI->SchemeIs("ws", &isHttpFtpOrWs)) && isHttpFtpOrWs) ||
+    (NS_SUCCEEDED(aURI->SchemeIs("ftp", &isHttpFtpOrWs)) && isHttpFtpOrWs);
+  if (!isHttpFtpOrWs) {
     // not strictly spec compliant, but what we really care about is
-    // http/https. If it's not http/https, then treat aURI as if
-    // it's a globally unique identifier and just return the scheme.
+    // http/https and also ftp. If it's not http/https or ftp, then treat aURI
+    // as if it's a globally unique identifier and just return the scheme.
     aURI->GetScheme(outStrippedURI);
     return;
+  }
+
+  // For cross-origin URIs in frame-src also strip the path.
+  // This prevents detailed tracking of pages loaded into an iframe
+  // by the embedding page using a report-only policy.
+  if (aEffectiveDirective.EqualsLiteral("frame-src") ||
+      aEffectiveDirective.EqualsLiteral("object-src")) {
+    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+    if (NS_FAILED(ssm->CheckSameOriginURI(aSelfURI, aURI, false))) {
+      aURI->GetPrePath(outStrippedURI);
+      return;
+    }
   }
 
   // 2) If the origin of uri is not the same as the origin of the protected
@@ -765,7 +785,8 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
     nsCOMPtr<nsIURI> uri = do_QueryInterface(aBlockedContentSource);
     // could be a string or URI
     if (uri) {
-      StripURIForReporting(uri, mLoadingPrincipal, reportBlockedURI);
+      StripURIForReporting(mSelfURI, uri, mLoadingPrincipal, aViolatedDirective,
+                           reportBlockedURI);
     } else {
       nsCOMPtr<nsISupportsCString> cstr = do_QueryInterface(aBlockedContentSource);
       if (cstr) {
@@ -782,7 +803,8 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
 
   // document-uri
   nsAutoCString reportDocumentURI;
-  StripURIForReporting(mSelfURI, mLoadingPrincipal, reportDocumentURI);
+  StripURIForReporting(mSelfURI, mSelfURI, mLoadingPrincipal,
+                       aViolatedDirective, reportDocumentURI);
   report.mCsp_report.mDocument_uri = NS_ConvertUTF8toUTF16(reportDocumentURI);
 
   // original-policy

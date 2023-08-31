@@ -1,4 +1,6 @@
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 2006-2007, by Cisco Systems, Inc. All rights reserved.
  * Copyright (c) 2008-2011, by Randall Stewart. All rights reserved.
  * Copyright (c) 2008-2011, by Michael Tuexen. All rights reserved.
@@ -41,15 +43,16 @@
 
 #include <errno.h>
 
-#if defined(__Userspace_os_Windows)
+#if defined(_WIN32)
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
-#include <Mswsock.h>
-#include <Windows.h>
+#include <mswsock.h>
+#include <windows.h>
 #include "user_environment.h"
 typedef CRITICAL_SECTION userland_mutex_t;
 #if WINVER < 0x0600
+typedef CRITICAL_SECTION userland_rwlock_t;
 enum {
 	C_SIGNAL = 0,
 	C_BROADCAST = 1,
@@ -70,6 +73,7 @@ void WakeAllXPConditionVariable(userland_cond_t *);
 #define SleepConditionVariableCS(cond, mtx, time) SleepXPConditionVariable(cond, mtx)
 #define WakeAllConditionVariable(cond) WakeAllXPConditionVariable(cond)
 #else
+typedef SRWLOCK userland_rwlock_t;
 #define DeleteConditionVariable(cond)
 typedef CONDITION_VARIABLE userland_cond_t;
 #endif
@@ -78,33 +82,30 @@ typedef HANDLE userland_thread_t;
 #define IPVERSION  4
 #define MAXTTL     255
 /* VS2010 comes with stdint.h */
-#if _MSC_VER >= 1600
+#if !defined(_MSC_VER) || (_MSC_VER >= 1600)
 #include <stdint.h>
 #else
-#define uint64_t   unsigned __int64
-#define uint32_t   unsigned __int32
-#define int32_t    __int32
-#define uint16_t   unsigned __int16
-#define int16_t    __int16
-#define uint8_t    unsigned __int8
-#define int8_t     __int8
+typedef unsigned __int64 uint64_t;
+typedef unsigned __int32 uint32_t;
+typedef __int32          int32_t;
+typedef unsigned __int16 uint16_t;
+typedef __int16          int16_t;
+typedef unsigned __int8  uint8_t;
+typedef __int8           int8_t;
 #endif
 #ifndef _SIZE_T_DEFINED
-#define size_t     __int32
+#typedef __int32         size_t;
 #endif
-#define u_long     unsigned __int64
-#define u_int      unsigned __int32
-#define u_int32_t  unsigned __int32
-#define u_int16_t  unsigned __int16
-#define u_int8_t   unsigned __int8
-#define u_char     unsigned char
-#define n_short    unsigned __int16
-#define u_short    unsigned __int16
-#define n_time     unsigned __int32
-#define sa_family_t unsigned __int8
-#define ssize_t    __int64
+typedef unsigned __int32 u_int;
+typedef unsigned char    u_char;
+typedef unsigned __int16 u_short;
+typedef unsigned __int8  sa_family_t;
+#ifndef _SSIZE_T_DEFINED
+typedef __int64          ssize_t;
+#endif
+#if !defined(__MINGW32__)
 #define __func__	__FUNCTION__
-
+#endif
 #ifndef EWOULDBLOCK
 #define EWOULDBLOCK             WSAEWOULDBLOCK
 #endif
@@ -218,9 +219,19 @@ typedef char* caddr_t;
 
 #define bzero(buf, len) memset(buf, 0, len)
 #define bcopy(srcKey, dstKey, len) memcpy(dstKey, srcKey, len)
-#if _MSC_VER < 1900
-#define snprintf(data, size, format, ...) _snprintf_s(data, size, _TRUNCATE, format, __VA_ARGS__)
+
+#if defined(_MSC_VER) && (_MSC_VER < 1900) && !defined(__MINGW32__)
+#define SCTP_SNPRINTF(data, size, format, ...) 					\
+	if (_snprintf_s(data, size, _TRUNCATE, format, __VA_ARGS__) < 0) {	\
+		data[0] = '\0';							\
+	}
+#else
+#define SCTP_SNPRINTF(data, ...)						\
+	if (snprintf(data, __VA_ARGS__) < 0 ) {					\
+		data[0] = '\0';							\
+	}
 #endif
+
 #define inline __inline
 #define __inline__ __inline
 #define	MSG_EOR		0x8		/* data completes record */
@@ -273,18 +284,21 @@ typedef char* caddr_t;
 #endif
 
 #else /* !defined(Userspace_os_Windows) */
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <pthread.h>
-#if defined(__Userspace_os_DragonFly) || defined(__Userspace_os_FreeBSD) || defined(__Userspace_os_Linux) || defined(__Userspace_os_NetBSD) || defined(__Userspace_os_OpenBSD) || defined(__Userspace_os_NaCl)
-#include <pthread.h>
+
+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
+#error "Unsupported build configuration."
 #endif
+
+#include <pthread.h>
+
 typedef pthread_mutex_t userland_mutex_t;
+typedef pthread_rwlock_t userland_rwlock_t;
 typedef pthread_cond_t userland_cond_t;
 typedef pthread_t userland_thread_t;
 #endif
 
-#if defined(__Userspace_os_Windows) || defined(__Userspace_os_NaCl)
+#if defined(_WIN32) || defined(__native_client__)
 
 #define IFNAMSIZ 64
 
@@ -326,7 +340,7 @@ struct ip {
 	u_char    ip_ttl;
 	u_char    ip_p;
 	u_short   ip_sum;
-    struct in_addr ip_src, ip_dst;
+	struct in_addr ip_src, ip_dst;
 };
 
 struct ifaddrs {
@@ -347,7 +361,7 @@ struct udphdr {
 };
 
 struct iovec {
-	unsigned long len;
+	size_t len;
 	char *buf;
 };
 
@@ -378,43 +392,9 @@ struct ifkpi {
 		int ifk_value;
 	} ifk_data;
 };
-
-struct ifreq {
-	char    ifr_name[16];
-	union {
-		struct sockaddr ifru_addr;
-		struct sockaddr ifru_dstaddr;
-		struct sockaddr ifru_broadaddr;
-		short  ifru_flags;
-		int ifru_metric;
-		int ifru_mtu;
-		int ifru_phys;
-		int ifru_media;
-		int    ifru_intval;
-		char*  ifru_data;
-		struct ifdevmtu ifru_devmtu;
-		struct ifkpi  ifru_kpi;
-		uint32_t ifru_wake_flags;
-	} ifr_ifru;
-#define ifr_addr        ifr_ifru.ifru_addr
-#define ifr_dstaddr     ifr_ifru.ifru_dstaddr
-#define ifr_broadaddr   ifr_ifru.ifru_broadaddr
-#define ifr_flags       ifr_ifru.ifru_flags[0]
-#define ifr_prevflags   ifr_ifru.ifru_flags[1]
-#define ifr_metric      ifr_ifru.ifru_metric
-#define ifr_mtu         ifr_ifru.ifru_mtu
-#define ifr_phys        ifr_ifru.ifru_phys
-#define ifr_media       ifr_ifru.ifru_media
-#define ifr_data        ifr_ifru.ifru_data
-#define ifr_devmtu      ifr_ifru.ifru_devmtu
-#define ifr_intval      ifr_ifru.ifru_intval
-#define ifr_kpi         ifr_ifru.ifru_kpi
-#define ifr_wake_flags  ifr_ifru.ifru_wake_flags
-};
-
 #endif
 
-#if defined(__Userspace_os_Windows)
+#if defined(_WIN32)
 int Win_getifaddrs(struct ifaddrs**);
 #define getifaddrs(interfaces)  (int)Win_getifaddrs(interfaces)
 int win_if_nametoindex(const char *);
@@ -425,9 +405,9 @@ int win_if_nametoindex(const char *);
 #define mtx_unlock(arg1)
 #define mtx_assert(arg1,arg2)
 #define MA_OWNED 7 /* sys/mutex.h typically on FreeBSD */
-#if !defined(__Userspace_os_FreeBSD)
+#if !defined(__FreeBSD__)
 struct mtx {int dummy;};
-#if !defined(__Userspace_os_NetBSD)
+#if !defined(__NetBSD__)
 struct selinfo {int dummy;};
 #endif
 struct sx {int dummy;};
@@ -435,10 +415,11 @@ struct sx {int dummy;};
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 /* #include <sys/param.h>  in FreeBSD defines MSIZE */
 /* #include <sys/ktr.h> */
 /* #include <sys/systm.h> */
-#if 0 // 10.4 has an old one. // defined(HAVE_SYS_QUEUE_H)
+#if defined(HAVE_SYS_QUEUE_H)
 #include <sys/queue.h>
 #else
 #include <user_queue.h>
@@ -457,22 +438,22 @@ struct sx {int dummy;};
 #include <user_mbuf.h>
 /* #include <sys/uio.h> */
 /* #include <sys/lock.h> */
-#if defined(__FreeBSD__) && __FreeBSD_version > 602000
+#if defined(__FreeBSD__) && !defined(__Userspace__)
 #include <sys/rwlock.h>
 #endif
 /* #include <sys/kthread.h> */
-#if defined(__FreeBSD__) && __FreeBSD_version > 602000
+#if defined(__FreeBSD__) && !defined(__Userspace__)
 #include <sys/priv.h>
 #endif
 /* #include <sys/random.h> */
-/* #include <sys/limits.h> */
+#include <limits.h>
 /* #include <machine/cpu.h> */
 
-#if defined(__Userspace_os_Darwin)
+#if defined(__APPLE__)
 /* was a 0 byte file.  needed for structs if_data(64) and net_event_data */
 #include <net/if_var.h>
 #endif
-#if defined(__Userspace_os_FreeBSD)
+#if defined(__FreeBSD__)
 #include <net/if_types.h>
 /* #include <net/if_var.h> was a 0 byte file.  causes struct mtx redefinition */
 #endif
@@ -480,7 +461,7 @@ struct sx {int dummy;};
  *  userspace as well? */
 /* on FreeBSD, this results in a redefintion of struct route */
 /* #include <net/route.h> */
-#if !defined(__Userspace_os_Windows) && !defined(__Userspace_os_NaCl)
+#if !defined(_WIN32) && !defined(__native_client__)
 #include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
@@ -496,8 +477,8 @@ struct sx {int dummy;};
 
 /* for getifaddrs */
 #include <sys/types.h>
-#if !defined(__Userspace_os_Windows)
-#if !defined(ANDROID) && (defined(INET) || defined(INET6))
+#if !defined(_WIN32)
+#if defined(INET) || defined(INET6)
 #include <ifaddrs.h>
 #endif
 
@@ -506,6 +487,8 @@ struct sx {int dummy;};
 
 /* for close, etc. */
 #include <unistd.h>
+/* for gettimeofday */
+#include <sys/time.h>
 #endif
 
 /* lots of errno's used and needed in userspace */
@@ -513,7 +496,7 @@ struct sx {int dummy;};
 /* for offsetof */
 #include <stddef.h>
 
-#if defined(SCTP_PROCESS_LEVEL_LOCKS) && !defined(__Userspace_os_Windows)
+#if defined(SCTP_PROCESS_LEVEL_LOCKS) && !defined(_WIN32)
 /* for pthread_mutex_lock, pthread_mutex_unlock, etc. */
 #include <pthread.h>
 #endif
@@ -524,22 +507,21 @@ struct sx {int dummy;};
 #endif				/* IPSEC */
 
 #ifdef INET6
-#if defined(__Userspace_os_FreeBSD)
+#if defined(__FreeBSD__)
 #include <sys/domain.h>
 #endif
 #ifdef IPSEC
 #include <netipsec/ipsec6.h>
 #endif
-#if !defined(__Userspace_os_Windows)
+#if !defined(_WIN32)
 #include <netinet/ip6.h>
-#include <netinet/icmp6.h>
 #endif
-#if defined(__Userspace_os_Darwin) || defined(__Userspace_os_FreeBSD) || defined(__Userspace_os_Linux) || defined(__Userspace_os_NetBSD) || defined(__Userspace_os_OpenBSD) || defined(__Userspace_os_Windows)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__linux__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(_WIN32) || defined(__EMSCRIPTEN__)
 #include "user_ip6_var.h"
 #else
 #include <netinet6/ip6_var.h>
 #endif
-#if defined(__Userspace_os_FreeBSD)
+#if defined(__FreeBSD__)
 #include <netinet6/in6_pcb.h>
 #include <netinet6/ip6protosw.h>
 /* #include <netinet6/nd6.h> was a 0 byte file */
@@ -554,7 +536,7 @@ struct sx {int dummy;};
 
 #include "netinet/sctp_sha1.h"
 
-#if __FreeBSD_version >= 700000
+#if defined(__FreeBSD__) && !defined(__Userspace__)
 #include <netinet/ip_options.h>
 #endif
 
@@ -563,11 +545,6 @@ struct sx {int dummy;};
 		SCTP_BASE_VAR(debug_printf)(__VA_ARGS__); \
 	}
 
-#if defined(__FreeBSD__)
-#ifndef in6pcb
-#define in6pcb		inpcb
-#endif
-#endif
 /* Declare all the malloc names for all the various mallocs */
 MALLOC_DECLARE(SCTP_M_MAP);
 MALLOC_DECLARE(SCTP_M_STRMI);
@@ -612,12 +589,12 @@ MALLOC_DECLARE(SCTP_M_SOCKOPT);
 /*
  *
  */
-#if !defined(__Userspace_os_Darwin)
+#if !defined(__APPLE__)
 #define USER_ADDR_NULL	(NULL)		/* FIX ME: temp */
 #endif
 
-#if defined(SCTP_DEBUG)
 #include <netinet/sctp_constants.h>
+#if defined(SCTP_DEBUG)
 #define SCTPDBG(level, ...)					\
 {								\
 	do {							\
@@ -671,7 +648,7 @@ MALLOC_DECLARE(SCTP_M_SOCKOPT);
 #define SCTP_VRF_IFN_HASH_SIZE	3
 #define	SCTP_INIT_VRF_TABLEID(vrf)
 
-#if !defined(__Userspace_os_Windows)
+#if !defined(_WIN32)
 #define SCTP_IFN_IS_IFT_LOOP(ifn) (strncmp((ifn)->ifn_name, "lo", 2) == 0)
 /* BSD definition */
 /* #define SCTP_ROUTE_IS_REAL_LOOP(ro) ((ro)->ro_rt && (ro)->ro_rt->rt_ifa && (ro)->ro_rt->rt_ifa->ifa_ifp && (ro)->ro_rt->rt_ifa->ifa_ifp->if_type == IFT_LOOP) */
@@ -765,14 +742,6 @@ MALLOC_DECLARE(SCTP_M_SOCKOPT);
 	umem_cache_destroy(zone);
 #endif
 
-/* global struct ifaddrs used in sctp_init_ifns_for_vrf getifaddrs call
- *  but references to fields are needed to persist as the vrf is queried.
- *  getifaddrs allocates memory that needs to be freed with a freeifaddrs
- *  call; this global is used to call freeifaddrs upon in sctp_pcb_finish
- */
-extern struct ifaddrs *g_interfaces;
-
-
 /*
  * __Userspace__ Defining sctp_hashinit_flags() and sctp_hashdestroy() for userland.
  */
@@ -812,10 +781,8 @@ sctp_hashfreedestroy(void *vhashtbl, struct malloc_type *type, u_long hashmask);
 /*__Userspace__ defining KTR_SUBSYS 1 as done in sctp_os_macosx.h */
 #define KTR_SUBSYS 1
 
-#define sctp_get_tick_count() (ticks)
-
 /* The packed define for 64 bit platforms */
-#if !defined(__Userspace_os_Windows)
+#if !defined(_WIN32)
 #define SCTP_PACKED __attribute__((packed))
 #define SCTP_UNUSED __attribute__((unused))
 #else
@@ -843,6 +810,13 @@ sctp_hashfreedestroy(void *vhashtbl, struct malloc_type *type, u_long hashmask);
                                   } else if ((m->m_flags & M_EXT) == 0) { \
                                      M_ALIGN(m, len); \
                                   }
+
+#if !defined(_WIN32)
+#define SCTP_SNPRINTF(data, ...)						\
+	if (snprintf(data, __VA_ARGS__) < 0) {					\
+		data[0] = '\0';							\
+	}
+#endif
 
 /* We make it so if you have up to 4 threads
  * writting based on the default size of
@@ -890,7 +864,7 @@ static inline void sctp_userspace_rtalloc(sctp_route_t *ro)
 	 *  SCTP_GET_IF_INDEX_FROM_ROUTE macro.
 	 */
 }
-#define SCTP_RTALLOC(ro, vrf_id) sctp_userspace_rtalloc((sctp_route_t *)ro)
+#define SCTP_RTALLOC(ro, vrf_id, fibnum) sctp_userspace_rtalloc((sctp_route_t *)ro)
 
 /* dummy rtfree needed once user_route.h is included */
 static inline void sctp_userspace_rtfree(sctp_rtentry_t *rt)
@@ -902,7 +876,6 @@ static inline void sctp_userspace_rtfree(sctp_rtentry_t *rt)
 		return;
 	}
 	free(rt);
-	rt = NULL;
 }
 #define rtfree(arg1) sctp_userspace_rtfree(arg1)
 
@@ -910,22 +883,16 @@ static inline void sctp_userspace_rtfree(sctp_rtentry_t *rt)
 /*************************/
 /*      MTU              */
 /*************************/
-int sctp_userspace_get_mtu_from_ifn(uint32_t if_index, int af);
+int sctp_userspace_get_mtu_from_ifn(uint32_t if_index);
 
-#define SCTP_GATHER_MTU_FROM_IFN_INFO(ifn, ifn_index, af) sctp_userspace_get_mtu_from_ifn(ifn_index, af)
+#define SCTP_GATHER_MTU_FROM_IFN_INFO(ifn, ifn_index) sctp_userspace_get_mtu_from_ifn(ifn_index)
 
 #define SCTP_GATHER_MTU_FROM_ROUTE(sctp_ifa, sa, rt) ((rt != NULL) ? rt->rt_rmx.rmx_mtu : 0)
-
-#define SCTP_GATHER_MTU_FROM_INTFC(sctp_ifn)  sctp_userspace_get_mtu_from_ifn(if_nametoindex(((struct ifaddrs *) (sctp_ifn))->ifa_name), AF_INET)
 
 #define SCTP_SET_MTU_OF_ROUTE(sa, rt, mtu) do { \
                                               if (rt != NULL) \
                                                  rt->rt_rmx.rmx_mtu = mtu; \
                                            } while(0)
-
-/* (de-)register interface event notifications */
-#define SCTP_REGISTER_INTERFACE(ifhandle, af)
-#define SCTP_DEREGISTER_INTERFACE(ifhandle, af)
 
 
 /*************************/
@@ -951,13 +918,6 @@ int sctp_userspace_get_mtu_from_ifn(uint32_t if_index, int af);
 #define SCTP_GET_HEADER_FOR_OUTPUT(o_pak) 0
 #define SCTP_RELEASE_HEADER(m)
 #define SCTP_RELEASE_PKT(m)	sctp_m_freem(m)
-/* UDP __Userspace__ - dummy definition */
-#define SCTP_ENABLE_UDP_CSUM(m) m=m
-/* BSD definition */
-/* #define SCTP_ENABLE_UDP_CSUM(m) do { \ */
-/*                                         m->m_pkthdr.csum_flags = CSUM_UDP; \ */
-/*                                         m->m_pkthdr.csum_data = offsetof(struct udphdr, uh_sum); \ */
-/*                                 } while (0) */
 
 #define SCTP_GET_PKT_VRFID(m, vrf_id)  ((vrf_id = SCTP_DEFAULT_VRFID) != SCTP_DEFAULT_VRFID)
 
@@ -983,11 +943,11 @@ int sctp_userspace_get_mtu_from_ifn(uint32_t if_index, int af);
  */
 
 /* get the v6 hop limit */
-#define SCTP_GET_HLIM(inp, ro) 128 /* As done for __Windows__ */
+#define SCTP_GET_HLIM(inp, ro) 128
 #define IPv6_HOP_LIMIT 128
 
 /* is the endpoint v6only? */
-#define SCTP_IPV6_V6ONLY(inp)	(((struct inpcb *)inp)->inp_flags & IN6P_IPV6_V6ONLY)
+#define SCTP_IPV6_V6ONLY(sctp_inpcb)	((sctp_inpcb)->ip_inp.inp.inp_flags & IN6P_IPV6_V6ONLY)
 /* is the socket non-blocking? */
 #define SCTP_SO_IS_NBIO(so)	((so)->so_state & SS_NBIO)
 #define SCTP_SET_SO_NBIO(so)	((so)->so_state |= SS_NBIO)
@@ -1000,6 +960,8 @@ int sctp_userspace_get_mtu_from_ifn(uint32_t if_index, int af);
 
 /* wakeup a socket */
 #define SCTP_SOWAKEUP(so)	wakeup(&(so)->so_timeo, so)
+/* number of bytes ready to read */
+#define SCTP_SBAVAIL(sb)	(sb)->sb_cc
 /* clear the socket buffer state */
 #define SCTP_SB_CLEAR(sb)	\
 	(sb).sb_cc = 0;		\
@@ -1008,11 +970,6 @@ int sctp_userspace_get_mtu_from_ifn(uint32_t if_index, int af);
 
 #define SCTP_SB_LIMIT_RCV(so) so->so_rcv.sb_hiwat
 #define SCTP_SB_LIMIT_SND(so) so->so_snd.sb_hiwat
-
-/* Future zero copy wakeup/send  function */
-#define SCTP_ZERO_COPY_EVENT(inp, so)
-/* This is re-pulse ourselves for sendbuf */
-#define SCTP_ZERO_COPY_SENDQ_EVENT(inp, so)
 
 #define SCTP_READ_RANDOM(buf, len)	read_random(buf, len)
 
@@ -1027,7 +984,7 @@ int sctp_userspace_get_mtu_from_ifn(uint32_t if_index, int af);
 
 /* sctp_pcb.h */
 
-#if defined(__Userspace_os_Windows)
+#if defined(_WIN32)
 #define SHUT_RD 1
 #define SHUT_WR 2
 #define SHUT_RDWR 3
@@ -1046,11 +1003,21 @@ int sctp_userspace_get_mtu_from_ifn(uint32_t if_index, int af);
 struct sockaddr_conn {
 #ifdef HAVE_SCONN_LEN
 	uint8_t sconn_len;
-#endif
 	uint8_t sconn_family;
+#else
+	uint16_t sconn_family;
+#endif
 	uint16_t sconn_port;
 	void *sconn_addr;
 };
+
+typedef void *(*start_routine_t)(void *);
+
+extern int
+sctp_userspace_thread_create(userland_thread_t *thread, start_routine_t start_routine);
+
+void
+sctp_userspace_set_threadname(const char *name);
 
 /*
  * SCTP protocol specific mbuf flags.
@@ -1074,13 +1041,13 @@ extern void sctp_userspace_ip_output(int *result, struct mbuf *o_pak,
                                      sctp_route_t *ro, void *stcb,
                                      uint32_t vrf_id);
 
-#define SCTP_IP_OUTPUT(result, o_pak, ro, stcb, vrf_id) sctp_userspace_ip_output(&result, o_pak, ro, stcb, vrf_id);
+#define SCTP_IP_OUTPUT(result, o_pak, ro, inp, vrf_id) sctp_userspace_ip_output(&result, o_pak, ro, inp, vrf_id);
 
 #if defined(INET6)
 extern void sctp_userspace_ip6_output(int *result, struct mbuf *o_pak,
                                       struct route_in6 *ro, void *stcb,
                                       uint32_t vrf_id);
-#define SCTP_IP6_OUTPUT(result, o_pak, ro, ifp, stcb, vrf_id) sctp_userspace_ip6_output(&result, o_pak, ro, stcb, vrf_id);
+#define SCTP_IP6_OUTPUT(result, o_pak, ro, ifp, inp, vrf_id) sctp_userspace_ip6_output(&result, o_pak, ro, inp, vrf_id);
 #endif
 
 
@@ -1090,7 +1057,7 @@ extern void sctp_userspace_ip6_output(int *result, struct mbuf *o_pak,
 { \
 	if (stcb && stcb->sctp_ep) \
 		result = ip6_output(o_pak, \
-				    ((struct in6pcb *)(stcb->sctp_ep))->in6p_outputopts, \
+				    ((struct inpcb *)(stcb->sctp_ep))->in6p_outputopts, \
 				    (ro), 0, 0, ifp, NULL); \
 	else \
 		result = ip6_output(o_pak, NULL, (ro), 0, 0, ifp, NULL); \
@@ -1104,12 +1071,12 @@ sctp_get_mbuf_for_msg(unsigned int space_needed, int want_header, int how, int a
 /* with the current included files, this is defined in Linux but
  *  in FreeBSD, it is behind a _KERNEL in sys/socket.h ...
  */
-#if defined(__Userspace_os_DragonFly) || defined(__Userspace_os_FreeBSD) || defined(__Userspace_os_OpenBSD) || defined(__Userspace_os_NaCl)
+#if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__native_client__)
 /* stolen from /usr/include/sys/socket.h */
 #define CMSG_ALIGN(n)   _ALIGN(n)
-#elif defined(__Userspace_os_NetBSD)
+#elif defined(__NetBSD__)
 #define CMSG_ALIGN(n)   (((n) + __ALIGNBYTES) & ~__ALIGNBYTES)
-#elif defined(__Userspace_os_Darwin)
+#elif defined(__APPLE__)
 #if !defined(__DARWIN_ALIGNBYTES)
 #define	__DARWIN_ALIGNBYTES	(sizeof(__darwin_size_t) - 1)
 #endif
@@ -1129,7 +1096,7 @@ sctp_get_mbuf_for_msg(unsigned int space_needed, int want_header, int how, int a
 #endif
 #define I_AM_HERE \
                 do { \
-			SCTP_PRINTF("%s:%d at %s\n", __FILE__, __LINE__ , __FUNCTION__); \
+			SCTP_PRINTF("%s:%d at %s\n", __FILE__, __LINE__ , __func__); \
 		} while (0)
 
 #ifndef timevalsub
@@ -1144,7 +1111,7 @@ sctp_get_mbuf_for_msg(unsigned int space_needed, int want_header, int how, int a
 	} while (0)
 #endif
 
-#if defined(__Userspace_os_Linux)
+#if defined(__linux__)
 #if !defined(TAILQ_FOREACH_SAFE)
 #define TAILQ_FOREACH_SAFE(var, head, field, tvar)             \
          for ((var) = ((head)->tqh_first);                     \
@@ -1158,16 +1125,23 @@ sctp_get_mbuf_for_msg(unsigned int space_needed, int want_header, int how, int a
               (var) = (tvar))
 #endif
 #endif
-#if defined(__Userspace_os_DragonFly)
+#if defined(__DragonFly__)
 #define TAILQ_FOREACH_SAFE TAILQ_FOREACH_MUTABLE
 #define LIST_FOREACH_SAFE LIST_FOREACH_MUTABLE
 #endif
 
-#if defined(__Userspace_os_NaCl)
+#if defined(__native_client__)
 #define	timercmp(tvp, uvp, cmp)						\
 	(((tvp)->tv_sec == (uvp)->tv_sec) ?				\
 	    ((tvp)->tv_usec cmp (uvp)->tv_usec) :			\
 	    ((tvp)->tv_sec cmp (uvp)->tv_sec))
+#endif
+
+#define SCTP_IS_LISTENING(inp) ((inp->sctp_flags & SCTP_PCB_FLAGS_ACCEPTING) != 0)
+
+#if defined(__APPLE__) || defined(__DragonFly__) || defined(__linux__) || defined(__native_client__) || defined(__NetBSD__) || defined(_WIN32) || defined(__Fuchsia__) || defined(__EMSCRIPTEN__)
+int
+timingsafe_bcmp(const void *, const void *, size_t);
 #endif
 
 #endif

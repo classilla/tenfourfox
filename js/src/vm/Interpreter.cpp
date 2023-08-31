@@ -3851,7 +3851,20 @@ END_CASE(JSOP_INITHOMEOBJECT)
 CASE(JSOP_SUPERBASE)
 {
     JSFunction& superEnvFunc = GetSuperEnvFunction(cx, REGS);
+#if(0)
+    // TenFourFox issue 488. This sometimes happens when we throw, so make
+    // it a warning.
     MOZ_ASSERT(superEnvFunc.allowSuperProperty());
+#else
+    if(!superEnvFunc.allowSuperProperty()) {
+#ifdef DEBUG
+        fprintf(stderr, "JSOP_SUPERBASE should only get things that allow SuperProperties\n");
+#endif
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_CONVERT_TO,
+                                "null", "object");
+        goto error;
+    }
+#endif
     MOZ_ASSERT(superEnvFunc.nonLazyScript()->needsHomeObject());
     const Value& homeObjVal = superEnvFunc.getExtendedSlot(FunctionExtended::METHOD_HOMEOBJECT_SLOT);
 

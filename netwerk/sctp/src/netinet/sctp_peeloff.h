@@ -1,4 +1,6 @@
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 2001-2007, by Cisco Systems, Inc. All rights reserved.
  * Copyright (c) 2008-2012, by Randall Stewart. All rights reserved.
  * Copyright (c) 2008-2012, by Michael Tuexen. All rights reserved.
@@ -30,9 +32,9 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) && !defined(__Userspace__)
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD: head/sys/netinet/sctp_peeloff.h 243516 2012-11-25 14:25:08Z tuexen $");
+__FBSDID("$FreeBSD$");
 #endif
 
 #ifndef _NETINET_SCTP_PEELOFF_H_
@@ -40,13 +42,13 @@ __FBSDID("$FreeBSD: head/sys/netinet/sctp_peeloff.h 243516 2012-11-25 14:25:08Z 
 #if defined(HAVE_SCTP_PEELOFF_SOCKOPT)
 /* socket option peeloff */
 struct sctp_peeloff_opt {
-#if !defined(__Windows__)
+#if !(defined(_WIN32) && !defined(__Userspace__))
 	int s;
 #else
 	HANDLE s;
 #endif
 	sctp_assoc_t assoc_id;
-#if !defined(__Windows__)
+#if !(defined(_WIN32) && !defined(__Userspace__))
 	int new_sd;
 #else
 	HANDLE new_sd;

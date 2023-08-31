@@ -42,8 +42,8 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-#if defined(__Userspace_os_Darwin) || defined (__Userspace_os_Windows)
-#if defined (__Userspace_os_Windows)
+#if defined(__APPLE__) || defined(_WIN32)
+#if defined(_WIN32)
 #define atomic_add_int(addr, val) InterlockedExchangeAdd((LPLONG)addr, (LONG)val)
 #define atomic_fetchadd_int(addr, val) InterlockedExchangeAdd((LPLONG)addr, (LONG)val)
 #define atomic_subtract_int(addr, val)   InterlockedExchangeAdd((LPLONG)addr,-((LONG)val))
@@ -54,7 +54,7 @@
 #define atomic_add_int(addr, val) OSAtomicAdd32Barrier(val, (int32_t *)addr)
 #define atomic_fetchadd_int(addr, val) OSAtomicAdd32Barrier(val, (int32_t *)addr)
 #define atomic_subtract_int(addr, val) OSAtomicAdd32Barrier(-val, (int32_t *)addr)
-#define atomic_cmpset_int(dst, exp, src) OSAtomicCompareAndSwap32Barrier(exp, src, (int *)dst)
+#define atomic_cmpset_int(dst, exp, src) OSAtomicCompareAndSwapIntBarrier(exp, src, (int *)dst)
 #define SCTP_DECREMENT_AND_CHECK_REFCOUNT(addr) (atomic_fetchadd_int(addr, -1) == 0)
 #endif
 
@@ -76,11 +76,11 @@
 		*addr = 0; \
 	} \
 }
-#if defined(__Userspace_os_Windows)
-static void atomic_init() {} /* empty when we are not using atomic_mtx */
-#else
-static inline void atomic_init() {} /* empty when we are not using atomic_mtx */
 #endif
+#if defined(_WIN32)
+static void atomic_init(void) {} /* empty when we are not using atomic_mtx */
+#else
+static inline void atomic_init(void) {} /* empty when we are not using atomic_mtx */
 #endif
 
 #else
@@ -132,7 +132,7 @@ static inline void atomic_init() {} /* empty when we are not using atomic_mtx */
 	} \
 }
 #endif
-static inline void atomic_init() {} /* empty when we are not using atomic_mtx */
+static inline void atomic_init(void) {} /* empty when we are not using atomic_mtx */
 #endif
 
 #if 0 /* using libatomic_ops */
@@ -173,7 +173,7 @@ static inline void atomic_init() {} /* empty when we are not using atomic_mtx */
 
 extern userland_mutex_t atomic_mtx;
 
-#if defined (__Userspace_os_Windows)
+#if defined(_WIN32)
 static inline void atomic_init() {
 	InitializeCriticalSection(&atomic_mtx);
 }
@@ -188,16 +188,31 @@ static inline void atomic_unlock() {
 }
 #else
 static inline void atomic_init() {
-	(void)pthread_mutex_init(&atomic_mtx, NULL);
+	pthread_mutexattr_t mutex_attr;
+
+	pthread_mutexattr_init(&mutex_attr);
+#ifdef INVARIANTS
+	pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
+#endif
+	pthread_mutex_init(&accept_mtx, &mutex_attr);
+	pthread_mutexattr_destroy(&mutex_attr);
 }
 static inline void atomic_destroy() {
 	(void)pthread_mutex_destroy(&atomic_mtx);
 }
 static inline void atomic_lock() {
+#ifdef INVARIANTS
+	KASSERT(pthread_mutex_lock(&atomic_mtx) == 0, ("atomic_lock: atomic_mtx already locked"))
+#else
 	(void)pthread_mutex_lock(&atomic_mtx);
+#endif
 }
 static inline void atomic_unlock() {
+#ifdef INVARIANTS
+	KASSERT(pthread_mutex_unlock(&atomic_mtx) == 0, ("atomic_unlock: atomic_mtx not locked"))
+#else
 	(void)pthread_mutex_unlock(&atomic_mtx);
+#endif
 }
 #endif
 /*

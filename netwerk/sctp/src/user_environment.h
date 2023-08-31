@@ -30,15 +30,24 @@
 
 #ifndef _USER_ENVIRONMENT_H_
 #define _USER_ENVIRONMENT_H_
+
+#if defined(_WIN32)
+// Needed for unified build so that rand_s is available to all unified
+// sources.
+#if !defined(_CRT_RAND_S) && !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
+#define _CRT_RAND_S
+#endif
+#endif
+
 /* __Userspace__ */
 #include <sys/types.h>
 
-#ifdef __Userspace_os_FreeBSD
+#ifdef __FreeBSD__
 #ifndef _SYS_MUTEX_H_
 #include <sys/mutex.h>
 #endif
 #endif
-#if defined (__Userspace_os_Windows)
+#if defined(_WIN32)
 #include "netinet/sctp_os_userspace.h"
 #endif
 
@@ -54,7 +63,7 @@ extern int maxsockets;
 extern int hz;
 
 
-/* The following two ints define a range of available ephermal ports. */
+/* The following two ints define a range of available ephemeral ports. */
 extern int ipport_firstauto, ipport_lastauto;
 
 /* nmbclusters is used in sctp_usrreq.c (e.g., sctp_init). In the FreeBSD kernel,
@@ -62,12 +71,14 @@ extern int ipport_firstauto, ipport_lastauto;
  */
 extern int nmbclusters;
 
-#if !defined (__Userspace_os_Windows)
-#define min(a,b) ((a)>(b)?(b):(a))
-#define max(a,b) ((a)>(b)?(a):(b))
+#if !defined(_MSC_VER) && !defined(__MINGW32__)
+#define min(a,b) (((a)>(b))?(b):(a))
+#define max(a,b) (((a)>(b))?(a):(b))
 #endif
 
-extern int read_random(void *buf, int count);
+void init_random(void);
+void read_random(void *, size_t);
+void finish_random(void);
 
 /* errno's may differ per OS.  errno.h now included in sctp_os_userspace.h */
 /* Source: /usr/src/sys/sys/errno.h */
@@ -82,23 +93,34 @@ extern int read_random(void *buf, int count);
 /* Source ip_output.c. extern'd in ip_var.h */
 extern u_short ip_id;
 
-#if defined(__Userspace_os_Linux)
+#if defined(__linux__)
 #define IPV6_VERSION            0x60
-#endif
-#if defined(INVARIANTS)
-#define panic(args...)            \
-	do {                      \
-		SCTP_PRINTF(args);\
-		exit(1);          \
-} while (0)
 #endif
 
 #if defined(INVARIANTS)
+#include <stdlib.h>
+
+#if defined(_WIN32)
+static inline void __declspec(noreturn)
+#else
+static inline void __attribute__((__noreturn__))
+#endif
+terminate_non_graceful(void) {
+	abort();
+}
+
+#define panic(...)                                  \
+	do {                                        \
+		SCTP_PRINTF("%s(): ", __func__);    \
+		SCTP_PRINTF(__VA_ARGS__);           \
+		SCTP_PRINTF("\n");                  \
+		terminate_non_graceful();           \
+} while (0)
+
 #define KASSERT(cond, args)          \
 	do {                         \
 		if (!(cond)) {       \
-			printf args ;\
-			exit(1);     \
+			panic args ; \
 		}                    \
 	} while (0)
 #else

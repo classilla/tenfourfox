@@ -738,6 +738,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
         if (MOZ_LIKELY(NS_SUCCEEDED(targetBaseURI->GetHost(hostname)))) {
             ToLowerCase(hostname);
 #define BLOK(q) hostname.EqualsLiteral(q)
+#define BLOKD(q) (StringEndsWith(hostname, NS_LITERAL_CSTRING(q)))
             if (0 ||
                 // This is used as a data source by a lot of UIs,
                 // so we shouldn't block it (e.g., nytimes).
@@ -1273,6 +1274,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
 #include "shavar-blocklist.h"
 
                     0) {
+#undef BLOKD
 #undef BLOK
                 // Yup.
 #ifndef DEBUG

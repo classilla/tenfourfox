@@ -1,4 +1,6 @@
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 2001-2007, by Cisco Systems, Inc. All rights reserved.
  * Copyright (c) 2008-2012, by Randall Stewart. All rights reserved.
  * Copyright (c) 2008-2012, by Michael Tuexen. All rights reserved.
@@ -30,20 +32,31 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) && !defined(__Userspace__)
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD: head/sys/netinet/sctp_crc32.c 235828 2012-05-23 11:26:28Z tuexen $");
-#endif
+__FBSDID("$FreeBSD$");
 
+#include "opt_sctp.h"
+
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/gsb_crc32.h>
+#include <sys/mbuf.h>
+
+#include <netinet/sctp.h>
+#include <netinet/sctp_crc32.h>
+#if defined(SCTP) || defined(SCTP_SUPPORT)
+#include <netinet/sctp_os.h>
+#include <netinet/sctp_pcb.h>
+#endif
+#else
 #include <netinet/sctp_os.h>
 #include <netinet/sctp.h>
 #include <netinet/sctp_crc32.h>
 #include <netinet/sctp_pcb.h>
+#endif
 
-
-#if !defined(SCTP_WITH_NO_CSUM)
-#if defined(__FreeBSD__) && __FreeBSD_version >= 800000
-#else
+#if !(defined(__FreeBSD__) && !defined(__Userspace__))
 /**
  *
  * Routine Description:
@@ -94,7 +107,7 @@ __FBSDID("$FreeBSD: head/sys/netinet/sctp_crc32.c 235828 2012-05-23 11:26:28Z tu
  * File Name = ............................ 8x256_tables.c
  */
 
-static uint32_t sctp_crc_tableil8_o32[256] =
+static const uint32_t sctp_crc_tableil8_o32[256] =
 {
 	0x00000000, 0xF26B8303, 0xE13B70F7, 0x1350F3F4, 0xC79A971F, 0x35F1141C, 0x26A1E7E8, 0xD4CA64EB,
 	0x8AD958CF, 0x78B2DBCC, 0x6BE22838, 0x9989AB3B, 0x4D43CFD0, 0xBF284CD3, 0xAC78BF27, 0x5E133C24,
@@ -150,7 +163,7 @@ static uint32_t sctp_crc_tableil8_o32[256] =
  * File Name = ............................ 8x256_tables.c
  */
 
-static uint32_t sctp_crc_tableil8_o40[256] =
+static const uint32_t sctp_crc_tableil8_o40[256] =
 {
 	0x00000000, 0x13A29877, 0x274530EE, 0x34E7A899, 0x4E8A61DC, 0x5D28F9AB, 0x69CF5132, 0x7A6DC945,
 	0x9D14C3B8, 0x8EB65BCF, 0xBA51F356, 0xA9F36B21, 0xD39EA264, 0xC03C3A13, 0xF4DB928A, 0xE7790AFD,
@@ -206,7 +219,7 @@ static uint32_t sctp_crc_tableil8_o40[256] =
  * File Name = ............................ 8x256_tables.c
  */
 
-static uint32_t sctp_crc_tableil8_o48[256] =
+static const uint32_t sctp_crc_tableil8_o48[256] =
 {
 	0x00000000, 0xA541927E, 0x4F6F520D, 0xEA2EC073, 0x9EDEA41A, 0x3B9F3664, 0xD1B1F617, 0x74F06469,
 	0x38513EC5, 0x9D10ACBB, 0x773E6CC8, 0xD27FFEB6, 0xA68F9ADF, 0x03CE08A1, 0xE9E0C8D2, 0x4CA15AAC,
@@ -262,7 +275,7 @@ static uint32_t sctp_crc_tableil8_o48[256] =
  * File Name = ............................ 8x256_tables.c
  */
 
-static uint32_t sctp_crc_tableil8_o56[256] =
+static const uint32_t sctp_crc_tableil8_o56[256] =
 {
 	0x00000000, 0xDD45AAB8, 0xBF672381, 0x62228939, 0x7B2231F3, 0xA6679B4B, 0xC4451272, 0x1900B8CA,
 	0xF64463E6, 0x2B01C95E, 0x49234067, 0x9466EADF, 0x8D665215, 0x5023F8AD, 0x32017194, 0xEF44DB2C,
@@ -318,7 +331,7 @@ static uint32_t sctp_crc_tableil8_o56[256] =
  * File Name = ............................ 8x256_tables.c
  */
 
-static uint32_t sctp_crc_tableil8_o64[256] =
+static const uint32_t sctp_crc_tableil8_o64[256] =
 {
 	0x00000000, 0x38116FAC, 0x7022DF58, 0x4833B0F4, 0xE045BEB0, 0xD854D11C, 0x906761E8, 0xA8760E44,
 	0xC5670B91, 0xFD76643D, 0xB545D4C9, 0x8D54BB65, 0x2522B521, 0x1D33DA8D, 0x55006A79, 0x6D1105D5,
@@ -374,7 +387,7 @@ static uint32_t sctp_crc_tableil8_o64[256] =
  * File Name = ............................ 8x256_tables.c
  */
 
-uint32_t sctp_crc_tableil8_o72[256] =
+static const uint32_t sctp_crc_tableil8_o72[256] =
 {
 	0x00000000, 0xEF306B19, 0xDB8CA0C3, 0x34BCCBDA, 0xB2F53777, 0x5DC55C6E, 0x697997B4, 0x8649FCAD,
 	0x6006181F, 0x8F367306, 0xBB8AB8DC, 0x54BAD3C5, 0xD2F32F68, 0x3DC34471, 0x097F8FAB, 0xE64FE4B2,
@@ -430,7 +443,7 @@ uint32_t sctp_crc_tableil8_o72[256] =
  * File Name = ............................ 8x256_tables.c
  */
 
-static uint32_t sctp_crc_tableil8_o80[256] =
+static const uint32_t sctp_crc_tableil8_o80[256] =
 {
 	0x00000000, 0x68032CC8, 0xD0065990, 0xB8057558, 0xA5E0C5D1, 0xCDE3E919, 0x75E69C41, 0x1DE5B089,
 	0x4E2DFD53, 0x262ED19B, 0x9E2BA4C3, 0xF628880B, 0xEBCD3882, 0x83CE144A, 0x3BCB6112, 0x53C84DDA,
@@ -486,7 +499,7 @@ static uint32_t sctp_crc_tableil8_o80[256] =
  * File Name = ............................ 8x256_tables.c
  */
 
-static uint32_t sctp_crc_tableil8_o88[256] =
+static const uint32_t sctp_crc_tableil8_o88[256] =
 {
 	0x00000000, 0x493C7D27, 0x9278FA4E, 0xDB448769, 0x211D826D, 0x6821FF4A, 0xB3657823, 0xFA590504,
 	0x423B04DA, 0x0B0779FD, 0xD043FE94, 0x997F83B3, 0x632686B7, 0x2A1AFB90, 0xF15E7CF9, 0xB86201DE,
@@ -613,7 +626,7 @@ multitable_crc32c(uint32_t crc32c,
 	return (sctp_crc32c_sb8_64_bit(crc32c, buffer, length, to_even_word));
 }
 
-static uint32_t sctp_crc_c[256] = {
+static const uint32_t sctp_crc_c[256] = {
 	0x00000000, 0xF26B8303, 0xE13B70F7, 0x1350F3F4,
 	0xC79A971F, 0x35F1141C, 0x26A1E7E8, 0xD4CA64EB,
 	0x8AD958CF, 0x78B2DBCC, 0x6BE22838, 0x9989AB3B,
@@ -696,8 +709,11 @@ singletable_crc32c(uint32_t crc32c,
 	return (crc32c);
 }
 
-
+#if defined(__Userspace__)
+uint32_t
+#else
 static uint32_t
+#endif
 calculate_crc32c(uint32_t crc32c,
                  const unsigned char *buffer,
                  unsigned int length)
@@ -708,92 +724,79 @@ calculate_crc32c(uint32_t crc32c,
 		return (multitable_crc32c(crc32c, buffer, length));
 	}
 }
-#endif /* FreeBSD < 80000 || other OS */
 
+#endif
+#if defined(__Userspace__)
+uint32_t
+#else
 static uint32_t
+#endif
 sctp_finalize_crc32c(uint32_t crc32c)
 {
-	uint32_t result;
-
 #if BYTE_ORDER == BIG_ENDIAN
-	uint8_t byte0, byte1, byte2, byte3;
-
+	uint32_t byte0, byte1, byte2, byte3;
 #endif
-	/* Complement the result */
-	result = ~crc32c;
+
 #if BYTE_ORDER == BIG_ENDIAN
 	/*
-	 * For BIG-ENDIAN.. aka Motorola byte order the result is in
-	 * little-endian form. So we must manually swap the bytes. Then we
-	 * can call htonl() which does nothing...
+	 * For BIG-ENDIAN platforms, the result is in LITTLE-ENDIAN byte order.
+	 * For LITTLE-ENDIAN platforms, the result is in in BIG-ENDIAN byte
+	 * order. So for BIG-ENDIAN platforms the bytes must be swapped to
+	 * return the result always in network byte order (aka BIG-ENDIAN).
 	 */
-	byte0 = result & 0x000000ff;
-	byte1 = (result >> 8) & 0x000000ff;
-	byte2 = (result >> 16) & 0x000000ff;
-	byte3 = (result >> 24) & 0x000000ff;
+	byte0 = crc32c & 0x000000ff;
+	byte1 = (crc32c >> 8) & 0x000000ff;
+	byte2 = (crc32c >> 16) & 0x000000ff;
+	byte3 = (crc32c >> 24) & 0x000000ff;
 	crc32c = ((byte0 << 24) | (byte1 << 16) | (byte2 << 8) | byte3);
-#else
-	/*
-	 * For INTEL platforms the result comes out in network order. No
-	 * htonl is required or the swap above. So we optimize out both the
-	 * htonl and the manual swap above.
-	 */
-	crc32c = result;
 #endif
-	return (crc32c);
+	return (~crc32c);
 }
 
-uint32_t
-sctp_calculate_cksum(struct mbuf *m, uint32_t offset)
+static int
+sctp_calculate_cksum_cb(void *arg, void *data, u_int len)
 {
-	/*
-	 * given a mbuf chain with a packetheader offset by 'offset'
-	 * pointing at a sctphdr (with csum set to 0) go through the chain
-	 * of SCTP_BUF_NEXT()'s and calculate the SCTP checksum. This also
-	 * has a side bonus as it will calculate the total length of the
-	 * mbuf chain. Note: if offset is greater than the total mbuf
-	 * length, checksum=1, pktlen=0 is returned (ie. no real error code)
-	 */
-	uint32_t base = 0xffffffff;
-	struct mbuf *at;
+	uint32_t *basep;
 
-	at = m;
-	/* find the correct mbuf and offset into mbuf */
-	while ((at != NULL) && (offset > (uint32_t) SCTP_BUF_LEN(at))) {
-		offset -= SCTP_BUF_LEN(at);	/* update remaining offset
-						 * left */
-		at = SCTP_BUF_NEXT(at);
-	}
-	while (at != NULL) {
-		if ((SCTP_BUF_LEN(at) - offset) > 0) {
-			base = calculate_crc32c(base,
-			    (unsigned char *)(SCTP_BUF_AT(at, offset)),
-			    (unsigned int)(SCTP_BUF_LEN(at) - offset));
-		}
-		if (offset) {
-			/* we only offset once into the first mbuf */
-			if (offset < (uint32_t) SCTP_BUF_LEN(at))
-				offset = 0;
-			else
-				offset -= SCTP_BUF_LEN(at);
-		}
-		at = SCTP_BUF_NEXT(at);
-	}
-	base = sctp_finalize_crc32c(base);
-	return (base);
+	basep = arg;
+	*basep = calculate_crc32c(*basep, data, len);
+	return (0);
 }
-#endif				/* !defined(SCTP_WITH_NO_CSUM) */
 
+/*
+ * Compute the SCTP checksum in network byte order for a given mbuf chain m
+ * which contains an SCTP packet starting at offset.
+ * Since this function is also called by ipfw, don't assume that
+ * it is compiled on a kernel with SCTP support.
+ */
+uint32_t
+sctp_calculate_cksum(struct mbuf *m, int32_t offset)
+{
+	uint32_t base;
+	int len;
 
-#if defined(__FreeBSD__)
+	M_ASSERTPKTHDR(m);
+	KASSERT(offset < m->m_pkthdr.len,
+	    ("%s: invalid offset %u into mbuf %p", __func__, offset, m));
+
+	base = 0xffffffff;
+	len = m->m_pkthdr.len - offset;
+	(void)m_apply(m, offset, len, sctp_calculate_cksum_cb, &base);
+	return (sctp_finalize_crc32c(base));
+}
+
+#if defined(__FreeBSD__) && !defined(__Userspace__)
+#if defined(SCTP) || defined(SCTP_SUPPORT)
+
+VNET_DEFINE(struct sctp_base_info, system_base_info);
+
+/*
+ * Compute and insert the SCTP checksum in network byte order for a given
+ * mbuf chain m which contains an SCTP packet starting at offset.
+ */
 void
 sctp_delayed_cksum(struct mbuf *m, uint32_t offset)
 {
-#if defined(SCTP_WITH_NO_CSUM)
-#ifdef INVARIANTS
-	panic("sctp_delayed_cksum() called when using no SCTP CRC.");
-#endif
-#else
 	uint32_t checksum;
 
 	checksum = sctp_calculate_cksum(m, offset);
@@ -801,18 +804,18 @@ sctp_delayed_cksum(struct mbuf *m, uint32_t offset)
 	SCTP_STAT_INCR(sctps_sendswcrc);
 	offset += offsetof(struct sctphdr, checksum);
 
-	if (offset + sizeof(uint32_t) > (uint32_t) (m->m_len)) {
-		SCTP_PRINTF("sctp_delayed_cksum(): m->len: %d,  off: %d.\n",
-		            (uint32_t) m->m_len, offset);
-		/*
-		 * XXX this shouldn't happen, but if it does, the correct
-		 * behavior may be to insert the checksum in the appropriate
-		 * next mbuf in the chain.
-		 */
+	if (offset + sizeof(uint32_t) > (uint32_t)(m->m_pkthdr.len)) {
+#ifdef INVARIANTS
+		panic("sctp_delayed_cksum(): m->m_pkthdr.len: %d, offset: %u.",
+		      m->m_pkthdr.len, offset);
+#else
+		SCTP_PRINTF("sctp_delayed_cksum(): m->m_pkthdr.len: %d, offset: %u.\n",
+		            m->m_pkthdr.len, offset);
+#endif
 		return;
 	}
-	*(uint32_t *) (m->m_data + offset) = checksum;
-#endif
+	m_copyback(m, (int)offset, (int)sizeof(uint32_t), (caddr_t)&checksum);
 }
+#endif
 #endif
 

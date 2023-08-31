@@ -1,4 +1,6 @@
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 2001-2008, by Cisco Systems, Inc. All rights reserved.
  * Copyright (c) 2008-2012, by Randall Stewart. All rights reserved.
  * Copyright (c) 2008-2012, by Michael Tuexen. All rights reserved.
@@ -30,22 +32,20 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) && !defined(__Userspace__)
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD: head/sys/netinet/sctp.h 279859 2015-03-10 19:49:25Z tuexen $");
+__FBSDID("$FreeBSD$");
 #endif
 
 #ifndef _NETINET_SCTP_H_
 #define _NETINET_SCTP_H_
 
-#if (defined(__APPLE__) || defined(__Userspace_os_Linux) || defined(__Userspace_os_Darwin))
+#if defined(__APPLE__) || defined(__linux__)
 #include <stdint.h>
 #endif
-
 #include <sys/types.h>
 
-
-#if !defined(__Userspace_os_Windows)
+#if !defined(_WIN32)
 #define SCTP_PACKED __attribute__((packed))
 #else
 #pragma pack (push, 1)
@@ -139,6 +139,7 @@ struct sctp_paramhdr {
 #define SCTP_NRSACK_SUPPORTED           0x00000030
 #define SCTP_PKTDROP_SUPPORTED          0x00000031
 #define SCTP_MAX_CWND                   0x00000032
+#define SCTP_ACCEPT_ZERO_CHECKSUM       0x00000033
 
 /*
  * read-only options
@@ -189,7 +190,6 @@ struct sctp_paramhdr {
 #define SCTP_STREAM_RESET_INCOMING	0x00000001
 #define SCTP_STREAM_RESET_OUTGOING	0x00000002
 
-
 /* here on down are more implementation specific */
 #define SCTP_SET_DEBUG_LEVEL		0x00001005
 #define SCTP_CLR_STAT_LOG               0x00001007
@@ -202,12 +202,14 @@ struct sctp_paramhdr {
 #define SCTP_PLUGGABLE_SS		0x00001203
 #define SCTP_SS_VALUE			0x00001204
 #define SCTP_CC_OPTION			0x00001205 /* Options for CC modules */
+/* For I-DATA */
+#define SCTP_INTERLEAVING_SUPPORTED	0x00001206
+
 /* read only */
 #define SCTP_GET_SNDBUF_USE		0x00001101
 #define SCTP_GET_STAT_LOG		0x00001103
 #define SCTP_PCB_STATUS			0x00001104
 #define SCTP_GET_NONCE_VALUES           0x00001105
-
 
 /* Special hook for dynamically setting primary for all assoc's,
  * this is a write only option that requires root privilege.
@@ -281,11 +283,11 @@ struct sctp_paramhdr {
 #define SCTP_PEELOFF                    0x0000800a
 /* the real worker for sctp_getaddrlen() */
 #define SCTP_GET_ADDR_LEN               0x0000800b
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(__Userspace__)
 /* temporary workaround for Apple listen() issue, no args used */
 #define SCTP_LISTEN_FIX			0x0000800c
 #endif
-#if defined(__Windows__)
+#if defined(_WIN32) && !defined(__Userspace__)
 /* workaround for Cygwin on Windows: returns the SOCKET handle */
 #define SCTP_GET_HANDLE			0x0000800d
 #endif
@@ -330,7 +332,6 @@ struct sctp_paramhdr {
 #define SCTP_SS_FAIR_BANDWITH		0x00000004
 /* First-come, first-serve */
 #define SCTP_SS_FIRST_COME		0x00000005
-
 
 /* fragment interleave constants
  * setting must be one of these or
@@ -402,39 +403,43 @@ struct sctp_error_cause {
 } SCTP_PACKED;
 
 struct sctp_error_invalid_stream {
-	struct sctp_error_cause cause;	/* code=SCTP_ERROR_INVALID_STREAM */
+	struct sctp_error_cause cause;	/* code=SCTP_CAUSE_INVALID_STREAM */
 	uint16_t stream_id;	/* stream id of the DATA in error */
 	uint16_t reserved;
 } SCTP_PACKED;
 
 struct sctp_error_missing_param {
-	struct sctp_error_cause cause;	/* code=SCTP_ERROR_MISSING_PARAM */
+	struct sctp_error_cause cause;	/* code=SCTP_CAUSE_MISSING_PARAM */
 	uint32_t num_missing_params;	/* number of missing parameters */
-	/* uint16_t param_type's follow */
+	uint16_t type[];
 } SCTP_PACKED;
 
 struct sctp_error_stale_cookie {
-	struct sctp_error_cause cause;	/* code=SCTP_ERROR_STALE_COOKIE */
+	struct sctp_error_cause cause;	/* code=SCTP_CAUSE_STALE_COOKIE */
 	uint32_t stale_time;	/* time in usec of staleness */
 } SCTP_PACKED;
 
 struct sctp_error_out_of_resource {
-	struct sctp_error_cause cause;	/* code=SCTP_ERROR_OUT_OF_RESOURCES */
+	struct sctp_error_cause cause;	/* code=SCTP_CAUSE_OUT_OF_RESOURCES */
 } SCTP_PACKED;
 
 struct sctp_error_unresolv_addr {
-	struct sctp_error_cause cause;	/* code=SCTP_ERROR_UNRESOLVABLE_ADDR */
-
+	struct sctp_error_cause cause;	/* code=SCTP_CAUSE_UNRESOLVABLE_ADDR */
 } SCTP_PACKED;
 
 struct sctp_error_unrecognized_chunk {
-	struct sctp_error_cause cause;	/* code=SCTP_ERROR_UNRECOG_CHUNK */
+	struct sctp_error_cause cause;	/* code=SCTP_CAUSE_UNRECOG_CHUNK */
 	struct sctp_chunkhdr ch;/* header from chunk in error */
 } SCTP_PACKED;
 
 struct sctp_error_no_user_data {
 	struct sctp_error_cause cause;	/* code=SCTP_CAUSE_NO_USER_DATA */
 	uint32_t tsn;			/* TSN of the empty data chunk */
+} SCTP_PACKED;
+
+struct sctp_error_auth_invalid_hmac {
+	struct sctp_error_cause cause;	/* code=SCTP_CAUSE_UNSUPPORTED_HMACID */
+	uint16_t hmac_id;
 } SCTP_PACKED;
 
 /*
@@ -462,6 +467,7 @@ struct sctp_error_no_user_data {
 /* EY nr_sack chunk id*/
 #define SCTP_NR_SELECTIVE_ACK	0x10
 /************0x40 series ***********/
+#define SCTP_IDATA		0x40
 /************0x80 series ***********/
 /* RFC5061 */
 #define	SCTP_ASCONF_ACK		0x80
@@ -477,7 +483,7 @@ struct sctp_error_no_user_data {
 #define SCTP_FORWARD_CUM_TSN	0xc0
 /* RFC5061 */
 #define SCTP_ASCONF		0xc1
-
+#define SCTP_IFORWARD_CUM_TSN	0xc2
 
 /* ABORT and SHUTDOWN COMPLETE FLAG */
 #define SCTP_HAD_NO_TCB		0x01
@@ -520,6 +526,7 @@ struct sctp_error_no_user_data {
 #define SCTP_PCB_FLAGS_BOUNDALL		0x00000004
 #define SCTP_PCB_FLAGS_ACCEPTING	0x00000008
 #define SCTP_PCB_FLAGS_UNBOUND		0x00000010
+#define SCTP_PCB_FLAGS_SND_ITERATOR_UP  0x00000020
 #define SCTP_PCB_FLAGS_CLOSE_IP         0x00040000
 #define SCTP_PCB_FLAGS_WAS_CONNECTED    0x00080000
 #define SCTP_PCB_FLAGS_WAS_ABORTED      0x00100000
@@ -561,7 +568,6 @@ struct sctp_error_no_user_data {
 #define SCTP_PCB_FLAGS_INTERLEAVE_STRMS  0x0000000000000010
 #define SCTP_PCB_FLAGS_DO_ASCONF         0x0000000000000020
 #define SCTP_PCB_FLAGS_AUTO_ASCONF       0x0000000000000040
-#define SCTP_PCB_FLAGS_ZERO_COPY_ACTIVE  0x0000000000000080
 /* socket options */
 #define SCTP_PCB_FLAGS_NODELAY           0x0000000000000100
 #define SCTP_PCB_FLAGS_AUTOCLOSE         0x0000000000000200
@@ -602,8 +608,8 @@ struct sctp_error_no_user_data {
 /* Largest PMTU allowed when disabling PMTU discovery */
 #define SCTP_LARGEST_PMTU  65536
 
-#if defined(__Userspace_os_Windows)
-#pragma pack()
+#if defined(_WIN32)
+#pragma pack(pop)
 #endif
 #undef SCTP_PACKED
 
@@ -621,8 +627,8 @@ struct sctp_error_no_user_data {
  */
 #define SCTP_MAX_SACK_DELAY 500 /* per RFC4960 */
 #define SCTP_MAX_HB_INTERVAL 14400000 /* 4 hours in ms */
+#define SCTP_MIN_COOKIE_LIFE     1000 /* 1 second in ms */
 #define SCTP_MAX_COOKIE_LIFE  3600000 /* 1 hour in ms */
-
 
 /* Types of logging/KTR tracing  that can be enabled via the
  * sysctl net.inet.sctp.sctp_logging. You must also enable

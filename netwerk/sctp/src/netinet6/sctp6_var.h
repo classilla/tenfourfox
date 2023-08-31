@@ -1,4 +1,6 @@
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 2001-2007, by Cisco Systems, Inc. All rights reserved.
  * Copyright (c) 2008-2012, by Randall Stewart. All rights reserved.
  * Copyright (c) 2008-2012, by Michael Tuexen. All rights reserved.
@@ -30,9 +32,9 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) && !defined(__Userspace__)
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD: head/sys/netinet6/sctp6_var.h 243186 2012-11-17 20:04:04Z tuexen $");
+__FBSDID("$FreeBSD$");
 #endif
 
 #ifndef _NETINET6_SCTP6_VAR_H_
@@ -42,47 +44,44 @@ __FBSDID("$FreeBSD: head/sys/netinet6/sctp6_var.h 243186 2012-11-17 20:04:04Z tu
 #ifdef INET
 extern void in6_sin6_2_sin(struct sockaddr_in *, struct sockaddr_in6 *);
 extern void in6_sin6_2_sin_in_sock(struct sockaddr *);
-extern void in6_sin_2_v4mapsin6(struct sockaddr_in *, struct sockaddr_in6 *);
+extern void in6_sin_2_v4mapsin6(const struct sockaddr_in *, struct sockaddr_in6 *);
 #endif
 #endif
 #if defined(_KERNEL)
 
-#if defined(__FreeBSD__) || (__APPLE__) || defined(__Windows__)
+#if !defined(__Userspace__)
 SYSCTL_DECL(_net_inet6_sctp6);
+#if defined(__FreeBSD__)
+extern struct protosw sctp6_seqpacket_protosw, sctp6_stream_protosw;
+#else
 extern struct pr_usrreqs sctp6_usrreqs;
+#endif
 #else
 int sctp6_usrreq(struct socket *, int, struct mbuf *, struct mbuf *, struct mbuf *);
 #endif
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(__Userspace__)
 int sctp6_input(struct mbuf **, int *);
 int sctp6_input_with_port(struct mbuf **, int *, uint16_t);
-#elif defined(__Panda__)
-int sctp6_input (pakhandle_type *);
-#elif defined(__FreeBSD__) && __FreeBSD_version < 902000
-int sctp6_input __P((struct mbuf **, int *, int));
-int sctp6_input_with_port __P((struct mbuf **, int *, uint16_t));
 #else
 int sctp6_input(struct mbuf **, int *, int);
 int sctp6_input_with_port(struct mbuf **, int *, uint16_t);
 #endif
-#if defined(__FreeBSD__) && __FreeBSD_version < 902000
-int sctp6_output
-__P((struct sctp_inpcb *, struct mbuf *, struct sockaddr *,
-     struct mbuf *, struct proc *));
-void sctp6_ctlinput __P((int, struct sockaddr *, void *));
-#else
 int sctp6_output(struct sctp_inpcb *, struct mbuf *, struct sockaddr *,
                  struct mbuf *, struct proc *);
-void sctp6_ctlinput(int, struct sockaddr *, void *);
+#if defined(__APPLE__) && !defined(__Userspace__) && !defined(APPLE_LEOPARD) && !defined(APPLE_SNOWLEOPARD) && !defined(APPLE_LION) && !defined(APPLE_MOUNTAINLION) && !defined(APPLE_ELCAPITAN)
+void sctp6_ctlinput(int, struct sockaddr *, void *, struct ifnet * SCTP_UNUSED);
+#elif defined(__FreeBSD__) && !defined(__Userspace__)
+ip6proto_ctlinput_t sctp6_ctlinput;
+#else
+void sctp6_ctlinput(int, struct sockaddr_in6 *, ip6ctlparam *);
 #endif
-#if !(defined(__FreeBSD__) || defined(__APPLE__))
+#if !((defined(__FreeBSD__) || defined(__APPLE__)) && !defined(__Userspace__))
 extern void in6_sin_2_v4mapsin6(struct sockaddr_in *, struct sockaddr_in6 *);
 extern void in6_sin6_2_sin(struct sockaddr_in *, struct sockaddr_in6 *);
 extern void in6_sin6_2_sin_in_sock(struct sockaddr *);
 #endif
-extern void sctp6_notify(struct sctp_inpcb *, struct icmp6_hdr *,
-                         struct sctphdr *, struct sockaddr *,
-                         struct sctp_tcb *, struct sctp_nets *);
+void sctp6_notify(struct sctp_inpcb *, struct sctp_tcb *, struct sctp_nets *,
+                  uint8_t, uint8_t, uint32_t);
 #endif
 #endif

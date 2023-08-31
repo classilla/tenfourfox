@@ -1,4 +1,6 @@
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 2001-2007, by Cisco Systems, Inc. All rights reserved.
  * Copyright (c) 2008-2012, by Randall Stewart. All rights reserved.
  * Copyright (c) 2008-2012, by Michael Tuexen. All rights reserved.
@@ -30,9 +32,9 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) && !defined(__Userspace__)
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD: head/sys/netinet/sctp_timer.h 235828 2012-05-23 11:26:28Z tuexen $");
+__FBSDID("$FreeBSD$");
 #endif
 
 #ifndef _NETINET_SCTP_TIMER_H_
@@ -44,22 +46,20 @@ __FBSDID("$FreeBSD: head/sys/netinet/sctp_timer.h 235828 2012-05-23 11:26:28Z tu
 #define SCTP_RTT_VAR_SHIFT 2
 
 struct sctp_nets *
-sctp_find_alternate_net(struct sctp_tcb *,
-    struct sctp_nets *, int mode);
-
-int
-sctp_threshold_management(struct sctp_inpcb *, struct sctp_tcb *,
-    struct sctp_nets *, uint16_t);
+sctp_find_alternate_net(struct sctp_tcb *, struct sctp_nets *, int);
 
 int
 sctp_t3rxt_timer(struct sctp_inpcb *, struct sctp_tcb *,
     struct sctp_nets *);
+
 int
 sctp_t1init_timer(struct sctp_inpcb *, struct sctp_tcb *,
     struct sctp_nets *);
+
 int
 sctp_shutdown_timer(struct sctp_inpcb *, struct sctp_tcb *,
     struct sctp_nets *);
+
 int
 sctp_heartbeat_timer(struct sctp_inpcb *, struct sctp_tcb *,
     struct sctp_nets *);
@@ -76,32 +76,28 @@ int
 sctp_shutdownack_timer(struct sctp_inpcb *, struct sctp_tcb *,
     struct sctp_nets *);
 int
-sctp_strreset_timer(struct sctp_inpcb *inp, struct sctp_tcb *stcb,
-    struct sctp_nets *net);
+sctp_strreset_timer(struct sctp_inpcb *, struct sctp_tcb *);
 
 int
 sctp_asconf_timer(struct sctp_inpcb *, struct sctp_tcb *,
     struct sctp_nets *);
 
 void
-sctp_delete_prim_timer(struct sctp_inpcb *, struct sctp_tcb *,
-    struct sctp_nets *);
+sctp_delete_prim_timer(struct sctp_inpcb *, struct sctp_tcb *);
 
 void
-sctp_autoclose_timer(struct sctp_inpcb *, struct sctp_tcb *,
-    struct sctp_nets *net);
+sctp_autoclose_timer(struct sctp_inpcb *, struct sctp_tcb *);
 
 void sctp_audit_retranmission_queue(struct sctp_association *);
 
 void sctp_iterator_timer(struct sctp_iterator *it);
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(__Userspace__)
 #if defined(APPLE_LEOPARD) || defined(APPLE_SNOWLEOPARD) || defined(APPLE_LION) || defined(APPLE_MOUNTAINLION)
 void sctp_slowtimo(void);
 #else
 void sctp_gc(struct inpcbinfo *);
 #endif
 #endif
-
 #endif
 #endif

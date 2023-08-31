@@ -297,6 +297,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 
                     // Start with leftmost, using hostname as a screen (TenFourFox issue 492).
 
+                    HTTP_OR_HTTPS_SUBDIR("www.tagesschau.de", "/resources/assets/fonts/TheSansC5s");
+
                     HTTP_OR_HTTPS_SUBDIR("assets.tagesspiegel.de", "/fonts/Abril_Text_");
                     HTTP_OR_HTTPS_SUBDIR("assets.tagesspiegel.de", "/fonts/franklingothic-");
 

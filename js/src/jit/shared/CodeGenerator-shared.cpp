@@ -1370,6 +1370,7 @@ CodeGeneratorShared::callVM(const VMFunction& fun, LInstruction* ins, const Regi
     // when returning from the call.  Failures are handled with exceptions based
     // on the return value of the C functions.  To guard the outcome of the
     // returned value, use another LIR instruction.
+    ensureOsiSpace();
     uint32_t callOffset = masm.callJit(wrapper);
     markSafepointAt(callOffset, ins);
 

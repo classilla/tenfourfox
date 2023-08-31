@@ -174,34 +174,31 @@ js::ErrorObject::checkAndUnwrapThis(JSContext* cx, CallArgs& args, const char* f
     // the slots we need. This allows us to support the poor-man's subclassing
     // of error: Object.create(Error.prototype).
 
-    RootedObject target(cx, CheckedUnwrap(&thisValue.toObject()));
-    if (!target) {
+    RootedObject obj(cx, &args.thisv().toObject());
+    RootedObject curr(cx, obj);
+    RootedObject target(cx);
+    do {
+      target = CheckedUnwrap(curr);
+      if (!target) {
         JS_ReportError(cx, "Permission denied to access object");
         return false;
-    }
+      }
+      if (target->is<ErrorObject>()) {
+        error.set(&target->as<ErrorObject>());
+        return true;
+      }
 
-    RootedObject proto(cx);
-    while (!target->is<ErrorObject>()) {
-        if (!GetPrototype(cx, target, &proto))
-            return false;
+      if (!GetPrototype(cx, curr, &curr)) {
+        return false;
+      }
+    } while (curr);
 
-        if (!proto) {
-            // We walked the whole prototype chain and did not find an Error
-            // object.
-            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                                 js_Error_str, fnName, thisValue.toObject().getClass()->name);
-            return false;
-        }
-
-        target = CheckedUnwrap(proto);
-        if (!target) {
-            JS_ReportError(cx, "Permission denied to access object");
-            return false;
-        }
-    }
-
-    error.set(&target->as<ErrorObject>());
-    return true;
+    // We walked the whole prototype chain and did not find an Error
+    // object.
+    JS_ReportErrorNumber(cx, GetErrorMessage, nullptr,
+                         JSMSG_INCOMPATIBLE_PROTO, js_Error_str,
+                         "(get stack)", obj->getClass()->name);
+    return false;
 }
 
 /* static */ bool

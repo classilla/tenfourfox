@@ -1,4 +1,6 @@
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 2001-2007, by Cisco Systems, Inc. All rights reserved.
  * Copyright (c) 2008-2012, by Randall Stewart. All rights reserved.
  * Copyright (c) 2008-2012, by Michael Tuexen. All rights reserved.
@@ -30,9 +32,9 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) && !defined(__Userspace__)
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD: head/sys/netinet/sctp_bsd_addr.h 237540 2012-06-24 21:25:54Z tuexen $");
+__FBSDID("$FreeBSD$");
 #endif
 
 #ifndef _NETINET_SCTP_BSD_ADDR_H_
@@ -47,7 +49,6 @@ void sctp_wakeup_iterator(void);
 
 void sctp_startup_iterator(void);
 
-
 #ifdef INET6
 void sctp_gather_internal_ifa_flags(struct sctp_ifa *ifa);
 #endif
@@ -59,8 +60,10 @@ int sctp_copy_out_packet_log(uint8_t *target, int length);
 
 #endif
 
-#if !defined(__Panda__)
 void sctp_addr_change(struct ifaddr *ifa, int cmd);
+#if defined(__FreeBSD__) && !defined(__Userspace__)
+
+void sctp_addr_change_event_handler(void *, struct ifaddr *, int);
 #endif
 
 void sctp_add_or_del_interfaces(int (*pred)(struct ifnet *), int add);
