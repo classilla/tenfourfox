@@ -84,7 +84,12 @@ void
 sctp_userspace_set_threadname(const char *name)
 {
 #if defined(__APPLE__)
+#if(1)
+	/* TenFourFox: no pthread_setname_np in Tiger */
+	return;
+#else
 	pthread_setname_np(name);
+#endif
 #endif
 #if defined(__linux__)
 	prctl(PR_SET_NAME, name);

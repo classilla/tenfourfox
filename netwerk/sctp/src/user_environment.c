@@ -132,8 +132,23 @@ init_random(void)
 void
 read_random(void *buf, size_t size)
 {
+/* TenFourFox: no arc4random_buf in Tiger.
+   This isn't used much, so substitute a secure, if suboptimal, alternate. */
+#if(0)
 	arc4random_buf(buf, size);
 	return;
+#else
+	size_t i;
+	char *c = (char *)buf;
+	for(i=0; i<size; i++) {
+		/* arc4random returns int, not char. Ass-U-ME that entropy
+		   is evenly distributed throughout the return value, so just
+		   take the lower 8 bits in case size is not a integral number
+		   of ints. */
+		c[i] = (arc4random() & 0xff);
+	}
+	return;
+#endif
 }
 
 void

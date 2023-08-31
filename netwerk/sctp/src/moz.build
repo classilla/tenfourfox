@@ -73,7 +73,6 @@ else:
 
 if CONFIG['OS_TARGET'] == 'Darwin':
     DEFINES['__APPLE_USE_RFC_2292'] = 1
-    DEFINES['__APPLE__'] = False
 
 if CONFIG['OS_TARGET'] in ('Linux', 'Android'):
     # to make sure that in6_pktinfo gets defined on all distros

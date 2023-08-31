@@ -1111,6 +1111,16 @@ sctp_get_mbuf_for_msg(unsigned int space_needed, int want_header, int how, int a
 	} while (0)
 #endif
 
+/* TenFourFox: we need both of these macros */
+#define TAILQ_FOREACH_SAFE(var, head, field, tvar)             \
+         for ((var) = ((head)->tqh_first);                     \
+              (var) && ((tvar) = TAILQ_NEXT((var), field), 1); \
+              (var) = (tvar))
+#define LIST_FOREACH_SAFE(var, head, field, tvar)              \
+         for ((var) = ((head)->lh_first);                      \
+              (var) && ((tvar) = LIST_NEXT((var), field), 1);  \
+              (var) = (tvar))
+
 #if defined(__linux__)
 #if !defined(TAILQ_FOREACH_SAFE)
 #define TAILQ_FOREACH_SAFE(var, head, field, tvar)             \
