@@ -91,7 +91,8 @@ static int BuildHuffmanTable(HuffmanCode* const root_table, int root_bits,
 
   assert(code_lengths_size != 0);
   assert(code_lengths != NULL);
-  assert(root_table != NULL);
+  assert((root_table != NULL && sorted != NULL) ||
+         (root_table == NULL && sorted == NULL));
   assert(root_bits > 0);
 
   // Build histogram of code lengths.
@@ -120,16 +121,22 @@ static int BuildHuffmanTable(HuffmanCode* const root_table, int root_bits,
   for (symbol = 0; symbol < code_lengths_size; ++symbol) {
     const int symbol_code_length = code_lengths[symbol];
     if (code_lengths[symbol] > 0) {
-      sorted[offset[symbol_code_length]++] = symbol;
+      if (sorted != NULL) {
+        sorted[offset[symbol_code_length]++] = symbol;
+      } else {
+        offset[symbol_code_length]++;
+      }
     }
   }
 
   // Special case code with only one value.
   if (offset[MAX_ALLOWED_CODE_LENGTH] == 1) {
-    HuffmanCode code;
-    code.bits = 0;
-    code.value = (uint16_t)sorted[0];
-    ReplicateValue(table, 1, total_size, code);
+    if (sorted != NULL) {
+      HuffmanCode code;
+      code.bits = 0;
+      code.value = (uint16_t)sorted[0];
+      ReplicateValue(table, 1, total_size, code);
+    }
     return total_size;
   }
 
@@ -151,6 +158,7 @@ static int BuildHuffmanTable(HuffmanCode* const root_table, int root_bits,
       if (num_open < 0) {
         return 0;
       }
+      if (root_table == NULL) continue;
       for (; count[len] > 0; --count[len]) {
         HuffmanCode code;
         code.bits = (uint8_t)len;
