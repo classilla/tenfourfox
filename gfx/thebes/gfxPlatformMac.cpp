@@ -305,6 +305,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/ea/notosansjapanese/v6/NotoSansJP-");
                     HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/s/notosansjp/v14/");
                     HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/s/pressstart2p/v9/");
+                    HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/s/sourceserifpro/v17/");
+                    HTTP_OR_HTTPS_SUBDIR("fonts.gstatic.com", "/s/oswald/v53/");
 
 
                     HTTP_OR_HTTPS_SUBDIR("www.icloud.com", "/fonts/SFUIText-");
