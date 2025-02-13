@@ -1,47 +1,23 @@
 // a.js
 //    http://zymerget.bid
-        BLOK("alflying.date") ||
-        BLOKD(".alflying.date") ||
-        BLOK("alflying.win") ||
-        BLOKD(".alflying.win") ||
-        BLOK("anybest.site") ||
-        BLOKD(".anybest.site") ||
-        BLOK("flightsy.bid") ||
-        BLOKD(".flightsy.bid") ||
-        BLOK("flightsy.win") ||
-        BLOKD(".flightsy.win") ||
-        BLOK("flightzy.bid") ||
-        BLOKD(".flightzy.bid") ||
         BLOK("flightzy.date") ||
         BLOKD(".flightzy.date") ||
-        BLOK("flightzy.win") ||
-        BLOKD(".flightzy.win") ||
         BLOK("zymerget.bid") ||
         BLOKD(".zymerget.bid") ||
-        BLOK("zymerget.faith") ||
-        BLOKD(".zymerget.faith") ||
+// AuthedMine
+//    https://authedmine.com
+        BLOK("authedmine.com") ||
+        BLOKD(".authedmine.com") ||
+// bmst.pw
+//    https://bmst.pw
+        BLOK("bmst.pw") ||
+        BLOKD(".bmst.pw") ||
 // CashBeet
 //    http://cashbeet.com
         BLOK("cashbeet.com") ||
         BLOKD(".cashbeet.com") ||
         BLOK("serv1swork.com") ||
         BLOKD(".serv1swork.com") ||
-// CoinHive
-//    https://coinhive.com
-        BLOK("ad-miner.com") ||
-        BLOKD(".ad-miner.com") ||
-        BLOK("authedmine.com") ||
-        BLOKD(".authedmine.com") ||
-        BLOK("bmst.pw") ||
-        BLOKD(".bmst.pw") ||
-        BLOK("cnhv.co") ||
-        BLOKD(".cnhv.co") ||
-        BLOK("coin-hive.com") ||
-        BLOKD(".coin-hive.com") ||
-        BLOK("coinhive.com") ||
-        BLOKD(".coinhive.com") ||
-        BLOK("wsservices.org") ||
-        BLOKD(".wsservices.org") ||
 // CoinPot
 //    http://coinpot.co
         BLOK("coinpot.co") ||
@@ -52,10 +28,6 @@
         BLOKD(".cryptaloot.pro") ||
         BLOK("crypto-loot.com") ||
         BLOKD(".crypto-loot.com") ||
-        BLOK("cryptolootminer.com") ||
-        BLOKD(".cryptolootminer.com") ||
-        BLOK("flashx.pw") ||
-        BLOKD(".flashx.pw") ||
         BLOK("gitgrub.pro") ||
         BLOKD(".gitgrub.pro") ||
         BLOK("reauthenticator.com") ||
@@ -66,24 +38,16 @@
         BLOKD(".webmine.pro") ||
 // CryptoWebMiner
 //    https://www.crypto-webminer.com
-        BLOK("bitcoin-pay.eu") ||
-        BLOKD(".bitcoin-pay.eu") ||
         BLOK("crypto-webminer.com") ||
         BLOKD(".crypto-webminer.com") ||
-        BLOK("ethpocket.de") ||
-        BLOKD(".ethpocket.de") ||
         BLOK("ethtrader.de") ||
         BLOKD(".ethtrader.de") ||
 // Gridcash
 //    https://www.gridcash.net/
         BLOK("adless.io") ||
         BLOKD(".adless.io") ||
-        BLOK("gridcash.net") ||
-        BLOKD(".gridcash.net") ||
 // JSE
 //    http://jsecoin.com
-        BLOK("freecontent.bid") ||
-        BLOKD(".freecontent.bid") ||
         BLOK("freecontent.date") ||
         BLOKD(".freecontent.date") ||
         BLOK("freecontent.stream") ||
@@ -98,18 +62,10 @@
         BLOKD(".jsecoin.com") ||
 // MinerAlt
 //    http://mineralt.io
-        BLOK("1q2w3.website") ||
-        BLOKD(".1q2w3.website") ||
         BLOK("analytics.blue") ||
         BLOKD(".analytics.blue") ||
-        BLOK("aster18cdn.nl") ||
-        BLOKD(".aster18cdn.nl") ||
-        BLOK("belicimo.pw") ||
-        BLOKD(".belicimo.pw") ||
         BLOK("besstahete.info") ||
         BLOKD(".besstahete.info") ||
-        BLOK("dinorslick.icu") ||
-        BLOKD(".dinorslick.icu") ||
         BLOK("feesocrald.com") ||
         BLOKD(".feesocrald.com") ||
         BLOK("gramombird.com") ||
@@ -118,34 +74,20 @@
         BLOKD(".istlandoll.com") ||
         BLOK("mepirtedic.com") ||
         BLOKD(".mepirtedic.com") ||
-        BLOK("mineralt.io") ||
-        BLOKD(".mineralt.io") ||
         BLOK("pampopholf.com") ||
         BLOKD(".pampopholf.com") ||
         BLOK("tercabilis.info") ||
         BLOKD(".tercabilis.info") ||
         BLOK("tulip18.com") ||
         BLOKD(".tulip18.com") ||
-        BLOK("vidzi.tv") ||
-        BLOKD(".vidzi.tv") ||
-        BLOK("yololike.space") ||
-        BLOKD(".yololike.space") ||
 // Minescripts
 //    http://minescripts.info
         BLOK("minescripts.info") ||
         BLOKD(".minescripts.info") ||
-        BLOK("sslverify.info") ||
-        BLOKD(".sslverify.info") ||
-// MineXMR
-//    http://minexmr.stream
-        BLOK("minexmr.stream") ||
-        BLOKD(".minexmr.stream") ||
 // NeroHut
 //    https://nerohut.com
         BLOK("nerohut.com") ||
         BLOKD(".nerohut.com") ||
-        BLOK("nhsrv.cf") ||
-        BLOKD(".nhsrv.cf") ||
 // Service4refresh
 //    https://service4refresh.info
         BLOK("service4refresh.info") ||
@@ -202,18 +144,32 @@
 //    http://www.adscoremarketing.com/
         BLOK("adsco.re") ||
         BLOKD(".adsco.re") ||
+// Adstra
+//    https://adstradata.com/
+        BLOK("bluecava.com") ||
+        BLOKD(".bluecava.com") ||
 // AdxSpace
 //    https://adx.space
         BLOK("00px.net") ||
         BLOKD(".00px.net") ||
-// AivaLabs
-//    https://aivalabs.com
-        BLOK("aivalabs.com") ||
-        BLOKD(".aivalabs.com") ||
+// Akamai
+//    http://www.akamai.com/
+        BLOK("pxlclnmdecom-a.akamaihd.net") ||
+        BLOKD(".pxlclnmdecom-a.akamaihd.net") ||
+// amoCRM
+//    https://www.amocrm.ru/
+        BLOK("amocrm.ru") ||
+        BLOKD(".amocrm.ru") ||
+// ArtificialComputationIntelligence
+//    https://acint.net/
+        BLOK("acint.net") ||
+        BLOKD(".acint.net") ||
 // AuditedMedia
 //    https://auditedmedia.com/
         BLOK("aamapi.com") ||
         BLOKD(".aamapi.com") ||
+        BLOK("aamapiv2.com") ||
+        BLOKD(".aamapiv2.com") ||
         BLOK("aamsitecertifier.com") ||
         BLOKD(".aamsitecertifier.com") ||
         BLOK("auditedmedia.com") ||
@@ -222,34 +178,30 @@
 //    http://mediaimpact.sk/
         BLOK("rsz.sk") ||
         BLOKD(".rsz.sk") ||
+// BeMob
+//    https://bemob.com
+        BLOK("7a75ebcbd7.com") ||
+        BLOKD(".7a75ebcbd7.com") ||
 // BetssonPalantir
 //    https://betssonpalantir.com/
         BLOK("betssonpalantir.com") ||
         BLOKD(".betssonpalantir.com") ||
+// BevyCommerce
+//    https://bevycommerce.com
+        BLOK("aivalabs.com") ||
+        BLOKD(".aivalabs.com") ||
 // BitMedia
 //    https://bitmedia.io/
         BLOK("bitmedia.io") ||
         BLOKD(".bitmedia.io") ||
-// BlueCava
-//    http://www.bluecava.com/
-        BLOK("bluecava.com") ||
-        BLOKD(".bluecava.com") ||
 // BoostBox
 //    https://www.boostbox.com.br/
         BLOK("boostbox.com.br") ||
         BLOKD(".boostbox.com.br") ||
-// Bouncex
-//    https://www.bouncex.com/
-        BLOK("bounceexchange.com") ||
-        BLOKD(".bounceexchange.com") ||
-        BLOK("bouncex.com") ||
-        BLOKD(".bouncex.com") ||
-        BLOK("bouncex.net") ||
-        BLOKD(".bouncex.net") ||
-// Brandcrumb
-//    http://www.brandcrumb.com
-        BLOK("brandcrumb.com") ||
-        BLOKD(".brandcrumb.com") ||
+// BrainNordic
+//    https://brainnordic.com
+        BLOK("dep-x.com") ||
+        BLOKD(".dep-x.com") ||
 // BreakTime
 //    https://www.breaktime.com.tw/
         BLOK("breaktime.com.tw") ||
@@ -258,6 +210,14 @@
 //    http://www.brightedge.com/
         BLOK("b0e8.com") ||
         BLOKD(".b0e8.com") ||
+// BrowserAnalytic
+//    https://browseranalytic.com
+        BLOK("browseranalytic.com") ||
+        BLOKD(".browseranalytic.com") ||
+// Buzzoola
+//    https://www.buzzoola.com/en/
+        BLOK("buzzoola.com") ||
+        BLOKD(".buzzoola.com") ||
 // C3 Metrics
 //    http://c3metrics.com/
         BLOK("c3metrics.com") ||
@@ -268,10 +228,18 @@
 //    https://www.callsource.com/
         BLOK("leadtrackingdata.com") ||
         BLOKD(".leadtrackingdata.com") ||
+// CapitalAudience
+//    https://www.capitalaudience.com/
+        BLOK("capitalaudience.com") ||
+        BLOKD(".capitalaudience.com") ||
 // CartsGuru
 //    https://carts.guru/
         BLOK("carts.guru") ||
         BLOKD(".carts.guru") ||
+// CHEQ
+//    https://cheq.ai/
+        BLOK("clickcease.com") ||
+        BLOKD(".clickcease.com") ||
 // ClearLink
 //    https://www.clearlink.com/
         BLOK("clearlink.com") ||
@@ -302,18 +270,38 @@
 //    https://www.clixtell.com/
         BLOK("clixtell.com") ||
         BLOKD(".clixtell.com") ||
-// Cloudflare
-//    https://cloudflare.com
-        BLOK("hcaptcha.com") ||
-        BLOKD(".hcaptcha.com") ||
+// CSG
+//    https://www.csgi.com/
+        BLOK("kitewheel.com") ||
+        BLOKD(".kitewheel.com") ||
 // dmpxs
 //    http://bob.dmpxs.com
         BLOK("dmpxs.com") ||
         BLOKD(".dmpxs.com") ||
+// DotdashMeredith
+//    https://www.dotdashmeredith.com/
+        BLOK("selectablemedia.com") ||
+        BLOKD(".selectablemedia.com") ||
 // EroAdvertising
 //    http://www.ero-advertising.com/
         BLOK("ero-advertising.com") ||
         BLOKD(".ero-advertising.com") ||
+// EthicalCapitalPartners
+//    https://www.ethicalcapitalpartners.com/
+        BLOK("adtng.com") ||
+        BLOKD(".adtng.com") ||
+        BLOK("trafficjunky.com") ||
+        BLOKD(".trafficjunky.com") ||
+// FingerprintJS
+//    https://fingerprint.com/
+        BLOK("fpnpmcdn.net") ||
+        BLOKD(".fpnpmcdn.net") ||
+        BLOK("openfpcdn.io") ||
+        BLOKD(".openfpcdn.io") ||
+// Flux
+//    https://flux.jp/en/solutions/
+        BLOK("flux-cdn.com") ||
+        BLOKD(".flux-cdn.com") ||
 // Foresee
 //    https://www.foresee.com
         BLOK("answerscloud.com") ||
@@ -324,6 +312,10 @@
 //    https://friends2follow.com/
         BLOK("antifraudjs.friends2follow.com") ||
         BLOKD(".antifraudjs.friends2follow.com") ||
+// GeeTest
+//    https://www.geetest.com/en/
+        BLOK("geetest.com") ||
+        BLOKD(".geetest.com") ||
 // Gleam
 //    https://gleam.io/
         BLOK("fraudjs.io") ||
@@ -356,6 +348,14 @@
 //    https://integralads.com/
         BLOK("adsafeprotected.com") ||
         BLOKD(".adsafeprotected.com") ||
+// intent.ly
+//    https://intent.ly/en/
+        BLOK("smct.io") ||
+        BLOKD(".smct.io") ||
+// IntuitionMachines
+//    https://www.imachines.com/
+        BLOK("hcaptcha.com") ||
+        BLOKD(".hcaptcha.com") ||
 // iShumei
 //    https://www.ishumei.com/
         BLOK("fengkongcloud.com") ||
@@ -372,32 +372,52 @@
 //    https://itch.io/
         BLOK("itch.io") ||
         BLOKD(".itch.io") ||
-// Kitewheel
-//    https://kitewheel.com/
-        BLOK("kitewheel.com") ||
-        BLOKD(".kitewheel.com") ||
+// Katalys
+//    https://katalys.com/
+        BLOK("revoffers.com") ||
+        BLOKD(".revoffers.com") ||
+// Klar
+//    https://www.getklar.com/
+        BLOK("durchsichtig.xyz") ||
+        BLOKD(".durchsichtig.xyz") ||
 // Konduto
 //    http://konduto.com
         BLOK("k-analytix.com") ||
         BLOKD(".k-analytix.com") ||
         BLOK("konduto.com") ||
         BLOKD(".konduto.com") ||
+// LeadInfo
+//    https://www.leadinfo.com/en/
+        BLOK("leadinfo.net") ||
+        BLOKD(".leadinfo.net") ||
 // LeadsHub
 //    https://ztsrv.com/
         BLOK("ztsrv.com") ||
         BLOKD(".ztsrv.com") ||
+// ListenLayer
+//    https://www.listenlayer.com/
+        BLOK("listenlayer.com") ||
+        BLOKD(".listenlayer.com") ||
 // lptracker
 //    https://lptracker.io/
         BLOK("lptracker.io") ||
         BLOKD(".lptracker.io") ||
+// Lunio
+//    https://lunio.ai/
+        BLOK("ppcprotect.com") ||
+        BLOKD(".ppcprotect.com") ||
+// MarketingArchitects
+//    https://www.marketingarchitects.com/
+        BLOK("mapixl.com") ||
+        BLOKD(".mapixl.com") ||
 // MaxMind
 //    https://www.maxmind.com/en/home
         BLOK("maxmind.com") ||
         BLOKD(".maxmind.com") ||
         BLOK("mmapiws.com") ||
         BLOKD(".mmapiws.com") ||
-// Mercadopago
-//    https://www.mercadopago.com/
+// MercadoLibre
+//    https://www.mercadolibre.com/
         BLOK("mercadopago.com") ||
         BLOKD(".mercadopago.com") ||
 // Mobials
@@ -408,12 +428,24 @@
 //    http://www.negishim.org
         BLOK("negishim.org") ||
         BLOKD(".negishim.org") ||
+// NoFraud
+//    https://www.nofraud.com/
+        BLOK("nofraud.com") ||
+        BLOKD(".nofraud.com") ||
+// Noto
+//    https://notolytix.com/
+        BLOK("notolytix.com") ||
+        BLOKD(".notolytix.com") ||
 // OneAd
 //    https://www.onead.com.tw/
         BLOK("guoshipartners.com") ||
         BLOKD(".guoshipartners.com") ||
         BLOK("onevision.com.tw") ||
         BLOKD(".onevision.com.tw") ||
+// OneF
+//    https://track.onef.pro
+        BLOK("onef.pro") ||
+        BLOKD(".onef.pro") ||
 // OnlineMetrix
 //    http://h.online-metrix.net
         BLOK("online-metrix.net") ||
@@ -438,10 +470,6 @@
 //    https://www.pixlee.com/
         BLOK("pixlee.com") ||
         BLOKD(".pixlee.com") ||
-// PPCProtect
-//    https://ppcprotect.com
-        BLOK("ppcprotect.com") ||
-        BLOKD(".ppcprotect.com") ||
 // PrometheusIntelligenceTechnology
 //    https://prometheusintelligencetechnology.com/
         BLOK("prometheusintelligencetechnology.com") ||
@@ -462,10 +490,10 @@
 //    https://gorollick.com
         BLOK("rollick.io") ||
         BLOKD(".rollick.io") ||
-// Selectable Media
-//    http://selectablemedia.com/
-        BLOK("selectablemedia.com") ||
-        BLOKD(".selectablemedia.com") ||
+// SardineAI
+//    https://sardine.ai
+        BLOK("sardine.ai") ||
+        BLOKD(".sardine.ai") ||
 // Semantiqo
 //    http://semantiqo.com/
         BLOK("semantiqo.com") ||
@@ -488,16 +516,14 @@
         BLOKD(".shorte.st") ||
 // SiftScience
 //    https://sift.com/
+        BLOK("sift.com") ||
+        BLOKD(".sift.com") ||
         BLOK("siftscience.com") ||
         BLOKD(".siftscience.com") ||
 // Signifyd
 //    https://www.signifyd.com/
         BLOK("signifyd.com") ||
         BLOKD(".signifyd.com") ||
-// SmarterClick
-//    https://smarterclick.com/privacy-policy/
-        BLOK("smct.io") ||
-        BLOKD(".smct.io") ||
 // Smi
 //    http://24smi.net
         BLOK("24smi.net") ||
@@ -514,30 +540,58 @@
 //    https://stripe.com
         BLOK("stripe.network") ||
         BLOKD(".stripe.network") ||
+// TeamBlue
+//    https://teamblue.services
+        BLOK("teamblue.services") ||
+        BLOKD(".teamblue.services") ||
 // TechSolutions
 //    https://www.techsolutions.com.tw/
         BLOK("techsolutions.com.tw") ||
         BLOKD(".techsolutions.com.tw") ||
+// TheNewCo
+//    https://www.thenewco.tech/
+        BLOK("tncid.app") ||
+        BLOKD(".tncid.app") ||
 // tongdun.cn
 //    https://www.tongdun.cn/?lan=EN
         BLOK("fraudmetrix.cn") ||
         BLOKD(".fraudmetrix.cn") ||
         BLOK("tongdun.net") ||
         BLOKD(".tongdun.net") ||
+// tp88trk
+//    https://www.tp88trk.com/
+        BLOK("tp88trk.com") ||
+        BLOKD(".tp88trk.com") ||
+// Tracify
+//    https://www.tracify.ai/
+        BLOK("tracify.ai") ||
+        BLOKD(".tracify.ai") ||
 // Trendemon
 //    https://trendemon.com/
         BLOK("trendemon.com") ||
         BLOKD(".trendemon.com") ||
+// Unseen
+//    https://unseenreport.com
+        BLOK("friendshipmale.com") ||
+        BLOKD(".friendshipmale.com") ||
+        BLOK("unseenreport.com") ||
+        BLOKD(".unseenreport.com") ||
 // Upland
 //    https://uplandsoftware.com/
         BLOK("leadlander.com") ||
         BLOKD(".leadlander.com") ||
         BLOK("sf14g.com") ||
         BLOKD(".sf14g.com") ||
+        BLOK("trackalyzer.com") ||
+        BLOKD(".trackalyzer.com") ||
 // VerticalHealth
 //    https://www.verticalhealth.com/
         BLOK("verticalhealth.net") ||
         BLOKD(".verticalhealth.net") ||
+// VicinityMedia
+//    https://vicinity.media/
+        BLOK("vic-m.co") ||
+        BLOKD(".vic-m.co") ||
 // Warumbistdusoarm
 //    https://warumbistdusoarm.space
         BLOK("warumbistdusoarm.space") ||
@@ -546,14 +600,26 @@
 //    https://www.webmecanik.com/
         BLOK("webmecanik.com") ||
         BLOKD(".webmecanik.com") ||
-// WideOrbit
-//    https://www.wideorbit.com/
-        BLOK("dep-x.com") ||
-        BLOKD(".dep-x.com") ||
-// Yandex
-//    http://www.yandex.com/
-        BLOK("mc.yandex.ru") ||
-        BLOKD(".mc.yandex.ru") ||
+// wpadmngr
+//    https://js.wpadmngr.com
+        BLOK("wpadmngr.com") ||
+        BLOKD(".wpadmngr.com") ||
+// Wunderkind
+//    https://www.wunderkind.co/
+        BLOK("bounceexchange.com") ||
+        BLOKD(".bounceexchange.com") ||
+        BLOK("bouncex.com") ||
+        BLOKD(".bouncex.com") ||
+        BLOK("bouncex.net") ||
+        BLOKD(".bouncex.net") ||
+// Xfyun
+//    https://www.xfyun.cn/
+        BLOK("xfyun.cn") ||
+        BLOKD(".xfyun.cn") ||
+// Yoox
+//    https://www.yoox.com/us
+        BLOK("yoox.it") ||
+        BLOKD(".yoox.it") ||
 // ZafulAffiliate
 //    https://affiliate.zaful.com/
         BLOK("affasi.com") ||
@@ -562,6 +628,10 @@
         BLOKD(".gw-ec.com") ||
         BLOK("zaful.com") ||
         BLOKD(".zaful.com") ||
+// zatnoh
+//    https://zatnoh.com
+        BLOK("zatnoh.com") ||
+        BLOKD(".zatnoh.com") ||
 // Zip
 //    https://zip.co
         BLOK("zipmoney.com.au") ||
