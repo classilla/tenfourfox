@@ -63,6 +63,8 @@
                     oncommand="gTenFourFoxSSUAManager.fillUA(event.target);">
             <menupopup>
               <menuitem label="" value=""/>
+              <menuitem label="Firefox 128ESR (Intel)" value="fx128"/>
+              <menuitem label="Firefox 115ESR (Intel)" value="fx115"/>
               <menuitem label="Firefox 102ESR (Intel)" value="fx102"/>
               <menuitem label="Firefox 91ESR (Intel)" value="fx91"/>
               <menuitem label="Firefox 78ESR (Intel)" value="fx78"/>

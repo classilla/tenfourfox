@@ -595,6 +595,10 @@ txMozillaXSLTProcessor::ImportStylesheet(nsIDOMNode *aStyle)
     NS_ENSURE_TRUE(!mStylesheetDocument && !mStylesheet,
                    NS_ERROR_NOT_IMPLEMENTED);
 
+    MOZ_ASSERT(!mEmbeddedStylesheetRoot);
+
+    mCompileResult = NS_OK;
+
     nsCOMPtr<nsINode> node = do_QueryInterface(aStyle);
     if (!node || !nsContentUtils::SubjectPrincipalOrSystemIfNativeCaller()->Subsumes(node->NodePrincipal())) {
         return NS_ERROR_DOM_SECURITY_ERR;

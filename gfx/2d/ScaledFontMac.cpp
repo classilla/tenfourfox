@@ -220,9 +220,11 @@ struct writeBuf
 
 #ifdef __ppc__
 #define TAG_CFF  0x43464620
+#define TAG_CFF2 0x43464632
 #define TAG_HEAD 0x68656164
 #else
 #define TAG_CFF  0x20464643
+#define TAG_CFF2 0x32464643
 #define TAG_HEAD 0x64616568
 #endif
 
@@ -292,7 +294,7 @@ ScaledFontMac::GetFontFileData(FontFileDataOutput aDataCallback, void *aBaton)
     TableRecord *records = new TableRecord[count];
     for (uint32_t i=3; i<(sizer/4); i+=4) { // Skip header
         uint32_t tag = wtable[i];
-        if (tag == TAG_CFF)
+        if (tag == TAG_CFF || tag == TAG_CFF2)
             CFF = true;
         // We know the length from the directory, so we can simply import
         // the data. We assume the table exists, and OMG if it doesn't.

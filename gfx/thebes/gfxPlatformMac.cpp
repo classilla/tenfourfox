@@ -345,6 +345,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("www.theatlantic.com", "/packages/fonts/garamond/AGaramondPro");
                     HTTP_OR_HTTPS_SUBDIR("www.theatlantic.com", "/packages/fonts/goldwyn/goldwyn");
                     HTTP_OR_HTTPS_SUBDIR("www.theatlantic.com", "/packages/fonts/atlantic/Atlantic-Serif");
+                    HTTP_OR_HTTPS_SUBDIR("www.theatlantic.com", "/packages/fonts/atlantic/AtlanticCondensed");
+                    HTTP_OR_HTTPS_SUBDIR("www.theatlantic.com", "/packages/fonts/logic/LogicMonospace");
 
                     HTTP_OR_HTTPS_SUBDIR("www.kulturstiftung-des-bundes.de", "/typo3conf/ext/base_ksb/Resources/Public/");
 
@@ -355,6 +357,8 @@ gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
                     HTTP_OR_HTTPS_SUBDIR("hartzfacts.de", "/google-fonts/s/notoseriftc/v7/");
 
                     HTTP_OR_HTTPS_SUBDIR("som.yale.edu","/themes/custom/som/fonts/neuehaasunica/NeueHaasUnicaBlack");
+
+                    HTTP_OR_HTTPS_SUBDIR("www.statnews.com","/wp-content/themes/stat/fonts/Utopia");
 
                     // Check hostname and subpatterns (TenFourFox issue 477).
                     HOST_AND_KEY("www.latimes.com", "/fonts/KisFBDisplay-");

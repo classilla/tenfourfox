@@ -53,7 +53,8 @@ body.serif .remove-button  {
 }
 
 #container {
-  max-width: 30em;
+  //max-width: 30em;
+  max-width: 80%;
   margin: 0 auto;
 }
 

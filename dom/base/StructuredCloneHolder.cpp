@@ -299,6 +299,7 @@ StructuredCloneHolder::Read(nsISupports* aParent,
   mParent = aParent;
 
   if (!StructuredCloneHolderBase::Read(aCx, aValue)) {
+    mTransferredPorts.Clear();
     JS_ClearPendingException(aCx);
     aRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
   }
@@ -1074,7 +1075,6 @@ StructuredCloneHolder::CustomReadTransferHandler(JSContext* aCx,
     OffscreenCanvasCloneData* data =
       static_cast<OffscreenCanvasCloneData*>(aContent);
     RefPtr<OffscreenCanvas> canvas = OffscreenCanvas::CreateFromCloneData(data);
-    delete data;
 
     JS::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, canvas, &value)) {
@@ -1082,6 +1082,7 @@ StructuredCloneHolder::CustomReadTransferHandler(JSContext* aCx,
       return false;
     }
 
+    delete data;
     aReturnObject.set(&value.toObject());
     return true;
   }

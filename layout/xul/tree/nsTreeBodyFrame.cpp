@@ -87,6 +87,7 @@ nsTreeBodyFrame::CancelImageRequests()
     // If our imgIRequest object was registered with the refresh driver
     // then we need to deregister it.
     nsTreeImageCacheEntry entry = iter.UserData();
+    static_cast<nsTreeImageListener*>(entry.listener.get())->ClearFrame();
     nsLayoutUtils::DeregisterImageRequest(PresContext(), entry.request,
                                           nullptr);
     entry.request->CancelAndForgetObserver(NS_BINDING_ABORTED);
@@ -2136,28 +2137,10 @@ nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContex
   // Look the image up in our cache.
   nsTreeImageCacheEntry entry;
   if (mImageCache.Get(imageSrc, &entry)) {
-    // Find out if the image has loaded.
-    uint32_t status;
-    imgIRequest *imgReq = entry.request;
-    imgReq->GetImageStatus(&status);
-    imgReq->GetImage(aResult); // We hand back the image here.  The GetImage call addrefs *aResult.
-    bool animated = true; // Assuming animated is the safe option
-
-    // We can only call GetAnimated if we're decoded
-    if (*aResult && (status & imgIRequest::STATUS_DECODE_COMPLETE))
-      (*aResult)->GetAnimated(&animated);
-
-    if ((!(status & imgIRequest::STATUS_LOAD_COMPLETE)) || animated) {
-      // We either aren't done loading, or we're animating. Add our row as a listener for invalidations.
-      nsCOMPtr<imgINotificationObserver> obs;
-      imgReq->GetNotificationObserver(getter_AddRefs(obs));
-
-      if (obs) {
-        static_cast<nsTreeImageListener*> (obs.get())->AddCell(aRowIndex, aCol);
-      }
-
-      return NS_OK;
-    }
+    entry.request->GetImage(aResult);
+    static_cast<nsTreeImageListener*>(entry.listener.get())
+        ->AddCell(aRowIndex, aCol);
+    return NS_OK;
   }
 
   if (!*aResult) {

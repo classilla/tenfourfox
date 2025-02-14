@@ -891,6 +891,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("ads.rubiconproject.com") ||
                 BLOK("eus.rubiconproject.com") ||
                 BLOK("fastlane.rubiconproject.com") ||
+                BLOK("micro.rubiconproject.com") ||
                 BLOK("optimized-by.rubiconproject.com") ||
                 
                 BLOK("cdn.engine.4dsply.com") ||
@@ -1054,6 +1055,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                 BLOK("pixel.mathtag.com") ||
 
                 BLOK("a.teads.tv") ||
+                BLOK("p.teads.tv") ||
                 BLOK("cdn.teads.tv") ||
 
                 BLOK("cdata.carambo.la") ||
